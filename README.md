@@ -152,6 +152,3 @@ Full documentation at the repo root:
 
 - `DOCUMENTATION.md` — architecture, API reference, setup guide, security
 - `TODO.md` — feature backlog and progress tracker
-- `INVESTOR_PITCH.md` — problem, solution, market, ask
-- `FUNDING_STRATEGY.md` — funding path and action plan
-- `GO_TO_MARKET.md` — ICP, buyer journey, GTM plan
