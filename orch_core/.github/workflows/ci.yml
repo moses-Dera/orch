@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: orch
+          POSTGRES_PASSWORD: orch
+          POSTGRES_DB: orch_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate Prisma client
+        run: prisma generate
+        env:
+          DATABASE_URL: postgresql://orch:orch@localhost:5432/orch_test
+
+      - name: Run migrations
+        run: python migrate.py
+        env:
+          DATABASE_URL: postgresql://orch:orch@localhost:5432/orch_test
+
+      - name: Run tests
+        run: pytest tests/ -v
+        env:
+          DATABASE_URL: postgresql://orch:orch@localhost:5432/orch_test
+          ENV: test
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

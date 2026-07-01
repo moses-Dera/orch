@@ -1,0 +1,245 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+model Organization {
+  id               String         @id @default(uuid())
+  name             String
+  slug             String?        @unique
+  ownerClerkId     String?
+  modelPolicy      String         @default("open")
+  enforcedModel    String?
+  defaultModelId   String?
+  fallbackModelIds String[]       @default([])
+  repoUrls         String[]       @default([])  // git remotes registered via orch init
+  tier             String         @default("free")
+  createdAt        DateTime       @default(now())
+  teams            Team[]
+  modelConfigs     ModelConfig[]
+  memberships      OrgMembership[]
+  invites          Invite[]
+  auditEvents      AuditEvent[]
+  billing          Billing?
+  githubInstallations GitHubInstallation[]
+}
+
+model Team {
+  id       String    @id @default(uuid())
+  name     String
+  orgId    String
+  org      Organization @relation(fields: [orgId], references: [id])
+  apiKeys  ApiKey[]
+  members  Member[]
+  sessions Session[]
+  invites  Invite[]
+}
+
+model Member {
+  id           String    @id @default(uuid())
+  clerkId      String?   // not unique — one person can belong to multiple orgs
+  email        String
+  name         String?
+  avatarUrl    String?
+  role         String    // "owner" | "admin" | "member" | "viewer"
+  teamId       String
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime?
+  team         Team      @relation(fields: [teamId], references: [id])
+  apiKeys      ApiKey[]
+  sessions     Session[]
+  auditEvents  AuditEvent[]
+
+  @@unique([clerkId, teamId])  // unique per team, not globally
+  @@unique([email, teamId])
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  label     String   @default("default")
+  teamId    String
+  memberId  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id])
+  member    Member?  @relation(fields: [memberId], references: [id])
+}
+
+model ModelConfig {
+  id            String       @id @default(uuid())
+  orgId         String
+  displayName   String
+  provider      String
+  modelId       String
+  endpoint      String?
+  encryptedKey  String?
+  contextWindow Int          @default(128000)
+  isActive      Boolean      @default(true)
+  addedAt       DateTime     @default(now())
+  org           Organization @relation(fields: [orgId], references: [id])
+}
+
+model Session {
+  id                String    @id @default(uuid())
+  createdAt         DateTime  @default(now())
+  constraintVersion String?
+  teamId            String?
+  memberId          String?
+  team              Team?     @relation(fields: [teamId], references: [id])
+  member            Member?   @relation(fields: [memberId], references: [id])
+  messages          Message[]
+}
+
+model Message {
+  id           Int      @id @default(autoincrement())
+  role         String
+  content      String
+  createdAt    DateTime @default(now())
+  sessionId    String
+  modelUsed    String?
+  inputTokens  Int?
+  outputTokens Int?
+  session      Session  @relation(fields: [sessionId], references: [id])
+}
+
+model DomainConstraint {
+  id            String              @id @unique
+  description   String
+  constraints   String
+  gptVariant    String?
+  claudeVariant String?
+  geminiVariant String?
+  version       String              @default("1.0")
+  updatedAt     DateTime            @updatedAt
+  overrides     ConstraintOverride[]
+  healthScores  ConstraintHealth[]
+  chunks        ConstraintChunk[]
+}
+
+model ConstraintChunk {
+  id           String   @id @default(uuid())
+  constraintId String
+  chunkIndex   Int                    // order within the constraint
+  content      String                 // the chunk text
+  // embedding stored as raw floats in a separate pgvector column via migration
+  // Prisma doesn't support vector type natively — we use raw SQL for similarity search
+  createdAt    DateTime @default(now())
+  constraint   DomainConstraint @relation(fields: [constraintId], references: [id], onDelete: Cascade)
+
+  @@index([constraintId])
+}
+
+model ConstraintOverride {
+  id           String           @id @default(uuid())
+  constraintId String
+  sessionId    String
+  modelUsed    String
+  reason       String
+  createdAt    DateTime         @default(now())
+  constraint   DomainConstraint @relation(fields: [constraintId], references: [id])
+}
+
+model ConstraintHealth {
+  id             String           @id @default(uuid())
+  constraintId   String
+  orgId          String
+  totalRequests  Int              @default(0)
+  totalOverrides Int              @default(0)
+  overrideRate   Float            @default(0)
+  healthScore    Float            @default(100)
+  lastComputed   DateTime         @default(now())
+  constraint     DomainConstraint @relation(fields: [constraintId], references: [id])
+
+  @@unique([constraintId, orgId])
+}
+
+model Invite {
+  id        String       @id @default(uuid())
+  email     String
+  role      String       @default("member")
+  teamId    String
+  orgId     String
+  token     String       @unique
+  accepted  Boolean      @default(false)
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+  invitedBy String?
+  team      Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model OrgMembership {
+  id       String       @id @default(uuid())
+  clerkId  String
+  orgId    String
+  role     String       @default("member")
+  joinedAt DateTime     @default(now())
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([clerkId, orgId])
+}
+
+model AuditEvent {
+  id        String       @id @default(uuid())
+  orgId     String
+  memberId  String?
+  clerkId   String?
+  action    String
+  resource  String?
+  metadata  Json?
+  ip        String?
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  member    Member?      @relation(fields: [memberId], references: [id])
+
+  @@index([orgId])
+  @@index([memberId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Billing {
+  id                   String       @id @default(uuid())
+  orgId                String       @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  plan                 String       @default("free")
+  status               String       @default("active")
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  org                  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model ModelRelease {
+  id            String   @id @default(uuid())
+  modelId       String   @unique
+  provider      String
+  displayName   String
+  contextWindow Int?
+  detectedAt    DateTime @default(now())
+  notifiedOrgs  String[] @default([])
+}
+
+model GitHubInstallation {
+  id                String       @id @default(uuid())
+  installationId    Int          @unique  // GitHub's installation ID
+  githubOrgName     String                // GitHub org/user login
+  githubOrgId       Int                   // GitHub org/user ID
+  orgId             String                // Orch org this belongs to
+  repos             String[]     @default([])  // covered repo full names
+  workflowCommitted Boolean      @default(false)
+  active            Boolean      @default(true)
+  installedAt       DateTime     @default(now())
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}

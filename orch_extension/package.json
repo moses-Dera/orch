@@ -1,0 +1,83 @@
+{
+  "name": "orch",
+  "displayName": "Orch",
+  "description": "Governance over all AI, regardless of source. Auto-configures from your org, right-click audit, inline findings.",
+  "version": "0.2.0",
+  "publisher": "orch-dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orch-dev/orch-extension"
+  },
+  "homepage": "https://github.com/orch-dev/orch-extension#readme",
+  "bugs": {
+    "url": "https://github.com/orch-dev/orch-extension/issues"
+  },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Linters", "AI", "Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "orch.auditFile",
+        "title": "Orch: Audit This File"
+      },
+      {
+        "command": "orch.clearDiagnostics",
+        "title": "Orch: Clear Findings"
+      },
+      {
+        "command": "orch.configure",
+        "title": "Orch: Configure"
+      },
+      {
+        "command": "orch.autoDetect",
+        "title": "Orch: Auto-Detect Config"
+      },
+      {
+        "command": "orch.signOut",
+        "title": "Orch: Sign Out"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "orch.auditFile",
+          "group": "orch@1"
+        },
+        {
+          "command": "orch.clearDiagnostics",
+          "group": "orch@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "orch.auditFile",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Orch",
+      "properties": {
+        "orch.apiUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Orch API URL. Override if using a custom deployment."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

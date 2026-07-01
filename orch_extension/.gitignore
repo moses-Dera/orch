@@ -1,0 +1,22 @@
+# Secrets
+.env
+.env.*
+
+# Dependencies
+node_modules/
+
+# Build output
+out/
+dist/
+*.vsix
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Logs
+*.log

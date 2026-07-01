@@ -1,0 +1,55 @@
+name: "Orch Code Review"
+description: "Reviews every PR diff against your org's engineering constraints. Governance over all AI, regardless of source."
+author: "Orch"
+
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  api_key:
+    description: "Your Orch API key (orch_xxx). Store as a repository secret."
+    required: true
+  api_url:
+    description: "Your Orch API URL (e.g. https://your-orch.up.railway.app). Store as a repository secret."
+    required: true
+  fail_on_critical:
+    description: "Fail the check and block merge if critical findings are found."
+    required: false
+    default: "true"
+  fail_on_warning:
+    description: "Fail the check if warnings are found."
+    required: false
+    default: "false"
+  model:
+    description: "Model to use for review. Defaults to your org's configured model."
+    required: false
+    default: "auto"
+  domain:
+    description: "Constraint domain to enforce. Defaults to auto-detection per file."
+    required: false
+    default: "auto"
+  max_files:
+    description: "Maximum number of files to review per PR. Defaults to 20."
+    required: false
+    default: "20"
+  ignore_patterns:
+    description: "Comma-separated glob patterns to skip (e.g. '*.md,*.json,tests/**')."
+    required: false
+    default: "*.md,*.txt,*.json,*.yaml,*.yml,*.lock,package-lock.json"
+
+outputs:
+  total_issues:
+    description: "Total number of issues found across all files."
+  critical_count:
+    description: "Number of critical issues found."
+  warning_count:
+    description: "Number of warning issues found."
+  files_reviewed:
+    description: "Number of files reviewed."
+  clean:
+    description: "true if no issues were found."
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

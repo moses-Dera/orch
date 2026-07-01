@@ -1,0 +1,23 @@
+name: Orch Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  orch-review:
+    name: Review against org constraints
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Orch Review
+        uses: orch-dev/review-action@v1
+        with:
+          api_key: ${{ secrets.ORCH_API_KEY }}
+          api_url: ${{ secrets.ORCH_API_URL }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

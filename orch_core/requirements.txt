@@ -1,0 +1,39 @@
+# API
+fastapi
+uvicorn[standard]
+pydantic>=2.9.0
+pydantic-settings
+
+# Database
+prisma
+asyncpg
+
+# LLM
+litellm
+tiktoken
+
+# RAG / Embeddings
+pgvector>=0.3.0
+
+# HTTP
+httpx
+
+# Cache
+redis
+
+# Encryption
+boto3
+cryptography
+
+# CLI
+typer[all]
+rich
+
+# Config
+python-dotenv
+
+# Testing
+pytest
+pytest-asyncio
+pytest-mock
+PyGithub==2.3.0
