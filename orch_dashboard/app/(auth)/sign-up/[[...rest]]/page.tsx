@@ -1,0 +1,11 @@
+import { SignUp } from "@clerk/nextjs"
+import { clerkAppearance } from "@/lib/clerkAppearance"
+
+export default function SignUpPage() {
+  return (
+    <SignUp
+      appearance={clerkAppearance}
+      redirectUrl="/onboarding"
+    />
+  )
+}
