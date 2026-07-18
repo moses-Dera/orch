@@ -8,18 +8,25 @@ from app.services.rate_limiter import check_rate_limit
 async def get_team(
     request: Request,
     authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_orch_api_key: Optional[str] = Header(None, alias="X-Orch-API-Key"),
     developer_model_key: Optional[str] = Header(None, alias="X-Model-API-Key"),
     clerk_user_id: Optional[str] = Header(None, alias="X-Clerk-User-Id"),
 ):
     """
-    Resolves team and member from Authorization: Bearer orch_<key> header.
+    Resolves team and member from Authorization: Bearer orch_<key> header or X-Orch-API-Key header.
     When X-Clerk-User-Id is present (dashboard requests), also resolves
     the specific member record for per-developer attribution.
     """
-    if not authorization or not authorization.startswith("Bearer "):
+    api_key = None
+    if authorization and authorization.startswith("Bearer "):
+        api_key = authorization.removeprefix("Bearer ").strip()
+    elif x_orch_api_key:
+        api_key = x_orch_api_key.strip()
+
+    if not api_key:
         raise HTTPException(status_code=401, detail={
             "error": "missing_api_key",
-            "message": "Authorization header required. Format: Bearer orch_<key>",
+            "message": "API key required. Provide via Authorization header (Format: Bearer orch_<key>) or X-Orch-API-Key header.",
             "hint": "Get your key from the Orch dashboard under Settings."
         })
 

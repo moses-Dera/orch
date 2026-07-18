@@ -1,10 +1,11 @@
 import secrets
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from app.db.client import db
 from app.core.slugify import _slugify
 from app.logging import get_logger
+from app.api.deps import get_team
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -42,6 +43,10 @@ class CreateIndividualRequest(BaseModel):
 class RegisterRepoRequest(BaseModel):
     clerk_id: str = Field(..., min_length=1, max_length=128)
     org_id: str = Field(..., min_length=1, max_length=128)
+    repo_url: str = Field(..., min_length=1, max_length=512)
+
+
+class RegisterRepoCLIRequest(BaseModel):
     repo_url: str = Field(..., min_length=1, max_length=512)
 
 
@@ -218,13 +223,22 @@ async def register_repo(request: RegisterRepoRequest):
 
 
 @router.get("/resolve-repo", summary="Resolve which org owns a git remote URL")
-async def resolve_repo(repo_url: str, clerk_id: str):
+async def resolve_repo(repo_url: str, clerk_id: Optional[str] = None, email: Optional[str] = None):
     """
     Called by the extension/CLI on startup.
     Given a git remote URL, returns the matching org and API key.
     """
+    if not clerk_id and not email:
+        raise HTTPException(status_code=400, detail="Either clerk_id or email must be provided.")
+
+    where_clause = {}
+    if clerk_id:
+        where_clause["clerkId"] = clerk_id
+    else:
+        where_clause["email"] = email
+
     members = await db.member.find_many(
-        where={"clerkId": clerk_id},
+        where=where_clause,
         include={"team": {"include": {"org": True}}, "apiKeys": {"where": {"isActive": True}}}
     )
 
@@ -240,3 +254,27 @@ async def resolve_repo(repo_url: str, clerk_id: str):
             }
 
     return {"matched": False}
+
+
+@router.post("/register-repo-cli", summary="Register a git remote URL via CLI")
+async def register_repo_cli(request: RegisterRepoCLIRequest, team=Depends(get_team)):
+    """
+    Called by `orch init` CLI command.
+    Registers a git remote URL against the org associated with the developer's API key.
+    """
+    org_id = team.orgId
+
+    org = await db.organization.find_unique(where={"id": org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Org not found."})
+
+    existing = list(org.repoUrls or [])
+    if request.repo_url not in existing:
+        existing.append(request.repo_url)
+        await db.organization.update(
+            where={"id": org_id},
+            data={"repoUrls": existing}
+        )
+
+    logger.info(f"Repo registered via CLI org={org_id} url={request.repo_url}")
+    return {"registered": True, "repo_url": request.repo_url, "org_name": org.name}

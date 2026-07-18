@@ -1,0 +1,1 @@
+{"name": "@orch/cli", "version": "1.0.0", "bin": {"orch": "./src/index.ts"}}
