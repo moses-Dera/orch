@@ -1,7 +1,7 @@
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { db } from '../db';
 import { apiKeys } from '../db/schema';
 import { eq } from 'drizzle-orm';

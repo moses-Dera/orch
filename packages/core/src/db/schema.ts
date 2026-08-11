@@ -1,4 +1,5 @@
-import { integer, pgTable, text, timestamp, uuid, jsonb, boolean } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, uuid, jsonb, boolean, index } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(), // Clerk user ID
@@ -46,6 +47,8 @@ export const constraints = pgTable('constraints', {
   gptVariant: text('gpt_variant'),
   claudeVariant: text('claude_variant'),
   geminiVariant: text('gemini_variant'),
+  goodExamples: jsonb('good_examples'), // Array of strings representing good code
+  badExamples: jsonb('bad_examples'),   // Array of strings representing bad code
   version: text('version').notNull().default('1.0'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -67,6 +70,8 @@ export const models = pgTable('models', {
   apiKey: text('api_key'), // Encrypted ideally, or plaintext for prototype
   endpoint: text('endpoint'),
   contextWindow: integer('context_window').notNull().default(8192),
+  isCritic: boolean('is_critic').notNull().default(false),
+  isJudge: boolean('is_judge').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -107,4 +112,16 @@ export const processedWebhooks = pgTable('processed_webhooks', {
   eventId: text('event_id').notNull().unique(), // The Lemon Squeezy meta.event_id
   eventName: text('event_name').notNull(),
   processedAt: timestamp('processed_at').defaultNow().notNull(),
+});
+
+// RAG: Stores embedded chunks of constraint content for semantic retrieval
+export const constraintChunks = pgTable('constraint_chunks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  constraintId: text('constraint_id').notNull().references(() => constraints.id, { onDelete: 'cascade' }),
+  chunkIndex: integer('chunk_index').notNull(),
+  chunkText: text('chunk_text').notNull(),
+  // vector(1536) for OpenAI text-embedding-3-small
+  // Stored as text and cast in raw SQL queries since Drizzle doesn't have a native vector type
+  embedding: text('embedding'), // Will be cast to vector(1536) via raw SQL
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });

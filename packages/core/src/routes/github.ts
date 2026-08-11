@@ -56,7 +56,8 @@ app.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
   
   const teamConstraints = await db.select().from(constraints).where(eq(constraints.projectId, project.id));
   
-  const rules = teamConstraints.map(c => `[${c.id}] ${c.description}\n${c.content}`).join("\n\n");
+  const constraintIds = teamConstraints.map((c) => c.id);
+  const fallbackRules = teamConstraints.map((c) => `[${c.id}] ${c.description}\n${c.content}`).join('\n\n');
 
   // 3. Evaluate the diff using our AI engine
   const context = {
@@ -65,7 +66,7 @@ app.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
     repoName: payload.repository.full_name
   };
   
-  const result = await evaluateDiff(String(diff), rules, team.id, context);
+  const result = await evaluateDiff(String(diff), constraintIds, team.id, context, fallbackRules);
 
   // 4. Log the evaluation
   await db.insert(githubEvaluations).values({

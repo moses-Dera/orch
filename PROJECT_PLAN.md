@@ -1,6 +1,6 @@
 # Orch — Project Plan & Roadmap
 
-This document outlines the engineering plan to execute the new strategic vision: transitioning Orch into the Centralized Control Plane for Policy-as-Code using Bun, Hono, Drizzle ORM, and Hono RPC.
+This document outlines the engineering plan to execute the strategic vision: Orch as the Centralized Control Plane for Policy-as-Code.
 
 ---
 
@@ -11,46 +11,43 @@ This document outlines the engineering plan to execute the new strategic vision:
 
 ---
 
-## Phase 2: Core Rewrite (`packages/core`)
+## Phase 2: Core Rewrite (`packages/core`) (Completed)
 **Goal:** Replace the legacy Python FastAPI backend with an ultra-low-latency Bun + Hono API.
 
-- [ ] **Setup Hono + Bun:** Initialize the base web server with standard middleware (CORS, Logger, Error Handling).
-- [ ] **Database Migration (Drizzle):** 
-  - Translate the Prisma PostgreSQL schema into Drizzle ORM schema definitions.
-  - Re-implement the `pgvector` logic for RAG constraint retrieval using Drizzle's raw SQL or pgvector plugin.
-- [ ] **Hono RPC Setup:** Export the `AppType` definition so the frontend and CLI can consume it with zero type drift.
-- [ ] **Proxy Endpoints:** Rebuild the `/v1/chat/completions` REST endpoints to proxy OpenRouter with streaming support.
+- [x] **Setup Hono + Bun:** Initialize the base web server with standard middleware.
+- [x] **Database Migration (Drizzle):** Translate schema to Drizzle ORM.
+- [x] **pgvector RAG Integration:** Enable the `pgvector` extension and implement the Cosine Similarity search with Google Gemini 768-dimension embeddings for constraints.
+- [x] **Proxy Endpoints:** Rebuild the `/v1/chat/completions` REST endpoints to proxy OpenRouter with streaming support.
 
 ---
 
-## Phase 3: The Dashboard Connection (`apps/dashboard`)
-**Goal:** Migrate the existing Next.js frontend to natively consume the new core via Hono RPC.
-
-- [ ] **RPC Client Integration:** Replace raw `fetch()` calls in the dashboard with the `hc` (Hono Client).
-- [ ] **Auth Sync:** Ensure Clerk authentication tokens are properly passed through Hono RPC middleware.
-- [ ] **Feature Parity:** Verify constraint management, audit logs, and team management work flawlessly against the new Drizzle backend.
-
----
-
-## Phase 4: Dynamic Context Distribution (`packages/cli` & `apps/extension`)
-**Goal:** Build the mechanism to distribute enterprise standards directly to native IDEs.
-
-- [ ] **CLI Rewrite (Bun):** Replace the Python CLI with a Bun-compiled executable.
-- [ ] **`orch sync` Command:** Build the command that pulls active constraints via Hono RPC and dynamically overwrites local `.github/copilot-instructions.md` and `.cursorrules` files.
-- [ ] **Extension Background Sync:** Hook the VS Code extension into the same logic to update constraints silently when the workspace opens.
-
----
-
-## Phase 5: Deterministic Enforcement (`apps/action`)
-**Goal:** Solidify the CI/CD pipeline as the strict compliance gate.
-
-- [ ] **Update PR Action:** Point the GitHub action to the new `packages/core` Hono RPC endpoint.
-- [ ] **Strict Blocking:** Implement hard failure states. If the `orch_core` review endpoint flags a critical constraint violation (e.g., raw SQL instead of Drizzle), the action must return a non-zero exit code to block the merge.
-
----
-
-## Phase 6: Agentic Guardrails (Future)
+## Phase 3: Agentic Guardrails (`packages/cli`) (Completed)
 **Goal:** Build the firewall for autonomous AI agents.
 
-- [ ] **MCP (Model Context Protocol) Integration:** Allow Orch to act as an MCP server/proxy, dynamically granting or denying filesystem/API access to agents based on enterprise policy.
-- [ ] **Token Budgets:** Hard limit token expenditures per agent task, actively cutting off OpenRouter streams if a runaway agent exceeds its budget.
+- [x] **MCP (Model Context Protocol) Integration:** Allow Orch to act as an MCP server (`orch mcp`), dynamically granting or denying architectural guidelines (`fetch_policy`) and evaluating code diffs (`evaluate_code`).
+- [ ] **Token Budgets:** Hard limit token expenditures per agent task.
+
+---
+
+## Phase 4: Advanced Evaluator (Current Focus)
+**Goal:** Enhance the AI evaluator to guarantee deterministic, highly-accurate code reviews.
+
+- [ ] **Critic/Judge Reflection Loop:** Update `src/ai/evaluator.ts` to implement a multi-pass evaluation where the LLM critiques its own output against constraints before returning a final pass/fail judgment.
+- [ ] **Few-Shot Prompting:** Inject "Good/Bad" examples into the RAG context to force the evaluator to mimic organizational standards precisely.
+
+---
+
+## Phase 5: The Dashboard Connection (`apps/web`) (Pending)
+**Goal:** Migrate the Next.js frontend to natively consume the new core via Hono RPC.
+
+- [ ] **RPC Client Integration:** Replace raw `fetch()` calls with the `hc` (Hono Client).
+- [ ] **Auth Sync:** Ensure Clerk authentication tokens are properly passed through Hono RPC middleware.
+- [ ] **Feature Parity:** Verify constraint management works seamlessly.
+
+---
+
+## Phase 6: Dynamic Context Distribution (`apps/extension`) (Pending)
+**Goal:** Distribute enterprise standards directly to native IDEs.
+
+- [ ] **`orch sync` Command:** Build the CLI command that dynamically overwrites local `.github/copilot-instructions.md` and `.cursorrules` files.
+- [ ] **Extension Background Sync:** Hook the VS Code extension into the same logic to update constraints silently.

@@ -1,18 +1,24 @@
 import { Hono } from 'hono';
 import { cliAuthMiddleware } from '../middlewares';
 import { db } from '../db';
-import { constraints } from '../db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { constraints, projects } from '../db/schema';
+import { desc, eq, inArray } from 'drizzle-orm';
 
-export const syncRouter = new Hono();
+export const syncRouter = new Hono<{ Variables: { teamId: string } }>();
 
 syncRouter.get('/sync', cliAuthMiddleware, async (c) => {
-  const teamId = c.get('teamId') as string;
+  const teamId = c.get('teamId');
 
-  const teamConstraints = await db.select()
-    .from(constraints)
-    .where(eq(constraints.teamId, teamId))
-    .orderBy(desc(constraints.createdAt));
+  const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+  const projectIds = teamProjects.map(p => p.id);
+
+  let teamConstraints: any[] = [];
+  if (projectIds.length > 0) {
+    teamConstraints = await db.select()
+      .from(constraints)
+      .where(inArray(constraints.projectId, projectIds))
+      .orderBy(desc(constraints.createdAt));
+  }
 
   if (teamConstraints.length === 0) {
     return c.json({

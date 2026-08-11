@@ -2,9 +2,11 @@ import { Hono } from 'hono';
 import { db } from '../db';
 import { apiKeys, constraints, models, sessions, teams, organizations, tokenBudgets, projects, githubEvaluations } from '../db/schema';
 import { eq, desc, inArray } from 'drizzle-orm';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
+import { embedConstraint } from '../ai/embedder';
+import type { AppVariables } from '../types';
 
-export const dashboardRouter = new Hono();
+export const dashboardRouter = new Hono<{ Variables: AppVariables }>();
 
 // Auth Middleware: Extracts Team ID from Bearer token
 dashboardRouter.use('*', async (c, next) => {
@@ -32,7 +34,12 @@ dashboardRouter.get('/status', async (c) => {
 
   const [org] = await db.select().from(organizations).where(eq(organizations.id, team.orgId));
   
-  const allConstraints = await db.select().from(constraints).where(eq(constraints.teamId, teamId));
+  // Join through projects — constraints link to projects, not teams directly
+  const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+  const projectIds = teamProjects.map((p) => p.id);
+  const allConstraints = projectIds.length > 0
+    ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds))
+    : [];
   
   return c.json({
     org: org?.name ?? 'Unknown Org',
@@ -207,6 +214,12 @@ dashboardRouter.put('/constraints/:id', async (c) => {
     });
   }
   
+  // Fire-and-forget: re-embed the constraint in the background
+  // (does not block the HTTP response)
+  embedConstraint(id, body.constraints ?? body.content ?? '').catch((err) =>
+    console.error(`[RAG] Failed to embed constraint "${id}":`, err)
+  );
+
   return c.json({ success: true });
 });
 
@@ -280,7 +293,12 @@ dashboardRouter.get('/audit/me', async (c) => {
 // GET /v1/health/scores
 dashboardRouter.get('/health/scores', async (c) => {
   const teamId = c.get('teamId');
-  const teamConstraints = await db.select().from(constraints).where(eq(constraints.teamId, teamId));
+  // Join through projects — constraints link to projects, not teams directly
+  const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+  const projectIds = teamProjects.map((p) => p.id);
+  const teamConstraints = projectIds.length > 0
+    ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds))
+    : [];
   const teamSessions = await db.select().from(sessions).where(eq(sessions.teamId, teamId));
   
   // Calculate mock health scores
@@ -322,7 +340,7 @@ dashboardRouter.post('/teams/github', async (c) => {
 dashboardRouter.get('/registry', async (c) => {
   try {
     const res = await fetch('https://openrouter.ai/api/v1/models');
-    const data = await res.json();
+    const data = await res.json() as any;
     const models = data.data.map((m: any) => ({
       id: m.id,
       name: m.name,
@@ -368,7 +386,7 @@ dashboardRouter.post('/provider/models', async (c) => {
       return c.json({ error: `Provider returned status: ${res.status}` }, 400);
     }
 
-    const data = await res.json();
+    const data = await res.json() as any;
     const models = data.data.map((m: any) => ({
       id: m.id,
       name: m.name || m.id,

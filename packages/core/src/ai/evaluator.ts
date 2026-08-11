@@ -2,6 +2,7 @@ import { db } from '../db';
 import { models, tokenBudgets } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { redactSecrets } from './dlp';
+import { retrieveChunks } from './retriever';
 
 export interface EvaluationViolation {
   file: string;
@@ -17,66 +18,15 @@ export interface EvaluationResult {
   explanation: string; // overarching explanation
 }
 
-let openRouterModelsCache: any[] | null = null;
-let lastCacheTime = 0;
-
-async function getCheapestModel(isTrial: boolean, configuredModelId?: string): Promise<string> {
-  const defaultStrongModel = process.env.DEFAULT_STRONG_MODEL || 'openai/gpt-4o';
-  
-  if (!isTrial) {
-    return configuredModelId || defaultStrongModel;
-  }
-
-  // Only refresh cache every 1 hour
-  if (!openRouterModelsCache || Date.now() - lastCacheTime > 3600 * 1000) {
-    try {
-      const res = await fetch('https://openrouter.ai/api/v1/models');
-      const data = await res.json();
-      openRouterModelsCache = data.data;
-      lastCacheTime = Date.now();
-    } catch (e) {
-      return 'openai/gpt-4o-mini';
-    }
-  }
-
-  // Filter for trusted families (OpenAI, Anthropic, Google) to ensure stability, then sort by price
-  const trustedPrefixes = ['openai/', 'anthropic/', 'google/'];
-  const trustedModels = openRouterModelsCache!.filter(m => 
-    trustedPrefixes.some(prefix => m.id.startsWith(prefix))
-  );
-
-  trustedModels.sort((a, b) => {
-    const priceA = parseFloat(a.pricing?.prompt || '0') + parseFloat(a.pricing?.completion || '0');
-    const priceB = parseFloat(b.pricing?.prompt || '0') + parseFloat(b.pricing?.completion || '0');
-    return priceA - priceB;
-  });
-
-  return trustedModels[0]?.id || 'openai/gpt-4o-mini';
-}
-
-async function determineOptimalModel(diff: string, configuredModelId: string | undefined, isTrial: boolean): Promise<string> {
-  const diffLength = diff.length;
-  const defaultStrongModel = process.env.DEFAULT_STRONG_MODEL || 'openai/gpt-4o';
-
-  // 1. Massive PR
-  if (diffLength > 20000) {
-    return isTrial ? await getCheapestModel(isTrial, configuredModelId) : (configuredModelId || defaultStrongModel);
-  }
-
-  // 2. Trivial PR
-  if (diffLength < 500) {
-    return await getCheapestModel(isTrial, configuredModelId);
-  }
-
-  // 3. Standard PR
-  return configuredModelId || defaultStrongModel;
-}
+const DEFAULT_CHEAP_MODEL = process.env.DEFAULT_CHEAP_MODEL || 'openai/gpt-4o-mini';
+const DEFAULT_STRONG_MODEL = process.env.DEFAULT_STRONG_MODEL || 'openai/gpt-4o';
 
 export async function evaluateDiff(
-  diff: string, 
-  rules: string, 
-  teamId: string, 
-  context: { title: string; description: string; repoName: string }
+  diff: string,
+  constraintIds: string[], // IDs of the team's constraints — used for RAG retrieval
+  teamId: string,
+  context: { title: string; description: string; repoName: string },
+  fallbackRules?: string,  // Pre-joined rules string used if RAG is unavailable
 ): Promise<EvaluationResult> {
   // Fetch configured model and budget for the team
   const [configuredModel] = await db.select().from(models).where(eq(models.teamId, teamId));
@@ -88,7 +38,7 @@ export async function evaluateDiff(
   if (!apiKey) {
     if (isTrial) {
       // Fallback to global key for testing
-      apiKey = process.env.OPENROUTER_API_KEY;
+      apiKey = process.env.OPENROUTER_API_KEY || null;
     } else {
       // Trial exhausted and no key provided
       return {
@@ -96,14 +46,13 @@ export async function evaluateDiff(
         status: 'VIOLATION',
         violations: [{ 
           file: "N/A", line: 1, rule: "Billing", 
-          explanation: "Testing budget exhausted. Please add your own OpenAI/Anthropic API key in the Orch dashboard to continue reviewing code." 
+          explanation: "Testing budget exhausted. Please add your own API key in the Orch dashboard to continue reviewing code." 
         }],
         explanation: 'API Key required. Trial exhausted.'
       };
     }
   }
 
-  // Apply Data Loss Prevention (DLP)
   const safeTitle = redactSecrets(context.title);
   const safeDescription = redactSecrets(context.description);
   const safeDiff = redactSecrets(diff);
@@ -121,32 +70,132 @@ export async function evaluateDiff(
     };
   }
 
-  // Run the Cost Router
-  const modelId = await determineOptimalModel(safeDiff, configuredModel?.modelId, isTrial);
-  const endpoint = configuredModel?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  // RAG: Retrieve only the constraint chunks relevant to this diff
+  let rules: string;
+  if (constraintIds.length > 0) {
+    try {
+      const chunks = await retrieveChunks(safeDiff, constraintIds);
+      if (chunks.length > 0) {
+        rules = chunks.map((chunk) => `- ${chunk}`).join('\n');
+      } else {
+        rules = fallbackRules ?? '';
+      }
+    } catch {
+      rules = fallbackRules ?? '';
+    }
+  } else {
+    rules = fallbackRules ?? '';
+  }
 
-  const systemPrompt = `
-You are Orch, an expert Senior Staff Engineer reviewing a Pull Request.
+  const endpoint = configuredModel?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+
+  // ==========================================
+  // PHASE 1: THE CRITIC (Fast & Cheap)
+  // ==========================================
+  const criticPrompt = `
+You are Orch, a highly vigilant junior code reviewer.
+Your ONLY job is to flag anything in the diff that MIGHT violate the constraints.
+Err on the side of flagging too much (false positives are acceptable at this stage).
 
 # CONTEXT
 Repository: ${context.repoName}
 PR Title: ${safeTitle}
 PR Description: ${safeDescription}
 
-
 # CONSTRAINTS TO ENFORCE
 ${rules}
 
 # INSTRUCTIONS
-You must analyze the provided code diff against the constraints.
-You must use a Structured Chain-of-Thought approach. First, write out your reasoning, explicitly debating if a piece of code violates a rule, or if it is a false positive. 
-Only output violations if you are highly confident.
+Analyze the diff and return a JSON list of potential violations.
+Return ONLY valid JSON matching this exact schema:
+{
+  "potential_violations": [
+    {
+      "file": "path/to/file.ts",
+      "line": 42,
+      "rule": "Name of the constraint",
+      "reason": "Why this might be a violation."
+    }
+  ]
+}
+If there are absolutely no potential violations, return an empty array for potential_violations.
+  `;
+
+  let criticData: any;
+  try {
+    const criticResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: DEFAULT_CHEAP_MODEL,
+        messages: [
+          { role: 'system', content: criticPrompt },
+          { role: 'user', content: `Diff:\n${safeDiff}` }
+        ],
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    criticData = await criticResponse.json();
+    totalInputTokens += criticData.usage?.prompt_tokens || 0;
+    totalOutputTokens += criticData.usage?.completion_tokens || 0;
+  } catch (error: any) {
+    console.error('Critic Phase Error:', error);
+    return { reasoning: "Critic phase execution error.", status: 'VIOLATION', explanation: 'AI Review failed during Critic phase.', violations: [] };
+  }
+
+  const criticResult = JSON.parse(criticData.choices[0].message.content);
+
+  // EARLY EXIT: If the critic found nothing, we are done!
+  if (!criticResult.potential_violations || criticResult.potential_violations.length === 0) {
+    if (isTrial && apiKey === process.env.OPENROUTER_API_KEY) {
+      await db.update(tokenBudgets)
+        .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalInputTokens + totalOutputTokens}` })
+        .where(eq(tokenBudgets.teamId, teamId));
+    }
+    return {
+      reasoning: "The Critic reviewed the diff and found zero potential violations. Early exit triggered.",
+      status: 'CLEAN',
+      explanation: "No violations detected.",
+      violations: []
+    };
+  }
+
+  // ==========================================
+  // PHASE 2: THE JUDGE (Slow & Smart)
+  // ==========================================
+  const judgeModelId = configuredModel?.modelId || DEFAULT_STRONG_MODEL;
+  const judgePrompt = `
+You are Orch, an expert Senior Staff Engineer.
+A junior reviewer (The Critic) has flagged potential violations in the following Pull Request.
+Your job is to review their claims against the original constraints and weed out FALSE POSITIVES.
+
+# CONTEXT
+Repository: ${context.repoName}
+PR Title: ${safeTitle}
+PR Description: ${safeDescription}
+
+# CONSTRAINTS TO ENFORCE
+${rules}
+
+# THE CRITIC'S CLAIMS
+${JSON.stringify(criticResult.potential_violations, null, 2)}
+
+# INSTRUCTIONS
+Evaluate the Critic's claims. Are they accurate? Or did the Critic misunderstand the context of the code?
+Use a Structured Chain-of-Thought approach in your 'reasoning' field to debate each claim.
+Only output violations if you are highly confident they are true violations.
 
 Return ONLY valid JSON matching this exact schema:
 {
-  "reasoning": "Step-by-step analysis of each constraint against the diff. Think carefully about false positives.",
+  "reasoning": "Step-by-step evaluation of the Critic's claims.",
   "status": "CLEAN" | "VIOLATION",
-  "explanation": "A high-level summary of your review.",
+  "explanation": "A high-level summary of your final ruling.",
   "violations": [
     {
       "file": "path/to/file.ts",
@@ -156,38 +205,36 @@ Return ONLY valid JSON matching this exact schema:
     }
   ]
 }
-If status is CLEAN, the violations array must be empty [].
+If you dismiss all of the Critic's claims, return status CLEAN and an empty violations array [].
   `;
 
   try {
-    const aiResponse = await fetch(endpoint, {
+    const judgeResponse = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: modelId,
+        model: judgeModelId,
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: judgePrompt },
           { role: 'user', content: `Diff:\n${safeDiff}` }
         ],
         response_format: { type: 'json_object' }
       })
     });
 
-    const aiData = await aiResponse.json();
-    const resultJson: EvaluationResult = JSON.parse(aiData.choices[0].message.content);
+    const judgeData: any = await judgeResponse.json();
+    totalInputTokens += judgeData.usage?.prompt_tokens || 0;
+    totalOutputTokens += judgeData.usage?.completion_tokens || 0;
 
-    // Track Input and Output tokens accurately (Works for OpenAI, OpenRouter, DeepSeek, Ollama)
-    const inputTokens = aiData.usage?.prompt_tokens || 0;
-    const outputTokens = aiData.usage?.completion_tokens || 0;
-    const totalTokens = inputTokens + outputTokens;
+    const resultJson: EvaluationResult = JSON.parse(judgeData.choices[0].message.content);
 
-    // If using the trial key, deduct tokens from their budget
+    // Track Input and Output tokens accurately for both phases combined
     if (isTrial && apiKey === process.env.OPENROUTER_API_KEY) {
       await db.update(tokenBudgets)
-        .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalTokens}` })
+        .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalInputTokens + totalOutputTokens}` })
         .where(eq(tokenBudgets.teamId, teamId));
     }
 
@@ -198,12 +245,7 @@ If status is CLEAN, the violations array must be empty [].
 
     return resultJson;
   } catch (error: any) {
-    console.error('AI Review Error:', error);
-    return { 
-      reasoning: "Execution error.", 
-      status: 'VIOLATION', 
-      explanation: 'AI Review failed to execute.', 
-      violations: [] 
-    };
+    console.error('Judge Phase Error:', error);
+    return { reasoning: "Judge phase execution error.", status: 'VIOLATION', explanation: 'AI Review failed during Judge phase.', violations: [] };
   }
 }
