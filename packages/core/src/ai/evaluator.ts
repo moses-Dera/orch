@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { models, tokenBudgets } from '../db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, inArray } from 'drizzle-orm';
 import { redactSecrets } from './dlp';
 import { retrieveChunks } from './retriever';
 
@@ -28,11 +28,14 @@ export async function evaluateDiff(
   context: { title: string; description: string; repoName: string },
   fallbackRules?: string,  // Pre-joined rules string used if RAG is unavailable
 ): Promise<EvaluationResult> {
-  // Fetch configured model and budget for the team
-  const [configuredModel] = await db.select().from(models).where(eq(models.teamId, teamId));
+  // Fetch configured models and budget for the team
+  const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
   const [budget] = await db.select().from(tokenBudgets).where(eq(tokenBudgets.teamId, teamId));
 
-  let apiKey = configuredModel?.apiKey;
+  const criticModel = teamModels.find(m => m.isCritic) || teamModels[0];
+  const judgeModel = teamModels.find(m => m.isJudge) || teamModels[0];
+
+  let apiKey = criticModel?.apiKey || judgeModel?.apiKey;
   const isTrial = !apiKey && budget && budget.consumedTokens < budget.allocatedTokens;
 
   if (!apiKey) {
@@ -80,6 +83,35 @@ export async function evaluateDiff(
       } else {
         rules = fallbackRules ?? '';
       }
+      
+      // Inject Few-Shot Examples from active constraints
+      const { constraints } = await import('../db/schema');
+      const activeConstraints = await db.select({
+        goodExamples: constraints.goodExamples,
+        badExamples: constraints.badExamples
+      }).from(constraints).where(inArray(constraints.id, constraintIds));
+
+      let goodExamplesList: string[] = [];
+      let badExamplesList: string[] = [];
+
+      for (const c of activeConstraints) {
+        if (c.goodExamples && Array.isArray(c.goodExamples)) {
+          goodExamplesList.push(...c.goodExamples);
+        }
+        if (c.badExamples && Array.isArray(c.badExamples)) {
+          badExamplesList.push(...c.badExamples);
+        }
+      }
+
+      if (goodExamplesList.length > 0 || badExamplesList.length > 0) {
+        rules += '\n\n# EXAMPLES OF VIOLATIONS AND CLEAN CODE\n';
+        if (badExamplesList.length > 0) {
+          rules += '## BAD EXAMPLES (Violations)\n' + badExamplesList.map(e => `\`\`\`\n${e}\n\`\`\``).join('\n\n') + '\n';
+        }
+        if (goodExamplesList.length > 0) {
+          rules += '## GOOD EXAMPLES (Clean)\n' + goodExamplesList.map(e => `\`\`\`\n${e}\n\`\`\``).join('\n\n') + '\n';
+        }
+      }
     } catch {
       rules = fallbackRules ?? '';
     }
@@ -87,7 +119,7 @@ export async function evaluateDiff(
     rules = fallbackRules ?? '';
   }
 
-  const endpoint = configuredModel?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  const endpoint = criticModel?.endpoint || judgeModel?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
 
@@ -132,7 +164,7 @@ If there are absolutely no potential violations, return an empty array for poten
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: DEFAULT_CHEAP_MODEL,
+        model: criticModel?.modelId || DEFAULT_CHEAP_MODEL,
         messages: [
           { role: 'system', content: criticPrompt },
           { role: 'user', content: `Diff:\n${safeDiff}` }
@@ -169,7 +201,7 @@ If there are absolutely no potential violations, return an empty array for poten
   // ==========================================
   // PHASE 2: THE JUDGE (Slow & Smart)
   // ==========================================
-  const judgeModelId = configuredModel?.modelId || DEFAULT_STRONG_MODEL;
+  const judgeModelId = judgeModel?.modelId || DEFAULT_STRONG_MODEL;
   const judgePrompt = `
 You are Orch, an expert Senior Staff Engineer.
 A junior reviewer (The Critic) has flagged potential violations in the following Pull Request.
