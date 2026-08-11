@@ -4,5 +4,11 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "dev": "concurrently \"bun run --cwd packages/core dev\" \"bun run --cwd apps/dashboard dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4"
+  }
 }

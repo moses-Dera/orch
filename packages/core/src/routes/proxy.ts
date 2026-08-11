@@ -23,6 +23,12 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     .where(eq(tokenBudgets.teamId, teamId));
 
   if (budgetRecord && budgetRecord.consumedTokens >= budgetRecord.allocatedTokens) {
+    // Send email to admin (fire and forget).
+    // In production, you would throttle this to 1 email per day per team.
+    import('../services/email').then(({ sendBudgetExceededEmail }) => {
+      sendBudgetExceededEmail(process.env.ADMIN_EMAIL || 'admin@example.com', teamId).catch(console.error);
+    });
+
     return c.json({
       error: 'Payment Required',
       message: 'Agent Token Budget Exceeded. Please contact your organization administrator to increase limits.'
