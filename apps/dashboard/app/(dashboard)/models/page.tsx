@@ -165,7 +165,7 @@ export default function ModelsPage() {
             </div>
           ) : (
             <div className="divide-y">
-              {data.models.map((m) => (
+              {data.models.map((m: any) => (
                 <div key={m.id} className="flex items-center justify-between px-5 py-3">
                   <div>
                     <p className="text-sm font-medium flex items-center gap-2">

@@ -3,14 +3,41 @@ import { initConfig, setApiKey, setApiUrl, getApiUrl } from './config';
 import { initStatusBar, refresh as refreshStatusBar } from './statusBar';
 import { autoConfig } from './autoConfig';
 import { initDiagnostics, auditActiveFile, clearDiagnostics } from './diagnostics';
+import { syncConstraints } from './sync';
+
+class OrchUriHandler implements vscode.UriHandler {
+    async handleUri(uri: vscode.Uri): Promise<void> {
+        if (uri.path === '/auth') {
+            // Note: VS Code provides URLSearchParams globally
+            const query = new URLSearchParams(uri.query);
+            const token = query.get('token');
+            if (token) {
+                await setApiKey(token);
+                vscode.window.showInformationMessage('Orch: Logged in successfully ✓');
+                refreshStatusBar();
+                
+                // Sync constraints automatically after login
+                await syncConstraints();
+            }
+        }
+    }
+}
 
 export function activate(context: vscode.ExtensionContext) {
     initConfig(context);
     initStatusBar(context);
     initDiagnostics(context);
 
+    // Register URI Handler for OAuth
+    context.subscriptions.push(
+        vscode.window.registerUriHandler(new OrchUriHandler())
+    );
+
     // Auto-configure silently on activation
     autoConfig(context);
+    
+    // Background sync on startup
+    syncConstraints();
 
     context.subscriptions.push(
 
@@ -26,27 +53,18 @@ export function activate(context: vscode.ExtensionContext) {
         }),
 
         // Manual configure — enter API key and URL
-        vscode.commands.registerCommand('orch.configure', async () => {
-            const key = await vscode.window.showInputBox({
-                prompt: 'Enter your Orch API key',
-                placeHolder: 'orch_xxx',
-                password: true,
-                validateInput: (v) => v.startsWith('orch_') ? null : 'Key must start with orch_'
-            });
-            if (!key) return;
-
-            const currentUrl = getApiUrl();
-            const url = await vscode.window.showInputBox({
-                prompt: 'Enter your Orch API URL',
-                placeHolder: 'https://your-orch-instance.com',
-                value: currentUrl,
-            });
-            if (!url) return;
-
-            await setApiKey(key);
-            await setApiUrl(url);
-            refreshStatusBar();
-            vscode.window.showInformationMessage('Orch: Configured successfully ✓');
+        vscode.commands.registerCommand('orch.login', async () => {
+            const url = getApiUrl();
+            // In a real OAuth flow, this opens the dashboard. For now we open it with a callback URI.
+            // The extension URI format is: vscode://<publisher>.<extensionName>/auth
+            const callbackUri = `${vscode.env.uriScheme}://orch-dev.orch/auth`;
+            
+            vscode.window.showInformationMessage('Opening browser to authenticate with Orch...');
+            
+            // For MVP, we'll just redirect to the settings page where they can see their API key,
+            // or the dashboard can redirect back. Let's just point to settings for now with the callback.
+            // When building the frontend, the dashboard would handle this redirect.
+            vscode.env.openExternal(vscode.Uri.parse(`http://localhost:3000/settings?callback=${encodeURIComponent(callbackUri)}`));
         }),
 
         // Re-run auto-config (useful after connecting GitHub App)

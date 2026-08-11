@@ -28,8 +28,8 @@
         "title": "Orch: Clear Findings"
       },
       {
-        "command": "orch.configure",
-        "title": "Orch: Configure"
+        "command": "orch.login",
+        "title": "Orch: Login via Browser"
       },
       {
         "command": "orch.autoDetect",

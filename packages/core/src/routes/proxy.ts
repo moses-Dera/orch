@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { apiAuthMiddleware } from '../middlewares';
 import { db } from '../db';
 import { constraints, projects, tokenBudgets } from '../db/schema';
-import { desc, eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { retrieveChunks } from '../ai/retriever';
 import type { AppVariables } from '../types';
 
@@ -93,8 +93,48 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     body: JSON.stringify({ ...body, messages })
   });
 
-  // 9. Stream the response directly back to the IDE/Client
-  return new Response(openRouterRes.body, {
+  // 9. Stream the response directly back to the IDE/Client and intercept to calculate usage
+  if (!openRouterRes.body) {
+    return new Response(null, { headers: openRouterRes.headers, status: openRouterRes.status });
+  }
+
+  const transformStream = new TransformStream({
+    transform(chunk, controller) {
+      // Pass the chunk through unchanged
+      controller.enqueue(chunk);
+      
+      // Try to parse the chunk for usage data
+      try {
+        const text = new TextDecoder().decode(chunk);
+        
+        // OpenRouter streaming uses SSE format, check for usage block
+        if (text.includes('"usage"')) {
+          const lines = text.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              const data = JSON.parse(line.slice(6));
+              if (data.usage && (data.usage.prompt_tokens || data.usage.completion_tokens)) {
+                const promptTokens = data.usage.prompt_tokens || 0;
+                const completionTokens = data.usage.completion_tokens || 0;
+                const totalTokens = promptTokens + completionTokens;
+                
+                // Fire and forget db update
+                db.update(tokenBudgets)
+                  .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalTokens}` })
+                  .where(eq(tokenBudgets.teamId, teamId))
+                  .execute()
+                  .catch(err => console.error('[Proxy] Failed to update token budget:', err));
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // Ignore parse errors on partial chunks
+      }
+    }
+  });
+
+  return new Response(openRouterRes.body.pipeThrough(transformStream), {
     headers: openRouterRes.headers
   });
 });

@@ -29,25 +29,25 @@ This document outlines the engineering plan to execute the strategic vision: Orc
 
 ---
 
-## Phase 4: Advanced Evaluator (Current Focus)
+## Phase 4: Advanced Evaluator (Completed)
 **Goal:** Enhance the AI evaluator to guarantee deterministic, highly-accurate code reviews.
 
-- [ ] **Critic/Judge Reflection Loop:** Update `src/ai/evaluator.ts` to implement a multi-pass evaluation where the LLM critiques its own output against constraints before returning a final pass/fail judgment.
-- [ ] **Few-Shot Prompting:** Inject "Good/Bad" examples into the RAG context to force the evaluator to mimic organizational standards precisely.
+- [x] **Critic/Judge Reflection Loop:** Update `src/ai/evaluator.ts` to implement a multi-pass evaluation where the LLM critiques its own output against constraints before returning a final pass/fail judgment.
+- [x] **Few-Shot Prompting:** Inject "Good/Bad" examples into the RAG context to force the evaluator to mimic organizational standards precisely.
 
 ---
 
-## Phase 5: The Dashboard Connection (`apps/web`) (Pending)
+## Phase 5: The Dashboard Connection (`apps/dashboard`) (Completed)
 **Goal:** Migrate the Next.js frontend to natively consume the new core via Hono RPC.
 
-- [ ] **RPC Client Integration:** Replace raw `fetch()` calls with the `hc` (Hono Client).
-- [ ] **Auth Sync:** Ensure Clerk authentication tokens are properly passed through Hono RPC middleware.
-- [ ] **Feature Parity:** Verify constraint management works seamlessly.
+- [x] **RPC Client Integration:** Replace raw `fetch()` calls with the `hc` (Hono Client).
+- [x] **Auth Sync:** Ensure Clerk authentication tokens are properly passed through Hono RPC middleware.
+- [x] **Feature Parity:** Verify constraint management works seamlessly.
 
 ---
 
-## Phase 6: Dynamic Context Distribution (`apps/extension`) (Pending)
+## Phase 6: Dynamic Context Distribution (`apps/extension`) (Current Focus)
 **Goal:** Distribute enterprise standards directly to native IDEs.
 
-- [ ] **`orch sync` Command:** Build the CLI command that dynamically overwrites local `.github/copilot-instructions.md` and `.cursorrules` files.
+- [x] **`orch sync` Command:** Build the CLI command that dynamically overwrites local `.github/copilot-instructions.md` and `.cursorrules` files.
 - [ ] **Extension Background Sync:** Hook the VS Code extension into the same logic to update constraints silently.
