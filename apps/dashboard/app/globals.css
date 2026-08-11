@@ -6,32 +6,70 @@
 }
 
 :root {
-  --background: #fafafa;
-  --surface: #ffffff;
-  --border: #e5e5e5;
-  --text-primary: #0a0a0a;
-  --text-secondary: #737373;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --chat-user-bg: #18181b;
-  --chat-user-text: #ffffff;
+  --background: #ffffff;
+  --surface: #fafafa;
+  --border: #eaeaea;
+  --input: #eaeaea;
+  --ring: #000000;
+  
+  --text-primary: #000000;
+  --text-secondary: #666666;
+  --foreground: #000000;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  
+  --accent: #0070f3;
+  --accent-foreground: #ffffff;
+  --accent-hover: #0051a2;
+  
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  
+  --chat-user-bg: #f3f4f6;
+  --chat-user-text: #111827;
+  
   --success: #22c55e;
   --warning: #f59e0b;
   --critical: #ef4444;
+  
   --radius: 8px;
+  --radius-md: 6px;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --surface: #111111;
-  --border: #1f1f1f;
-  --text-primary: #f5f5f5;
-  --text-secondary: #737373;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --chat-user-bg: #3f3f46;
+  --background: #000000;
+  --surface: #0a0a0a;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #d4d4d8;
+  
+  --text-primary: #ededed;
+  --text-secondary: #a1a1aa;
+  --foreground: #ffffff;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  
+  --primary: #ffffff;
+  --primary-foreground: #09090b;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  
+  --accent: #5e6ad2;
+  --accent-foreground: #ffffff;
+  --accent-hover: #7b88ec;
+  
+  --destructive: #7f1d1d;
+  --destructive-foreground: #fca5a5;
+  
+  --chat-user-bg: #27272a;
   --chat-user-text: #ffffff;
-  --success: #22c55e;
+  
+  --success: #10b981;
   --warning: #f59e0b;
   --critical: #ef4444;
 }
@@ -48,6 +86,11 @@ body {
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Micro-animations for form elements */
+input, select, button {
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
 
 /* Scrollbar */

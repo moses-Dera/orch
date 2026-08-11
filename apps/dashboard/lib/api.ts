@@ -116,5 +116,18 @@ export const api = {
     return req<{ key: string; hint: string }>(`/v1/keys/generate?${qs}`, { method: "POST" })
   },
 
+  setGithubInstallation: (installation_id: string) => req("/v1/teams/github", {
+    method: "POST",
+    body: JSON.stringify({ installation_id }),
+  }),
+
+  listProjects: () => req<{ projects: any[] }>("/v1/projects"),
+  createProject: (body: { name: string; githubRepoFullName: string }) => req("/v1/projects", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
+
+  getAnalytics: () => req<{ stats: any; recent: any[] }>("/v1/analytics"),
+
   registry: () => req<{ models: any[]; providers: string[] }>("/v1/registry"),
 }

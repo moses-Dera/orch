@@ -1,78 +1,89 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { PageShell } from "@/components/layout/PageShell"
 import { PageSkeleton } from "@/components/shared/LoadingSkeleton"
-import { StatCard } from "@/components/shared/StatCard"
 import { EmptyState } from "@/components/shared/EmptyState"
-import { useAuditLog } from "@/hooks/useOrchStatus"
-import { formatTokens } from "@/lib/utils"
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Cell
-} from "recharts"
-
-const COLORS = ["#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe", "#e0e7ff"]
+import { api } from "@/lib/api"
+import { Activity } from "lucide-react"
 
 export default function AnalyticsPage() {
-  const { data, isLoading } = useAuditLog({ limit: 200 })
+  const { data, isLoading } = useQuery({
+    queryKey: ["analytics"],
+    queryFn: api.getAnalytics,
+  })
 
   if (isLoading) return <PageSkeleton />
 
-  const devData = data?.developer_breakdown.map((d) => ({
-    name: d.email.split("@")[0],
-    tokens: d.total_input_tokens + d.total_output_tokens,
-    sessions: d.sessions,
-  })) ?? []
-
-  const totalTokens = (data?.total_input_tokens ?? 0) + (data?.total_output_tokens ?? 0)
+  const stats = data?.stats ?? { total: 0, violations: 0, clean: 0 }
+  const recent = data?.recent ?? []
 
   return (
-    <PageShell title="Analytics" description="Usage and token breakdown across your team.">
+    <PageShell
+      title="Analytics"
+      description="Monitor pull request evaluations and constraint enforcement metrics."
+    >
       <div className="space-y-6">
-
-        <div className="grid grid-cols-3 gap-4">
-          <StatCard label="Total Sessions" value={data?.total_sessions ?? 0} />
-          <StatCard label="Total Tokens" value={formatTokens(totalTokens)} />
-          <StatCard label="Active Developers" value={devData.length} />
+        
+        {/* Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-lg border bg-[var(--surface)] p-5 transition-transform hover:-translate-y-1 hover:shadow-md">
+            <p className="text-sm text-[var(--text-secondary)] font-medium">Total PRs Evaluated</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight">{stats.total}</p>
+          </div>
+          <div className="rounded-lg border bg-[var(--surface)] p-5 transition-transform hover:-translate-y-1 hover:shadow-md">
+            <p className="text-sm text-[var(--text-secondary)] font-medium">Clean PRs</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-[var(--success)]">{stats.clean}</p>
+          </div>
+          <div className="rounded-lg border bg-[var(--surface)] p-5 transition-transform hover:-translate-y-1 hover:shadow-md">
+            <p className="text-sm text-[var(--text-secondary)] font-medium">Violations Caught</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-[var(--critical)]">{stats.violations}</p>
+          </div>
         </div>
 
-        {devData.length === 0 ? (
-          <EmptyState title="No data yet" description="Usage data will appear here once your team starts using Orch." />
-        ) : (
-          <>
-            <div className="rounded-lg border bg-[var(--surface)] p-5">
-              <h2 className="text-sm font-medium mb-4">Token Usage by Developer</h2>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={devData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatTokens(v)} />
-                  <Tooltip formatter={(v: number) => formatTokens(v)} />
-                  <Bar dataKey="tokens" radius={[4, 4, 0, 0]}>
-                    {devData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+        {/* Recent Activity */}
+        <div className="rounded-lg border bg-[var(--surface)]">
+          <div className="px-5 py-4 border-b">
+            <h2 className="text-sm font-medium">Recent Evaluations</h2>
+          </div>
+          
+          {recent.length === 0 ? (
+            <EmptyState 
+              icon={Activity}
+              title="No data yet" 
+              description="Once Orch evaluates a Pull Request, it will appear here." 
+            />
+          ) : (
+            <div className="divide-y">
+              {recent.map((ev: any) => (
+                <div key={ev.id} className="flex items-center justify-between px-5 py-4 hover:bg-[var(--muted)] transition-colors">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--border)] text-[var(--foreground)]">
+                        PR #{ev.pullRequestNumber}
+                      </span>
+                      <span className="text-sm font-medium">{ev.projectName}</span>
+                    </div>
+                    <span className="text-xs text-[var(--text-secondary)]">
+                      {new Date(ev.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <div>
+                    {ev.status === "CLEAN" ? (
+                      <span className="inline-flex items-center rounded-full bg-[var(--success)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--success)]">
+                        Clean
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-[var(--critical)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--critical)]">
+                        Violation
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div className="rounded-lg border bg-[var(--surface)] p-5">
-              <h2 className="text-sm font-medium mb-4">Sessions by Developer</h2>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={devData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Bar dataKey="sessions" radius={[4, 4, 0, 0]}>
-                    {devData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </>
-        )}
+          )}
+        </div>
 
       </div>
     </PageShell>

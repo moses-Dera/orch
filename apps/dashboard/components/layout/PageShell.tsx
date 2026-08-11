@@ -8,11 +8,11 @@ interface PageShellProps {
 export function PageShell({ title, description, action, children }: PageShellProps) {
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">{title}</h1>
           {description && (
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">{description}</p>
+            <p className="mt-1.5 text-sm text-[var(--text-secondary)]">{description}</p>
           )}
         </div>
         {action && <div>{action}</div>}

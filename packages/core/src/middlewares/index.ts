@@ -1,6 +1,10 @@
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
+import crypto from 'crypto';
+import { db } from '../db';
+import { apiKeys } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
 // Re-export standard middlewares
 export const globalLogger = logger();
@@ -13,8 +17,35 @@ export const apiAuthMiddleware = createMiddleware(async (c, next) => {
     return c.json({ error: 'Unauthorized: Missing or invalid API key' }, 401);
   }
   
-  // Example: Here we could query Drizzle to validate the hash
-  // const isValid = await db.query...
+  const token = authHeader.split(' ')[1];
+  const keyHash = crypto.createHash('sha256').update(token).digest('hex');
+
+  const [apiKeyRecord] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash));
+
+  if (!apiKeyRecord) {
+    return c.json({ error: 'Unauthorized: Invalid API key' }, 401);
+  }
   
+  c.set('teamId', apiKeyRecord.teamId);
+  await next();
+});
+
+// Custom Middleware: Verifies API Keys for the CLI
+export const cliAuthMiddleware = createMiddleware(async (c, next) => {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: 'Unauthorized: Missing or invalid API key' }, 401);
+  }
+  
+  const token = authHeader.split(' ')[1];
+  const keyHash = crypto.createHash('sha256').update(token).digest('hex');
+
+  const [apiKeyRecord] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash));
+
+  if (!apiKeyRecord) {
+    return c.json({ error: 'Unauthorized: Invalid API key' }, 401);
+  }
+  
+  c.set('teamId', apiKeyRecord.teamId);
   await next();
 });

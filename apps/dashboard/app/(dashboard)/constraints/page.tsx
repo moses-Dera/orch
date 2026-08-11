@@ -12,9 +12,10 @@ import { useHasAccess } from "@/hooks/useRole"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { scoreColor } from "@/lib/utils"
+import { NodeCanvas } from "@/components/constraints/NodeCanvas"
 
 const BLANK = {
-  id: "", description: "", constraints: "",
+  id: "", projectId: "", description: "", constraints: "",
   gpt_variant: "", claude_variant: "", gemini_variant: "", version: "1.0",
 }
 
@@ -25,6 +26,10 @@ export default function ConstraintsPage() {
   const { data: constraintsData, isLoading: constraintsLoading } = useQuery({
     queryKey: ["constraints"],
     queryFn: api.listConstraints,
+  })
+  const { data: projectsData } = useQuery({
+    queryKey: ["projects"],
+    queryFn: api.listProjects,
   })
 
   const [editing, setEditing] = useState<typeof BLANK | null>(null)
@@ -74,6 +79,7 @@ export default function ConstraintsPage() {
   if (healthLoading || constraintsLoading) return <PageSkeleton />
 
   const constraints = constraintsData?.constraints ?? []
+  const projects = projectsData?.projects ?? []
 
   return (
     <PageShell
@@ -101,6 +107,16 @@ export default function ConstraintsPage() {
                 onChange={e => setEditing(f => ({ ...f!, id: e.target.value }))}
                 className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
               />
+              <select
+                value={editing.projectId}
+                onChange={e => setEditing(f => ({ ...f!, projectId: e.target.value }))}
+                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              >
+                <option value="">Select Project</option>
+                {projects.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
               <input
                 placeholder="Description"
                 value={editing.description}
@@ -115,14 +131,10 @@ export default function ConstraintsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs text-[var(--text-secondary)]">Base constraint (all models)</label>
-              <textarea
-                rows={5}
-                value={editing.constraints}
-                onChange={e => setEditing(f => ({ ...f!, constraints: e.target.value }))}
-                placeholder="You are a Staff Backend Engineer. Enforce idempotency..."
-                className="w-full resize-none rounded-md border bg-[var(--background)] px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-[var(--text-secondary)]">Visual Constraint Flow</label>
+              </div>
+              <NodeCanvas onSave={(markdown) => setEditing(f => ({ ...f!, constraints: markdown }))} />
             </div>
             <details className="space-y-2">
               <summary className="text-xs text-[var(--text-secondary)] cursor-pointer">Per-model variants (optional)</summary>

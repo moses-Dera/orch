@@ -51,7 +51,7 @@ export async function reviewFile(file: FileDiff, opts: ReviewOptions): Promise<R
   }
 
   try {
-    const res = await fetch(`${apiUrl}/api/v1/review`, {
+    const res = await fetch(`${apiUrl}/v1/review`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

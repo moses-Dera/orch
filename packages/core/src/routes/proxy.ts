@@ -1,5 +1,8 @@
 import { Hono } from 'hono';
 import { apiAuthMiddleware } from '../middlewares';
+import { db } from '../db';
+import { constraints, tokenBudgets } from '../db/schema';
+import { desc, eq } from 'drizzle-orm';
 
 const proxyRouter = new Hono();
 
@@ -9,9 +12,28 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   // 2. Parse OpenAI-compatible payload
   const body = await c.req.json();
   
-  // 3. TODO: Retrieve constraints from Drizzle using pgvector RAG
-  const systemConstraints = "Constraint: Use Bun and Drizzle ORM. Do not use Python.";
+  const teamId = c.get('teamId') as string;
   
+  // 3. Fetch Constraints
+  const teamConstraints = await db.select()
+    .from(constraints)
+    .where(eq(constraints.teamId, teamId))
+    .orderBy(desc(constraints.createdAt));
+    
+  const systemConstraints = teamConstraints.map(c => `- ${c.content}`).join('\n');
+  
+  // 3.5 Token Budget Enforcement
+  const [budgetRecord] = await db.select()
+    .from(tokenBudgets)
+    .where(eq(tokenBudgets.teamId, teamId));
+
+  if (budgetRecord && budgetRecord.consumedTokens >= budgetRecord.allocatedTokens) {
+    return c.json({ 
+      error: 'Payment Required', 
+      message: 'Agent Token Budget Exceeded. Please contact your organization administrator to increase limits.' 
+    }, 402);
+  }
+
   // Inject constraints into the system message
   const messages = [
     { role: 'system', content: systemConstraints },

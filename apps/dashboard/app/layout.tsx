@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <head>
-          <script dangerouslySetInnerHTML={{ __html: `
+          <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
             (function(){
               var t = localStorage.getItem('theme');
               if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
