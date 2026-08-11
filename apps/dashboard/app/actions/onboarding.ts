@@ -80,6 +80,7 @@ export async function createAdditionalOrg(formData: {
   return data
 }
 
+export async function createOrg(formData: {
   orgName: string
   teamName: string
   modelPolicy: "open" | "allowlist" | "enforced"

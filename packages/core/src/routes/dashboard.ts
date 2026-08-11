@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '../db';
 import { apiKeys, constraints, models, sessions, teams, organizations, tokenBudgets, projects, githubEvaluations } from '../db/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { eq, desc, inArray, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { embedConstraint } from '../ai/embedder';
 import type { AppVariables } from '../types';
@@ -65,6 +65,8 @@ dashboardRouter.get('/models', async (c) => {
       name: m.displayName,
       provider: m.provider,
       context_window: m.contextWindow,
+      is_critic: m.isCritic,
+      is_judge: m.isJudge,
     }))
   });
 });
@@ -73,6 +75,14 @@ dashboardRouter.get('/models', async (c) => {
 dashboardRouter.post('/models', async (c) => {
   const teamId = c.get('teamId');
   const body = await c.req.json();
+  
+  if (body.is_critic) {
+    await db.update(models).set({ isCritic: false }).where(eq(models.teamId, teamId));
+  }
+  if (body.is_judge) {
+    await db.update(models).set({ isJudge: false }).where(eq(models.teamId, teamId));
+  }
+
   await db.insert(models).values({
     teamId,
     provider: body.provider,
@@ -81,7 +91,33 @@ dashboardRouter.post('/models', async (c) => {
     apiKey: body.api_key,
     endpoint: body.endpoint,
     contextWindow: body.context_window || 8192,
+    isCritic: body.is_critic || false,
+    isJudge: body.is_judge || false,
   });
+  return c.json({ success: true });
+});
+
+// PUT /v1/models/:id
+dashboardRouter.put('/models/:id', async (c) => {
+  const teamId = c.get('teamId');
+  const id = c.req.param('id');
+  const body = await c.req.json();
+
+  if (body.is_critic === true) {
+    await db.update(models).set({ isCritic: false }).where(eq(models.teamId, teamId));
+  }
+  if (body.is_judge === true) {
+    await db.update(models).set({ isJudge: false }).where(eq(models.teamId, teamId));
+  }
+
+  const updateData: any = {};
+  if (body.is_critic !== undefined) updateData.isCritic = body.is_critic;
+  if (body.is_judge !== undefined) updateData.isJudge = body.is_judge;
+
+  if (Object.keys(updateData).length > 0) {
+    await db.update(models).set(updateData).where(sql`${models.id} = ${id} AND ${models.teamId} = ${teamId}`);
+  }
+
   return c.json({ success: true });
 });
 
@@ -89,7 +125,7 @@ dashboardRouter.post('/models', async (c) => {
 dashboardRouter.delete('/models/:id', async (c) => {
   const teamId = c.get('teamId');
   const id = c.req.param('id');
-  await db.delete(models).where(eq(models.id, id));
+  await db.delete(models).where(sql`${models.id} = ${id} AND ${models.teamId} = ${teamId}`);
   return c.json({ success: true });
 });
 

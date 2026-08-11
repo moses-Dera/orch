@@ -120,8 +120,6 @@ export const constraintChunks = pgTable('constraint_chunks', {
   constraintId: text('constraint_id').notNull().references(() => constraints.id, { onDelete: 'cascade' }),
   chunkIndex: integer('chunk_index').notNull(),
   chunkText: text('chunk_text').notNull(),
-  // vector(1536) for OpenAI text-embedding-3-small
-  // Stored as text and cast in raw SQL queries since Drizzle doesn't have a native vector type
-  embedding: text('embedding'), // Will be cast to vector(1536) via raw SQL
+  embedding: text('embedding'), // Cast to vector(3072) via raw SQL
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

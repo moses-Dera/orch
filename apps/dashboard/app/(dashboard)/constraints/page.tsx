@@ -212,7 +212,7 @@ export default function ConstraintsPage() {
                   {isAdmin && (
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => setEditing({
-                        id: c.id, description: c.description, constraints: c.constraints,
+                        id: c.id, projectId: c.projectId, description: c.description, constraints: c.constraints,
                         gpt_variant: c.gpt_variant ?? "", claude_variant: c.claude_variant ?? "",
                         gemini_variant: c.gemini_variant ?? "", version: c.version,
                       })}>

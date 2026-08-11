@@ -24,6 +24,8 @@ export interface ModelInfo {
   name: string
   provider: string
   context_window: number
+  is_critic?: boolean
+  is_judge?: boolean
 }
 
 export interface ModelsResponse {

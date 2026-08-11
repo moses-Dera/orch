@@ -1,8 +1,11 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Shield, Zap, Terminal, GitMerge, ArrowRight, Github, Lock } from "lucide-react"
+import { Shield, Zap, Terminal, GitMerge, ArrowRight, Lock } from "lucide-react"
 import Link from "next/link"
+
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3000"
+
 
 export default function LandingPage() {
   return (
@@ -18,10 +21,10 @@ export default function LandingPage() {
           Orch
         </div>
         <div className="flex items-center gap-6">
-          <Link href="http://localhost:3000" className="text-sm font-medium hover:text-[var(--color-accent)] transition-colors">
+          <Link href={`${DASHBOARD_URL}`} className="text-sm font-medium hover:text-[var(--color-accent)] transition-colors">
             Login
           </Link>
-          <Link href="http://localhost:3000/onboarding" className="text-sm font-medium bg-white text-black px-4 py-2 rounded-full hover:opacity-90 transition-opacity">
+          <Link href={`${DASHBOARD_URL}/onboarding`} className="text-sm font-medium bg-white text-black px-4 py-2 rounded-full hover:opacity-90 transition-opacity">
             Start 100k Token Trial
           </Link>
         </div>
@@ -66,10 +69,10 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex items-center gap-4 pt-4"
           >
-            <Link href="http://localhost:3000/onboarding" className="flex items-center gap-2 bg-[var(--color-accent)] text-black font-semibold px-6 py-3 rounded-full hover:opacity-90 transition-opacity">
+            <Link href={`${DASHBOARD_URL}/onboarding`} className="flex items-center gap-2 bg-[var(--color-accent)] text-black font-semibold px-6 py-3 rounded-full hover:opacity-90 transition-opacity">
               Connect GitHub <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link href="http://localhost:3000" className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-border)] text-white font-medium px-6 py-3 rounded-full hover:bg-[var(--color-surface-hover)] transition-colors">
+            <Link href={`${DASHBOARD_URL}`} className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-border)] text-white font-medium px-6 py-3 rounded-full hover:bg-[var(--color-surface-hover)] transition-colors">
               <Terminal className="w-4 h-4" /> View Docs
             </Link>
           </motion.div>
@@ -141,7 +144,7 @@ export default function LandingPage() {
         <div className="flex items-center justify-center gap-2 font-bold text-white mb-4">
           <Shield className="w-5 h-5 text-[var(--color-accent)]" /> Orch
         </div>
-        <p>© 2026 Orch Inc. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Orch Inc. All rights reserved.</p>
       </footer>
     </div>
   )

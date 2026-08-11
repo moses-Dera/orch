@@ -5,7 +5,7 @@ export default function SignUpPage() {
   return (
     <SignUp
       appearance={clerkAppearance}
-      redirectUrl="/onboarding"
+      fallbackRedirectUrl="/onboarding"
     />
   )
 }

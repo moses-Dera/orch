@@ -2,7 +2,7 @@ import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 const DEFAULT_TOP_K = parseInt(process.env.RAG_TOP_K || '6', 10);
-const GEMINI_EMBEDDING_MODEL = 'models/text-embedding-004';
+const GEMINI_EMBEDDING_MODEL = 'models/gemini-embedding-001';
 
 /**
  * Embed a query string using the Google Gemini Embeddings API.

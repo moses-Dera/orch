@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 
 export default function SignInPage() {
-  const { isLoaded, signIn, setActive } = useSignIn();
+  const { signIn, setActive } = useSignIn() as any;
+  const isLoaded = !!signIn;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
-import { Github } from "lucide-react"
+import { GitMerge } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -41,7 +41,7 @@ export default function GithubAppPage() {
       <div className="max-w-xl space-y-6">
         <div className="rounded-lg border bg-[var(--surface)] p-6 space-y-4">
           <div className="flex items-center gap-3">
-            <Github className="w-8 h-8" />
+            <GitMerge className="w-8 h-8" />
             <div>
               <h2 className="text-lg font-semibold">Orch GitHub App</h2>
               <p className="text-sm text-[var(--text-secondary)]">Automated PR Reviews & Constraint Enforcement</p>
@@ -54,7 +54,7 @@ export default function GithubAppPage() {
 
           <div className="pt-4 border-t border-[var(--background)]">
             <Button onClick={handleInstall} className="w-full flex items-center justify-center gap-2">
-              <Github className="w-4 h-4" />
+              <GitMerge className="w-4 h-4" />
               Install on GitHub
             </Button>
           </div>

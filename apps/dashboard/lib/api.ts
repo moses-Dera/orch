@@ -94,6 +94,9 @@ export const api = {
   removeModel: (configId: string) =>
     req(`/v1/models/${configId}`, { method: "DELETE" }),
 
+  updateModel: (id: string, body: { is_critic?: boolean; is_judge?: boolean }) =>
+    req(`/v1/models/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+
   listConstraints: () => req<{ constraints: any[] }>("/v1/constraints"),
 
   upsertConstraint: (id: string, body: {

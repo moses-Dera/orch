@@ -52,6 +52,16 @@ export default function ModelsPage() {
     onError: (e: any) => toast.error(e.message),
   })
 
+  const updateRole = useMutation({
+    mutationFn: ({ id, role, value }: { id: string; role: "is_critic" | "is_judge"; value: boolean }) =>
+      api.updateModel(id, { [role]: value }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["models"] })
+      toast.success("Model role updated")
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
   if (isLoading) return <PageSkeleton />
 
   return (
@@ -158,20 +168,49 @@ export default function ModelsPage() {
               {data.models.map((m) => (
                 <div key={m.id} className="flex items-center justify-between px-5 py-3">
                   <div>
-                    <p className="text-sm font-medium">{m.name}</p>
-                    <p className="text-xs text-[var(--text-secondary)]">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      {m.name}
+                      {m.is_critic && <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[10px] uppercase font-bold tracking-wider">Critic</span>}
+                      {m.is_judge && <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] uppercase font-bold tracking-wider">Judge</span>}
+                    </p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                       {m.id} · {m.provider} · {(m.context_window / 1000).toFixed(0)}K context
                     </p>
                   </div>
                   {isAdmin && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => remove.mutate(m.id)}
-                      disabled={remove.isPending}
-                    >
-                      Remove
-                    </Button>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-4 text-xs font-medium">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={!!m.is_critic} 
+                            onChange={(e) => updateRole.mutate({ id: m.id, role: "is_critic", value: e.target.checked })}
+                            disabled={updateRole.isPending}
+                            className="accent-emerald-500 w-3.5 h-3.5"
+                          />
+                          Critic
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={!!m.is_judge} 
+                            onChange={(e) => updateRole.mutate({ id: m.id, role: "is_judge", value: e.target.checked })}
+                            disabled={updateRole.isPending}
+                            className="accent-blue-500 w-3.5 h-3.5"
+                          />
+                          Judge
+                        </label>
+                      </div>
+                      <div className="w-px h-6 bg-[var(--border)]" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => remove.mutate(m.id)}
+                        disabled={remove.isPending}
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))}

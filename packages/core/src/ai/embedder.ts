@@ -4,7 +4,7 @@ import { eq, sql } from 'drizzle-orm';
 
 const CHUNK_SIZE = 300;   // ~300 tokens per chunk
 const CHUNK_OVERLAP = 50; // 50-token overlap between chunks
-const GEMINI_EMBEDDING_MODEL = 'models/text-embedding-004';
+const GEMINI_EMBEDDING_MODEL = 'models/gemini-embedding-001';
 
 /**
  * Split text into overlapping chunks by approximate token count.
