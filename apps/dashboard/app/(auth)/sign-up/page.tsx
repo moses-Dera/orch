@@ -1,5 +1,5 @@
 'use client';
-import { useSignIn } from '@clerk/nextjs';
+import { useSignUp } from '@clerk/nextjs';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
@@ -11,55 +11,127 @@ const GithubIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export default function SignInPage() {
-  const { signIn, setActive } = useSignIn() as any;
-  const isLoaded = !!signIn;
-  console.log('SignIn Methods:', isLoaded ? Object.keys(signIn) : 'not loaded');
+export default function SignUpPage() {
+  const { signUp, setActive } = useSignUp() as any;
+  const isLoaded = !!signUp;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [code, setCode] = useState('');
   const router = useRouter();
 
   const handleOAuth = async (strategy: 'oauth_google' | 'oauth_github') => {
     if (!isLoaded) return;
     try {
-      console.log('signIn methods available:', Object.keys(signIn));
-      await signIn.sso({
+      await signUp.sso({
         strategy,
         redirectUrl: '/sso-callback',
-        redirectCallbackUrl: '/dashboard',
+        redirectCallbackUrl: '/onboarding',
       });
     } catch (err: any) {
-      console.error('OAuth failed', err?.message || err);
+      console.error('OAuth failed', err);
+      if (err.errors) {
+        console.error('Clerk errors:', err.errors);
+      }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
+    if (!isLoaded || !signUp) return;
+
     try {
-      const result = await signIn.create({
-        identifier: email,
+      const attempt = await signUp.create({
+        emailAddress: email,
         password,
       });
 
-      if (result.status === 'complete') {
-        // Log the user in
-        await setActive({ session: result.createdSessionId });
-        // Redirect to protected dashboard
-        router.push('/dashboard');
+      // Handle both modern and legacy Clerk SDK methods by calling it on the attempt object
+      if (typeof (attempt as any).prepareVerification === 'function') {
+        await (attempt as any).prepareVerification({ strategy: 'email_code' });
+      } else if (typeof (attempt as any).prepareEmailAddressVerification === 'function') {
+        await (attempt as any).prepareEmailAddressVerification({ strategy: 'email_code' });
+      } else if (typeof (signUp as any).prepareVerification === 'function') {
+        await (signUp as any).prepareVerification({ strategy: 'email_code' });
       } else {
-        console.error('Sign in requires further steps:', result);
+        await (signUp as any).prepareEmailAddressVerification({ strategy: 'email_code' });
       }
-    } catch (err) {
-      console.error('Error signing in', err);
+      setPendingVerification(true);
+    } catch (err: any) {
+      console.error('Error signing up', err);
+      if (err.errors) {
+        console.error('Clerk errors:', err.errors);
+      }
     }
   };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded || !signUp) return;
+
+    try {
+      let completeSignUp;
+      if (typeof (signUp as any).attemptVerification === 'function') {
+        completeSignUp = await (signUp as any).attemptVerification({
+          strategy: 'email_code',
+          code,
+        });
+      } else {
+        completeSignUp = await (signUp as any).attemptEmailAddressVerification({
+          code,
+        });
+      }
+
+      if (completeSignUp.status === 'complete') {
+        await setActive({ session: completeSignUp.createdSessionId });
+        router.push('/onboarding');
+      } else {
+        console.error('Sign up requires further steps', completeSignUp);
+      }
+    } catch (err) {
+      console.error('Error verifying code', err);
+    }
+  };
+
+  if (pendingVerification) {
+    return (
+      <div className="flex w-full items-center justify-center">
+        <div className="w-full max-w-md p-8 shadow-2xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+          <h1 className="text-3xl font-bold mb-2 text-center tracking-tight" style={{ color: 'var(--text-primary)' }}>Check your email</h1>
+          <p className="text-center mb-8 text-sm" style={{ color: 'var(--text-secondary)' }}>We sent a 6-digit code to {email}</p>
+          
+          <form onSubmit={handleVerify} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Verification Code</label>
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full px-4 py-2 focus:outline-none focus:ring-2"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)' }}
+                placeholder="123456"
+              />
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full mt-4 transition-all"
+              style={{ backgroundColor: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius)' }}
+              onMouseOver={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent-hover)')}
+              onMouseOut={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+            >
+              Verify Email
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full items-center justify-center">
       <div className="w-full max-w-md p-8 shadow-2xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-        <h1 className="text-3xl font-bold mb-6 text-center tracking-tight" style={{ color: 'var(--text-primary)' }}>Sign in to Orch</h1>
-        <p className="text-center mb-8 text-sm" style={{ color: 'var(--text-secondary)' }}>Centralized Control Plane for Policy-as-Code</p>
+        <h1 className="text-3xl font-bold mb-6 text-center tracking-tight" style={{ color: 'var(--text-primary)' }}>Create an account</h1>
+        <p className="text-center mb-8 text-sm" style={{ color: 'var(--text-secondary)' }}>Start enforcing your organization's AI policies today.</p>
 
         <div className="flex gap-4 mb-6">
           <Button 
@@ -89,7 +161,6 @@ export default function SignInPage() {
           <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[var(--border)]" /></div>
           <div className="relative flex justify-center text-xs uppercase"><span className="px-2" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-secondary)' }}>Or continue with email</span></div>
         </div>
-
 
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,14 +196,14 @@ export default function SignInPage() {
             onMouseOver={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent-hover)')}
             onMouseOut={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent)')}
           >
-            {isLoaded ? 'Sign In' : 'Loading...'}
+            {isLoaded ? 'Sign Up' : 'Loading...'}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Don't have an account?{' '}
-          <Link href="/sign-up" className="hover:underline" style={{ color: 'var(--text-primary)' }}>
-            Sign up
+          Already have an account?{' '}
+          <Link href="/sign-in" className="hover:underline" style={{ color: 'var(--text-primary)' }}>
+            Sign in
           </Link>
         </p>
       </div>

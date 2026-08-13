@@ -44,5 +44,6 @@ onboardingRouter.get('/me', async (c) => {
   return c.json({
     api_key: rawKey,
     team_id: firstTeam.id,
+    role: 'owner',
   });
 });
