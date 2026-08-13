@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"bun run --cwd packages/core dev\" \"bun run --cwd apps/dashboard dev\""
+    "dev": "concurrently \"bun run --cwd packages/core dev\" \"bun run --cwd apps/dashboard dev\" \"bun run --cwd apps/web dev\" \"bun run --cwd apps/docs dev\""
   },
   "devDependencies": {
     "concurrently": "^10.0.4"
