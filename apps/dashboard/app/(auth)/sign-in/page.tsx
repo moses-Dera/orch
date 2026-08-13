@@ -12,9 +12,11 @@ const GithubIcon = ({ className }: { className?: string }) => (
 );
 
 export default function SignInPage() {
-  const { signIn, setActive } = useSignIn() as any;
+  const signInHook = useSignIn() as any;
+  const { signIn, setActive } = signInHook;
   const isLoaded = !!signIn;
-  console.log('SignIn Methods:', isLoaded ? Object.keys(signIn) : 'not loaded');
+  console.log('useSignIn() keys:', Object.keys(signInHook));
+  console.log('signIn object itself:', signIn);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
@@ -25,8 +27,8 @@ export default function SignInPage() {
       console.log('signIn methods available:', Object.keys(signIn));
       await signIn.sso({
         strategy,
-        redirectUrl: '/sso-callback',
-        redirectCallbackUrl: '/dashboard',
+        redirectUrl: `${window.location.origin}/sso-callback`,
+        redirectCallbackUrl: `${window.location.origin}/dashboard`,
       });
     } catch (err: any) {
       console.error('OAuth failed', err?.message || err);
