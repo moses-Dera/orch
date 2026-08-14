@@ -18,11 +18,11 @@ const ROLE_COLORS: Record<string, string> = {
   viewer: "bg-[var(--text-secondary)]/10 text-[var(--text-secondary)]",
 }
 
-async function fetchMembers() {
+async function fetchMembers(): Promise<{ members: any[]; team: string }> {
   // const res = await fetch("/api/orch/v1/members")
   // if (!res.ok) throw new Error("Failed to fetch members")
   // return res.json()
-  return [] // Not implemented on backend yet
+  return { members: [], team: "" } // Not implemented on backend yet
 }
 
 async function inviteMember(email: string, role: string) {

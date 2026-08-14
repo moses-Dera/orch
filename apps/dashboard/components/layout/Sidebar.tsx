@@ -58,9 +58,6 @@ export function Sidebar() {
         <span className="text-sm font-medium text-[var(--text-secondary)]">Account</span>
         <UserButton 
           appearance={{
-            layout: {
-              unsafe_disableDevelopmentModeWarnings: true,
-            },
             elements: {
               userButtonPopoverFooter: "hidden"
             }

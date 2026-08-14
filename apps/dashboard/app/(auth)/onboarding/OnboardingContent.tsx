@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useMe } from "@/hooks/useRole"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"

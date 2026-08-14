@@ -33,9 +33,6 @@ export function Header() {
         </button>
         <UserButton 
           appearance={{
-            layout: {
-              unsafe_disableDevelopmentModeWarnings: true,
-            },
             elements: {
               userButtonPopoverFooter: "hidden"
             }
