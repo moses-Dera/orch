@@ -101,3 +101,13 @@ input, select, button {
 
 /* Code blocks */
 pre, code { font-family: var(--font-mono); }
+
+/* Force Hide Clerk Branding */
+.cl-internal-b3alnr,
+.cl-watermark,
+.cl-userButtonPopoverFooter,
+[class*='cl-userButtonPopoverFooter'],
+div:has(> a[href^='https://clerk.com']),
+div:has(> a[href^='https://dashboard.clerk.com']) {
+  display: none !important;
+}

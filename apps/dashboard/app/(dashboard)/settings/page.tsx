@@ -6,143 +6,165 @@ import { PageShell } from "@/components/layout/PageShell"
 import { PageSkeleton } from "@/components/shared/LoadingSkeleton"
 import { Button } from "@/components/ui/button"
 import { useMe } from "@/hooks/useRole"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { renameOrg, renameTeam } from "@/app/actions/onboarding"
+import { api } from "@/lib/api"
 
 export default function SettingsPage() {
   const { data: me, isLoading } = useMe()
-  const [revealed, setRevealed] = useState(false)
-  const [models, setModels] = useState<any[]>([])
-  const [isModelsLoading, setIsModelsLoading] = useState(false)
-  const [baseUrl, setBaseUrl] = useState('https://openrouter.ai/api/v1')
-  const [providerKey, setProviderKey] = useState('')
+  const queryClient = useQueryClient()
+
+  // API key generation
+  const [newKey, setNewKey] = useState<string | null>(null)
+  const [generatingKey, setGeneratingKey] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // Rename state
+  const [orgNameInput, setOrgNameInput] = useState("")
+  const [teamNameInput, setTeamNameInput] = useState("")
+  const [renamingOrg, setRenamingOrg] = useState(false)
+  const [renamingTeam, setRenamingTeam] = useState(false)
 
   useEffect(() => {
-    // Initial fetch for OpenRouter (default)
-    fetchModels('https://openrouter.ai/api/v1', '')
-  }, [])
+    if (me?.org_name) setOrgNameInput(me.org_name)
+    if (me?.team_name) setTeamNameInput(me.team_name)
+  }, [me?.org_name, me?.team_name])
 
-  async function fetchModels(url: string, key: string) {
-    setIsModelsLoading(true)
+  async function handleGenerateKey() {
+    if (!me?.team_id) return
+    setGeneratingKey(true)
     try {
-      const res = await fetch('/api/orch/v1/dashboard/provider/models', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ baseUrl: url, apiKey: key })
-      })
-      if (!res.ok) throw new Error()
-      const data = await res.json()
-      setModels(data.models || [])
-    } catch {
-      toast.error('Failed to fetch models from provider.')
+      const data = await api.generateKey({ team_id: me.team_id })
+      setNewKey(data.key)
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to generate key")
     } finally {
-      setIsModelsLoading(false)
+      setGeneratingKey(false)
     }
   }
 
-  const apiKey = me?.api_key as string | undefined
-
   function copyKey() {
-    if (!apiKey) return
-    navigator.clipboard.writeText(apiKey)
-    toast.success("API key copied")
+    if (!newKey) return
+    navigator.clipboard.writeText(newKey)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleRenameOrg() {
+    if (!orgNameInput.trim() || !me?.org_id) return
+    setRenamingOrg(true)
+    try {
+      await renameOrg(me.org_id, orgNameInput.trim())
+      toast.success("Organization renamed")
+      queryClient.invalidateQueries({ queryKey: ["me"] })
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to rename organization")
+    } finally {
+      setRenamingOrg(false)
+    }
+  }
+
+  async function handleRenameTeam() {
+    if (!teamNameInput.trim() || !me?.team_id) return
+    setRenamingTeam(true)
+    try {
+      await renameTeam(me.team_id, teamNameInput.trim())
+      toast.success("Team renamed")
+      queryClient.invalidateQueries({ queryKey: ["me"] })
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to rename team")
+    } finally {
+      setRenamingTeam(false)
+    }
   }
 
   if (isLoading) return <PageSkeleton />
 
   return (
-    <PageShell title="Settings" description="Your profile and API key.">
+    <PageShell title="Settings" description="Manage your workspace, team, and API key.">
       <div className="space-y-6 max-w-xl">
+
+        {/* Organization Name */}
+        {me?.org_id && (
+          <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-3">
+            <div>
+              <h2 className="text-sm font-medium">Organization Name</h2>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                This name appears across the dashboard and in team invites.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={orgNameInput}
+                onChange={(e) => setOrgNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleRenameOrg()}
+                className="flex-1 rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              />
+              <Button
+                size="sm"
+                disabled={renamingOrg || !orgNameInput.trim() || orgNameInput === me?.org_name}
+                onClick={handleRenameOrg}
+              >
+                {renamingOrg ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Team Name */}
+        {me?.team_id && (
+          <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-3">
+            <div>
+              <h2 className="text-sm font-medium">Team Name</h2>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                Your primary workspace team. Rename it to match your structure (e.g. "Backend", "AI Team").
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={teamNameInput}
+                onChange={(e) => setTeamNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleRenameTeam()}
+                className="flex-1 rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              />
+              <Button
+                size="sm"
+                disabled={renamingTeam || !teamNameInput.trim() || teamNameInput === me?.team_name}
+                onClick={handleRenameTeam}
+              >
+                {renamingTeam ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* API Key */}
         <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-3">
-          <h2 className="text-sm font-medium">Your Orch API Key</h2>
-          <p className="text-xs text-[var(--text-secondary)]">
-            Use this internal key to authenticate your VS Code extension or CLI.
-          </p>
-          {apiKey ? (
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded border bg-[var(--background)] px-3 py-2 text-xs font-mono truncate">
-                {revealed ? apiKey : "orch_" + "•".repeat(32)}
-              </code>
-              <Button variant="outline" size="sm" onClick={() => setRevealed(!revealed)}>
-                {revealed ? "Hide" : "Show"}
-              </Button>
-              <Button size="sm" onClick={copyKey}>Copy</Button>
+          <div>
+            <h2 className="text-sm font-medium">Orch API Key</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+              Use this key to authenticate your VS Code extension, CLI, or Orch Agent.
+              For security, the full key is only shown once when generated.
+            </p>
+          </div>
+          {newKey ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded border bg-[var(--background)] px-3 py-2 text-xs font-mono truncate">
+                  {newKey}
+                </code>
+                <Button size="sm" onClick={copyKey}>{copied ? "Copied ✓" : "Copy"}</Button>
+              </div>
+              <p className="text-xs text-amber-500">⚠ Save this key now — it won't be shown again.</p>
             </div>
           ) : (
-            <p className="text-xs text-[var(--text-secondary)]">No API key found. Contact your admin.</p>
+            <Button size="sm" variant="outline" disabled={generatingKey || !me?.team_id} onClick={handleGenerateKey}>
+              {generatingKey ? "Generating..." : "Generate New Key"}
+            </Button>
           )}
         </div>
 
-        {/* AI Provider Settings */}
-        <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-4">
-          <div>
-            <h2 className="text-sm font-medium">AI Provider Settings</h2>
-            <p className="text-xs text-[var(--text-secondary)] mt-1">
-              Configure your AI provider (OpenRouter, OpenAI, DeepSeek, etc).
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-medium">Provider Base URL</label>
-            <input 
-              type="text" 
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://openrouter.ai/api/v1" 
-              className="w-full rounded border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-medium">API Key</label>
-            <div className="flex items-center gap-2">
-              <input 
-                id="ai-api-key"
-                type="password" 
-                value={providerKey}
-                onChange={(e) => setProviderKey(e.target.value)}
-                placeholder="sk-..." 
-                className="flex-1 rounded border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              />
-              <Button size="sm" variant="outline" onClick={() => fetchModels(baseUrl, providerKey)}>
-                {isModelsLoading ? "Fetching..." : "Fetch Models"}
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-2 pt-2 border-t border-[var(--border)]">
-            <label className="text-xs font-medium">Preferred Model</label>
-            <select className="w-full rounded border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]" disabled={isModelsLoading}>
-              <option disabled>Select a model...</option>
-              {models.map((m: any) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.id})
-                </option>
-              ))}
-            </select>
-            <Button size="sm" className="mt-3 w-full" onClick={async () => {
-              if (!providerKey) {
-                toast.error("Please enter an API Key.");
-                return;
-              }
-              try {
-                // Here we would save baseUrl, providerKey, and selected model to the DB.
-                // For MVP, we save the key using the existing billing key endpoint.
-                const res = await fetch('/api/orch/v1/billing/key', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ apiKey: providerKey })
-                });
-                if (res.ok) {
-                  toast.success("AI Configuration saved securely.");
-                } else throw new Error();
-              } catch (e) {
-                toast.error("Failed to save configuration.");
-              }
-            }}>Save Configuration</Button>
-          </div>
-        </div>
 
         {/* Integrations */}
         <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-3">
@@ -172,14 +194,10 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2 pt-2">
             <Button size="sm" onClick={async () => {
               try {
-                const res = await fetch('/api/orch/v1/billing/checkout', {
-                  method: 'POST',
-                });
+                const res = await fetch('/api/orch/v1/billing/checkout', { method: 'POST' });
                 if (!res.ok) throw new Error("Failed to get checkout URL");
                 const data = await res.json();
-                if (data.url) {
-                  window.location.href = data.url;
-                }
+                if (data.url) window.location.href = data.url;
               } catch (e) {
                 toast.error("Failed to initiate checkout.");
               }

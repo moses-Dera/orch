@@ -8,9 +8,12 @@ export function TrialBanner() {
 
   useEffect(() => {
     fetch('/api/orch/v1/billing')
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        return text ? JSON.parse(text) : {};
+      })
       .then(data => {
-        if (!data.error) setBilling(data)
+        if (data && !data.error) setBilling(data)
       })
       .catch(console.error)
   }, [])

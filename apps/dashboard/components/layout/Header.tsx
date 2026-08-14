@@ -31,7 +31,16 @@ export function Header() {
         >
           {theme === "dark" ? "☀" : "☾"}
         </button>
-        <UserButton />
+        <UserButton 
+          appearance={{
+            layout: {
+              unsafe_disableDevelopmentModeWarnings: true,
+            },
+            elements: {
+              userButtonPopoverFooter: "hidden"
+            }
+          }}
+        />
       </div>
     </header>
   )

@@ -19,9 +19,10 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 async function fetchMembers() {
-  const res = await fetch("/api/orch/v1/members")
-  if (!res.ok) throw new Error("Failed to fetch members")
-  return res.json()
+  // const res = await fetch("/api/orch/v1/members")
+  // if (!res.ok) throw new Error("Failed to fetch members")
+  // return res.json()
+  return [] // Not implemented on backend yet
 }
 
 async function inviteMember(email: string, role: string) {

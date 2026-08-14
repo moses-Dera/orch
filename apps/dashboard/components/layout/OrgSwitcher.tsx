@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { useMe } from "@/hooks/useRole"
-import { switchOrg, createAdditionalOrg } from "@/app/actions/onboarding"
+import { createAdditionalOrg } from "@/app/actions/onboarding"
 import { toast } from "sonner"
 
 export function OrgSwitcher() {
@@ -12,13 +12,11 @@ export function OrgSwitcher() {
   const [open, setOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newOrgName, setNewOrgName] = useState("")
+  const [newTeamName, setNewTeamName] = useState("Engineering")
   const [loading, setLoading] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const queryClient = useQueryClient()
-
-  const orgs: any[] = me?.orgs ?? []
-  const activeOrgId = me?.org?.id
 
   // Close on outside click
   useEffect(() => {
@@ -32,32 +30,17 @@ export function OrgSwitcher() {
     return () => document.removeEventListener("mousedown", handle)
   }, [])
 
-  async function handleSwitch(org: any) {
-    if (org.org_id === activeOrgId) { setOpen(false); return }
-    setLoading(true)
-    try {
-      await switchOrg(org.org_id, org.api_key)
-      queryClient.clear()
-      router.refresh()
-      setOpen(false)
-      toast.success(`Switched to ${org.org_name}`)
-    } catch {
-      toast.error("Failed to switch org")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   async function handleCreate() {
     if (!newOrgName.trim()) return
     setLoading(true)
     try {
-      await createAdditionalOrg({ orgName: newOrgName, teamName: "Engineering", modelPolicy: "open" })
-      queryClient.clear()
+      await createAdditionalOrg({ orgName: newOrgName, teamName: newTeamName || "Engineering", modelPolicy: "open" })
+      queryClient.invalidateQueries({ queryKey: ["me"] })
       router.refresh()
       setOpen(false)
       setCreating(false)
       setNewOrgName("")
+      setNewTeamName("Engineering")
       toast.success(`${newOrgName} created`)
     } catch (e: any) {
       toast.error(e.message)
@@ -68,13 +51,15 @@ export function OrgSwitcher() {
 
   if (!me) return null
 
+  const orgName = me.org_name ?? "—"
+
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => { setOpen(!open); setCreating(false) }}
         className="flex items-center gap-1.5 text-sm hover:text-[var(--text-primary)] transition-colors"
       >
-        <span className="text-[var(--text-secondary)]">{me.org?.name}</span>
+        <span className="text-[var(--text-secondary)]">{orgName}</span>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[var(--text-secondary)]">
           <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -83,26 +68,13 @@ export function OrgSwitcher() {
       {open && (
         <div className="absolute top-full left-0 mt-2 w-64 rounded-lg border bg-[var(--surface)] shadow-lg z-50 overflow-hidden">
 
-          {/* Org list */}
-          <div className="py-1">
-            {orgs.map((org) => (
-              <button
-                key={org.org_id}
-                onClick={() => handleSwitch(org)}
-                disabled={loading}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[var(--border)] transition-colors text-left"
-              >
-                <div>
-                  <p className={`font-medium ${org.org_id === activeOrgId ? "text-[var(--accent)]" : ""}`}>
-                    {org.org_name}
-                  </p>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5 capitalize">{org.role} · {org.model_policy}</p>
-                </div>
-                {org.org_id === activeOrgId && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] shrink-0" />
-                )}
-              </button>
-            ))}
+          {/* Current org info */}
+          <div className="px-4 py-3 border-b">
+            <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">Current workspace</p>
+            <p className="text-sm font-semibold mt-0.5">{orgName}</p>
+            {me.team_name && (
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">Team: {me.team_name}</p>
+            )}
           </div>
 
           <div className="border-t py-1">
@@ -119,8 +91,14 @@ export function OrgSwitcher() {
                   autoFocus
                   value={newOrgName}
                   onChange={e => setNewOrgName(e.target.value)}
+                  placeholder="Organization name"
+                  className="w-full rounded-md border bg-[var(--background)] px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                />
+                <input
+                  value={newTeamName}
+                  onChange={e => setNewTeamName(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleCreate()}
-                  placeholder="Org name"
+                  placeholder="First team name (e.g. Engineering)"
                   className="w-full rounded-md border bg-[var(--background)] px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
                 />
                 <div className="flex gap-2">
@@ -132,7 +110,7 @@ export function OrgSwitcher() {
                     {loading ? "Creating..." : "Create"}
                   </button>
                   <button
-                    onClick={() => { setCreating(false); setNewOrgName("") }}
+                    onClick={() => { setCreating(false); setNewOrgName(""); setNewTeamName("Engineering") }}
                     className="flex-1 rounded-md border text-xs py-1.5"
                   >
                     Cancel

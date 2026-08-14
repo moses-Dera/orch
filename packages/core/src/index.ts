@@ -21,6 +21,16 @@ app.get('/', (c) => {
   return c.text('Orch Core API running smoothly on Bun.');
 });
 
+// Global Error Handlers
+app.notFound((c) => {
+  return c.json({ error: 'Not Found' }, 404);
+});
+
+app.onError((err, c) => {
+  console.error(`[Global Error] ${err}`);
+  return c.json({ error: err.message || 'Internal Server Error' }, 500);
+});
+
 // Register Routers
 const routes = app
   .route('/api/auth', authRouter)

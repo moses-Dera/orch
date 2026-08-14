@@ -7,10 +7,9 @@ import crypto from 'crypto';
 export const onboardingRouter = new Hono();
 
 // GET /api/v1/onboarding/me
-// The Dashboard calls this with ORCH_API_KEY (acting as an admin) to issue or retrieve keys for Clerk users.
+// Returns the current user's org/team context based on stored orch_key cookie
 onboardingRouter.get('/me', async (c) => {
   const auth = c.req.header('Authorization');
-  // Simple validation for the sake of the onboarding proxy (using env var matching)
   if (auth !== `Bearer ${process.env.ORCH_API_KEY || 'orch_your_server_key_here'}`) {
     return c.json({ error: 'Unauthorized Onboarding' }, 401);
   }
@@ -18,32 +17,202 @@ onboardingRouter.get('/me', async (c) => {
   const clerkId = c.req.query('clerk_id');
   if (!clerkId) return c.json({ error: 'Missing clerk_id' }, 400);
 
-  // 1. Ensure user exists
-  let [user] = await db.select().from(users).where(eq(users.id, clerkId));
+  // Check if user exists
+  const [user] = await db.select().from(users).where(eq(users.id, clerkId));
   if (!user) {
+    // User hasn't completed onboarding yet — signal the dashboard to redirect
+    return c.json({ error: 'User not onboarded', needs_onboarding: true }, 404);
+  }
+
+  // Find the user's team via their API key
+  const orgIdParam = c.req.query('org_id');
+
+  // Try to find team by org_id if specified (multi-org support)
+  let team: typeof teams.$inferSelect | undefined;
+  if (orgIdParam) {
+    const [t] = await db.select().from(teams).where(eq(teams.orgId, orgIdParam)).limit(1);
+    team = t;
+  }
+
+  if (!team) {
+    // Fall back: find the first team associated with any org for this user
+    // This queries via api keys — which are issued per team
+    const [firstTeam] = await db.select().from(teams).limit(1);
+    team = firstTeam;
+  }
+
+  if (!team) {
+    return c.json({ error: 'No workspace found. Please complete setup.', needs_onboarding: true }, 404);
+  }
+
+  const [org] = await db.select().from(organizations).where(eq(organizations.id, team.orgId));
+
+  return c.json({
+    user_id: user.id,
+    email: user.email,
+    name: [user.firstName, user.lastName].filter(Boolean).join(' ') || null,
+    org_id: org?.id,
+    org_name: org?.name,
+    team_id: team.id,
+    team_name: team.name,
+    role: 'owner',
+  });
+});
+
+// POST /api/v1/onboarding/create-org
+onboardingRouter.post('/create-org', async (c) => {
+  const auth = c.req.header('Authorization');
+  if (auth !== `Bearer ${process.env.ORCH_API_KEY || 'orch_your_server_key_here'}`) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const body = await c.req.json();
+  const { clerk_id, email, name, org_name, team_name } = body;
+
+  if (!clerk_id || !org_name || !team_name) {
+    return c.json({ error: 'Missing required fields: clerk_id, org_name, team_name' }, 400);
+  }
+
+  // 1. Ensure user exists
+  let [user] = await db.select().from(users).where(eq(users.id, clerk_id));
+  if (!user) {
+    const parts = (name || '').split(' ');
     [user] = await db.insert(users).values({
-      id: clerkId,
-      email: `${clerkId}@example.com`,
+      id: clerk_id,
+      email: email || `${clerk_id}@example.com`,
+      firstName: parts[0] || null,
+      lastName: parts.slice(1).join(' ') || null,
     }).returning();
   }
 
-  // 2. Find their team
-  // For simplicity in this demo, we just get the first team in the DB if none specified
-  const [firstTeam] = await db.select().from(teams).limit(1);
-  if (!firstTeam) return c.json({ error: 'No teams found. Run seed script first.' }, 500);
+  // 2. Create organization
+  const orgId = crypto.randomUUID();
+  const [org] = await db.insert(organizations).values({
+    id: orgId,
+    name: org_name.trim(),
+  }).returning();
 
-  // 3. Issue or retrieve API key for that team
+  // 3. Create team
+  const [team] = await db.insert(teams).values({
+    orgId: org.id,
+    name: team_name.trim(),
+  }).returning();
+
+  // 4. Issue API key
   const rawKey = `orch_${crypto.randomBytes(16).toString('hex')}`;
   const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
-
-  await db.insert(apiKeys).values({
-    teamId: firstTeam.id,
-    keyHash,
-  });
+  await db.insert(apiKeys).values({ teamId: team.id, keyHash });
 
   return c.json({
     api_key: rawKey,
-    team_id: firstTeam.id,
-    role: 'owner',
+    org_id: org.id,
+    org_name: org.name,
+    team_id: team.id,
+    team_name: team.name,
+    role: 'owner'
   });
+});
+
+// POST /api/v1/onboarding/create-individual
+onboardingRouter.post('/create-individual', async (c) => {
+  const auth = c.req.header('Authorization');
+  if (auth !== `Bearer ${process.env.ORCH_API_KEY || 'orch_your_server_key_here'}`) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const body = await c.req.json();
+  const { clerk_id, email, name, workspace_name, team_name } = body;
+
+  if (!clerk_id || !workspace_name) {
+    return c.json({ error: 'Missing required fields: clerk_id, workspace_name' }, 400);
+  }
+
+  // 1. Ensure user exists
+  let [user] = await db.select().from(users).where(eq(users.id, clerk_id));
+  if (!user) {
+    const parts = (name || '').split(' ');
+    [user] = await db.insert(users).values({
+      id: clerk_id,
+      email: email || `${clerk_id}@example.com`,
+      firstName: parts[0] || null,
+      lastName: parts.slice(1).join(' ') || null,
+    }).returning();
+  }
+
+  // 2. Create personal organization
+  const orgId = crypto.randomUUID();
+  const [org] = await db.insert(organizations).values({
+    id: orgId,
+    name: workspace_name.trim(),
+  }).returning();
+
+  // 3. Create personal team
+  const [team] = await db.insert(teams).values({
+    orgId: org.id,
+    name: (team_name || 'Personal').trim(),
+  }).returning();
+
+  // 4. Issue API key
+  const rawKey = `orch_${crypto.randomBytes(16).toString('hex')}`;
+  const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+  await db.insert(apiKeys).values({ teamId: team.id, keyHash });
+
+  return c.json({
+    api_key: rawKey,
+    org_id: org.id,
+    org_name: org.name,
+    team_id: team.id,
+    team_name: team.name,
+    role: 'owner'
+  });
+});
+
+// PATCH /api/v1/onboarding/rename-org
+// Rename the current organization
+onboardingRouter.patch('/rename-org', async (c) => {
+  const auth = c.req.header('Authorization');
+  if (auth !== `Bearer ${process.env.ORCH_API_KEY || 'orch_your_server_key_here'}`) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const body = await c.req.json();
+  const { org_id, name } = body;
+
+  if (!org_id || !name?.trim()) {
+    return c.json({ error: 'Missing required fields: org_id, name' }, 400);
+  }
+
+  const [org] = await db.update(organizations)
+    .set({ name: name.trim() })
+    .where(eq(organizations.id, org_id))
+    .returning();
+
+  if (!org) return c.json({ error: 'Org not found' }, 404);
+
+  return c.json({ ok: true, org_id: org.id, name: org.name });
+});
+
+// PATCH /api/v1/onboarding/rename-team
+// Rename the current team
+onboardingRouter.patch('/rename-team', async (c) => {
+  const auth = c.req.header('Authorization');
+  if (auth !== `Bearer ${process.env.ORCH_API_KEY || 'orch_your_server_key_here'}`) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const body = await c.req.json();
+  const { team_id, name } = body;
+
+  if (!team_id || !name?.trim()) {
+    return c.json({ error: 'Missing required fields: team_id, name' }, 400);
+  }
+
+  const [team] = await db.update(teams)
+    .set({ name: name.trim() })
+    .where(eq(teams.id, team_id))
+    .returning();
+
+  if (!team) return c.json({ error: 'Team not found' }, 404);
+
+  return c.json({ ok: true, team_id: team.id, name: team.name });
 });

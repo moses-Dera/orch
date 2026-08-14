@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { createOrg, createIndividual, acceptInvite } from "@/app/actions/onboarding"
 
-type Flow = "choose" | "org" | "invite" | "done"
+type Flow = "choose" | "org" | "individual" | "invite" | "done"
 type Policy = "open" | "allowlist" | "enforced"
 
 const POLICY_DESC: Record<Policy, string> = {
@@ -17,7 +17,6 @@ const POLICY_DESC: Record<Policy, string> = {
 }
 
 export default function OnboardingContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { data: me } = useMe()
   const token = searchParams.get("token")
@@ -25,14 +24,29 @@ export default function OnboardingContent() {
   const [flow, setFlow] = useState<Flow>(token ? "invite" : "choose")
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [orgName, setOrgName] = useState("")
-  const [teamName, setTeamName] = useState("Engineering")
-  const [policy, setPolicy] = useState<Policy>("open")
   const [apiKey, setApiKey] = useState("")
   const [copied, setCopied] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
 
-  // Start countdown when done, then redirect
+  // Org flow fields
+  const [orgName, setOrgName] = useState("")
+  const [teamName, setTeamName] = useState("Engineering")
+  const [policy, setPolicy] = useState<Policy>("open")
+
+  // Individual flow fields
+  const [workspaceName, setWorkspaceName] = useState("")
+  const [personalTeamName, setPersonalTeamName] = useState("Personal")
+
+  // Pre-fill names from Clerk user data when available
+  useEffect(() => {
+    if (me?.name) {
+      setWorkspaceName(me.name + "'s Workspace")
+    } else if (me?.email) {
+      setWorkspaceName(me.email.split("@")[0] + "'s Workspace")
+    }
+  }, [me])
+
+  // Countdown when done then redirect
   useEffect(() => {
     if (flow !== "done") return
     setCountdown(10)
@@ -49,10 +63,6 @@ export default function OnboardingContent() {
     return () => clearInterval(t)
   }, [flow])
 
-  async function refreshAndRedirect() {
-    window.location.href = "/"
-  }
-
   useEffect(() => {
     if (token && flow === "invite") {
       handleAcceptInvite()
@@ -65,7 +75,7 @@ export default function OnboardingContent() {
     try {
       await acceptInvite(token)
       toast.success("Invite accepted. Welcome to Orch.")
-      await refreshAndRedirect()
+      window.location.href = "/"
     } catch (e: any) {
       toast.error(e.message)
       setFlow("choose")
@@ -89,9 +99,10 @@ export default function OnboardingContent() {
   }
 
   async function handleCreateIndividual() {
+    if (!workspaceName.trim()) { toast.error("Enter a workspace name."); return }
     setLoading(true)
     try {
-      const data = await createIndividual()
+      const data = await createIndividual({ workspaceName, teamName: personalTeamName })
       setApiKey(data.api_key)
       setFlow("done")
     } catch (e: any) {
@@ -107,6 +118,7 @@ export default function OnboardingContent() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  // ── Invite flow ──────────────────────────────────────────────────────────────
   if (flow === "invite") {
     return (
       <div className="rounded-lg border bg-[var(--surface)] p-8 text-center space-y-3">
@@ -116,11 +128,12 @@ export default function OnboardingContent() {
     )
   }
 
+  // ── Done ─────────────────────────────────────────────────────────────────────
   if (flow === "done") {
     return (
       <div className="rounded-lg border bg-[var(--surface)] p-8 space-y-6">
         <div>
-          <h2 className="text-lg font-semibold">You're all set</h2>
+          <h2 className="text-lg font-semibold">You're all set 🎉</h2>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
             Save your API key — you'll need it for the VS Code extension, CLI, and Orch Agent.
           </p>
@@ -135,13 +148,14 @@ export default function OnboardingContent() {
           </div>
           <p className="text-xs text-amber-500">This is the only time this key will be shown in full.</p>
         </div>
-        <Button className="w-full" onClick={refreshAndRedirect}>
+        <Button className="w-full" onClick={() => window.location.href = "/"}>
           Go to Dashboard {countdown !== null && countdown > 0 ? `(${countdown})` : ""}
         </Button>
       </div>
     )
   }
 
+  // ── Choose flow ───────────────────────────────────────────────────────────────
   if (flow === "choose") {
     return (
       <div className="rounded-lg border bg-[var(--surface)] p-8 space-y-6">
@@ -162,9 +176,8 @@ export default function OnboardingContent() {
             </p>
           </button>
           <button
-            onClick={handleCreateIndividual}
-            disabled={loading}
-            className="w-full text-left rounded-lg border p-4 hover:bg-[var(--border)] transition-colors disabled:opacity-50"
+            onClick={() => setFlow("individual")}
+            className="w-full text-left rounded-lg border p-4 hover:bg-[var(--border)] transition-colors"
           >
             <p className="text-sm font-medium">Just for me</p>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">
@@ -176,7 +189,49 @@ export default function OnboardingContent() {
     )
   }
 
-  // Org setup
+  // ── Individual (personal) setup ───────────────────────────────────────────────
+  if (flow === "individual") {
+    return (
+      <div className="rounded-lg border bg-[var(--surface)] p-8 space-y-6">
+        <div>
+          <h2 className="text-base font-semibold">Set up your personal workspace</h2>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Give it a name — you can change this later in Settings.
+          </p>
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs text-[var(--text-secondary)]">Workspace name</label>
+            <input
+              value={workspaceName}
+              onChange={(e) => setWorkspaceName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCreateIndividual()}
+              placeholder="e.g. John's Workspace"
+              autoFocus
+              className="w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-[var(--text-secondary)]">Team name (optional)</label>
+            <input
+              value={personalTeamName}
+              onChange={(e) => setPersonalTeamName(e.target.value)}
+              placeholder="Personal"
+              className="w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            />
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => setFlow("choose")} className="flex-1">Back</Button>
+          <Button onClick={handleCreateIndividual} disabled={loading || !workspaceName.trim()} className="flex-1">
+            {loading ? "Creating..." : "Create Workspace"}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Org setup ─────────────────────────────────────────────────────────────────
   const steps = ["Name your org", "Model policy", "Review"]
   return (
     <div className="rounded-lg border bg-[var(--surface)] p-8 space-y-6">

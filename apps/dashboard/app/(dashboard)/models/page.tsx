@@ -15,6 +15,40 @@ const POLICY_DESC: Record<string, string> = {
   open: "Developers can use any model. Constraints still enforced.",
 }
 
+const PRESETS: Record<string, { display_name: string; model_id: string; context_window: number }> = {
+  openai: [
+    { display_name: "GPT-4o", model_id: "openai/gpt-4o", context_window: 128000 },
+    { display_name: "GPT-4o Mini", model_id: "openai/gpt-4o-mini", context_window: 128000 },
+  ],
+  anthropic: [
+    { display_name: "Claude 3.5 Sonnet", model_id: "anthropic/claude-3-5-sonnet-20241022", context_window: 200000 },
+    { display_name: "Claude 3.5 Haiku", model_id: "anthropic/claude-3-5-haiku-20241022", context_window: 200000 },
+  ],
+  google: [
+    { display_name: "Gemini 1.5 Pro", model_id: "gemini/gemini-1.5-pro", context_window: 2097152 },
+    { display_name: "Gemini 1.5 Flash", model_id: "gemini/gemini-1.5-flash", context_window: 1048576 },
+  ],
+  moonshot: [
+    { display_name: "Kimi (Moonshot v1 8k)", model_id: "moonshot/moonshot-v1-8k", context_window: 8192 },
+    { display_name: "Kimi (Moonshot v1 32k)", model_id: "moonshot/moonshot-v1-32k", context_window: 32768 },
+    { display_name: "Kimi (Moonshot v1 128k)", model_id: "moonshot/moonshot-v1-128k", context_window: 128000 },
+  ],
+  minimax: [
+    { display_name: "Minimax abab6.5s", model_id: "minimax/abab6.5s-chat", context_window: 24576 },
+    { display_name: "Minimax abab6.5", model_id: "minimax/abab6.5-chat", context_window: 24576 },
+  ],
+  ollama: [
+    { display_name: "Llama 3 (8B)", model_id: "ollama/llama3", context_window: 8192 },
+    { display_name: "Llama 3 (70B)", model_id: "ollama/llama3:70b", context_window: 8192 },
+    { display_name: "Mistral", model_id: "ollama/mistral", context_window: 32768 },
+    { display_name: "Phi-3 Mini", model_id: "ollama/phi3", context_window: 128000 },
+  ],
+  nvidia: [
+    { display_name: "Llama 3 70B Instruct", model_id: "nvidia/meta/llama3-70b-instruct", context_window: 8192 },
+    { display_name: "Mistral NeMo 12B", model_id: "nvidia/nv-mistralai/mistral-nemo-12b-instruct", context_window: 128000 },
+  ]
+} as any
+
 const BLANK = {
   display_name: "", provider: "openai", model_id: "",
   endpoint: "", api_key: "", context_window: 128000,
@@ -25,6 +59,48 @@ export default function ModelsPage() {
   const queryClient = useQueryClient()
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState(BLANK)
+  
+  const [providerType, setProviderType] = useState<"openai" | "anthropic" | "google" | "moonshot" | "minimax" | "ollama" | "nvidia" | "openrouter" | "custom">("openai")
+  const [fetchedModels, setFetchedModels] = useState<any[]>([])
+  const [isFetching, setIsFetching] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  function handleProviderTypeChange(type: string) {
+    setProviderType(type as any)
+    let endpoint = "";
+    if (type === "openrouter") endpoint = "https://openrouter.ai/api/v1";
+    if (type === "ollama") endpoint = "http://localhost:11434/v1";
+    
+    setForm(f => ({ 
+      ...f, 
+      provider: type === "google" ? "gemini" : type, 
+      endpoint,
+      model_id: "",
+      display_name: ""
+    }))
+    setFetchedModels([])
+  }
+
+  async function fetchProviderModels() {
+    if (!form.api_key) return toast.error("API Key required to fetch models")
+    setIsFetching(true)
+    try {
+      const baseUrl = providerType === "openrouter" ? "https://openrouter.ai/api/v1" : form.endpoint
+      const res = await fetch('/api/orch/v1/dashboard/provider/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baseUrl, apiKey: form.api_key })
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setFetchedModels(data.models || [])
+      toast.success("Models fetched successfully")
+    } catch {
+      toast.error("Failed to fetch models")
+    } finally {
+      setIsFetching(false)
+    }
+  }
 
   const { data, isLoading } = useQuery({ queryKey: ["models"], queryFn: api.models })
 
@@ -91,55 +167,146 @@ export default function ModelsPage() {
           </div>
 
           {showAdd && (
-            <div className="px-5 py-4 border-b bg-[var(--background)] space-y-3">
+            <div className="px-5 py-5 border-b bg-[var(--background)] space-y-4">
               <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">New Model</p>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  placeholder="Display name (e.g. Our GPT-4o)"
-                  value={form.display_name}
-                  onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))}
-                  className="rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                />
-                <input
-                  placeholder="Model ID (e.g. openai/gpt-4.1)"
-                  value={form.model_id}
-                  onChange={e => setForm(f => ({ ...f, model_id: e.target.value }))}
-                  className="rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                />
-                <input
-                  placeholder="Provider (e.g. openai)"
-                  value={form.provider}
-                  onChange={e => setForm(f => ({ ...f, provider: e.target.value }))}
-                  className="rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                />
-                <input
-                  type="number"
-                  placeholder="Context window (tokens)"
-                  value={form.context_window}
-                  onChange={e => setForm(f => ({ ...f, context_window: Number(e.target.value) }))}
-                  className="rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                />
-                <input
-                  placeholder="API key (optional)"
-                  type="password"
-                  value={form.api_key}
-                  onChange={e => setForm(f => ({ ...f, api_key: e.target.value }))}
-                  className="rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                />
-                <input
-                  placeholder="Custom endpoint (optional)"
-                  value={form.endpoint}
-                  onChange={e => setForm(f => ({ ...f, endpoint: e.target.value }))}
-                  className="rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                />
+              
+              <div className="space-y-3 max-w-2xl">
+                <label className="text-sm font-medium">Provider</label>
+                <select 
+                  value={providerType} 
+                  onChange={e => handleProviderTypeChange(e.target.value)}
+                  className="w-full rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                >
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="google">Google Gemini</option>
+                  <option value="moonshot">Kimi (Moonshot)</option>
+                  <option value="minimax">Minimax</option>
+                  <option value="ollama">Ollama (Local)</option>
+                  <option value="nvidia">NVIDIA NIM</option>
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="custom">Custom Provider</option>
+                </select>
               </div>
-              <Button
-                size="sm"
-                disabled={!form.display_name || !form.model_id || add.isPending}
-                onClick={() => add.mutate()}
-              >
-                {add.isPending ? "Adding..." : "Add Model"}
-              </Button>
+
+              <div className="space-y-3 max-w-2xl">
+                <label className="text-sm font-medium">API Key {providerType === 'custom' || providerType === 'openrouter' || providerType === 'ollama' ? '(Optional for local)' : '(Required)'}</label>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    placeholder={`Your ${providerType} API key`}
+                    value={form.api_key}
+                    onChange={e => setForm(f => ({ ...f, api_key: e.target.value }))}
+                    className="flex-1 rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  />
+                  {(providerType === "openrouter" || providerType === "custom") && (
+                    <Button size="sm" variant="outline" onClick={fetchProviderModels} disabled={isFetching}>
+                      {isFetching ? "Fetching..." : "Fetch Models"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {(providerType === "custom" || providerType === "openrouter" || providerType === "ollama") && (
+                <div className="space-y-3 max-w-2xl">
+                  <label className="text-sm font-medium">Base URL</label>
+                  <input
+                    placeholder="e.g. https://openrouter.ai/api/v1"
+                    value={form.endpoint}
+                    onChange={e => setForm(f => ({ ...f, endpoint: e.target.value }))}
+                    className="w-full rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-3 max-w-2xl">
+                <label className="text-sm font-medium">Select Model</label>
+                {(providerType !== "custom" && providerType !== "openrouter") ? (
+                  <select 
+                    className="w-full rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const preset = (PRESETS as any)[providerType].find((p: any) => p.model_id === e.target.value);
+                      if (preset) {
+                        setForm(f => ({ ...f, model_id: preset.model_id, display_name: preset.display_name, context_window: preset.context_window }));
+                      }
+                    }}
+                    value={(PRESETS as any)[providerType].some((p: any) => p.model_id === form.model_id) ? form.model_id : ""}
+                  >
+                    <option value="" disabled>Select a preset model...</option>
+                    {(PRESETS as any)[providerType].map((p: any) => (
+                      <option key={p.model_id} value={p.model_id}>{p.display_name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <select 
+                    className="w-full rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const m = fetchedModels.find(x => x.id === e.target.value);
+                      if (m) {
+                        setForm(f => ({ ...f, model_id: m.id, display_name: m.name || m.id, context_window: m.context_length || 128000 }));
+                      } else {
+                         setForm(f => ({ ...f, model_id: e.target.value }));
+                      }
+                    }}
+                    value={form.model_id}
+                  >
+                    <option value="" disabled>{fetchedModels.length > 0 ? "Select a fetched model..." : "Fetch models first or manually enter below"}</option>
+                    {fetchedModels.map(m => (
+                      <option key={m.id} value={m.id}>{m.name || m.id}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="max-w-2xl">
+                <button 
+                  onClick={() => setShowAdvanced(!showAdvanced)} 
+                  className="text-xs font-medium text-[var(--accent)] hover:underline"
+                >
+                  {showAdvanced ? "- Hide Advanced Settings" : "+ Show Advanced Settings (Manual Override)"}
+                </button>
+                {showAdvanced && (
+                  <div className="grid grid-cols-2 gap-3 mt-3 p-3 rounded-md bg-[var(--surface)] border border-dashed">
+                     <input
+                      placeholder="Display name (e.g. Our GPT-4o)"
+                      value={form.display_name}
+                      onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))}
+                      className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                    />
+                    <input
+                      placeholder="Model ID (e.g. openai/gpt-4.1)"
+                      value={form.model_id}
+                      onChange={e => setForm(f => ({ ...f, model_id: e.target.value }))}
+                      className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                    />
+                    <input
+                      placeholder="Provider (e.g. openai)"
+                      value={form.provider}
+                      onChange={e => setForm(f => ({ ...f, provider: e.target.value }))}
+                      className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Context window (tokens)"
+                      value={form.context_window}
+                      onChange={e => setForm(f => ({ ...f, context_window: Number(e.target.value) }))}
+                      className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  size="sm"
+                  disabled={!form.display_name || !form.model_id || add.isPending}
+                  onClick={() => add.mutate()}
+                >
+                  {add.isPending ? "Adding..." : "Add Model"}
+                </Button>
+              </div>
             </div>
           )}
 

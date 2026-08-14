@@ -9,14 +9,14 @@ const HIERARCHY: Role[] = ["viewer", "member", "admin", "owner"]
 export function useMe() {
   const { user } = useUser()
   return useQuery({
-    queryKey: ["me", user?.id],
+    queryKey: ["me"],
     queryFn: async () => {
       const res = await fetch(`/api/orch/v1/onboarding/me?clerk_id=${user?.id}`)
       if (!res.ok) return null
       return res.json()
     },
     enabled: !!user?.id,
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 

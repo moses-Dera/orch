@@ -109,7 +109,10 @@ export async function createOrg(formData: {
   return data
 }
 
-export async function createIndividual() {
+export async function createIndividual(formData: {
+  workspaceName: string
+  teamName: string
+}) {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
 
@@ -122,6 +125,8 @@ export async function createIndividual() {
       clerk_id: userId,
       email: user?.emailAddresses[0]?.emailAddress ?? "",
       name: user?.fullName ?? user?.firstName ?? null,
+      workspace_name: formData.workspaceName,
+      team_name: formData.teamName,
     }),
   })
 
@@ -150,5 +155,27 @@ export async function acceptInvite(token: string) {
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail?.message ?? "Failed to accept invite")
   await setOrchKeyCookie(data.api_key)
+  return data
+}
+
+export async function renameOrg(orgId: string, name: string) {
+  const res = await fetch(`${ORCH_API_URL}/api/v1/onboarding/rename-org`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ org_id: orgId, name }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? "Failed to rename organization")
+  return data
+}
+
+export async function renameTeam(teamId: string, name: string) {
+  const res = await fetch(`${ORCH_API_URL}/api/v1/onboarding/rename-team`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ team_id: teamId, name }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? "Failed to rename team")
   return data
 }

@@ -25,11 +25,21 @@ export default function SignInPage() {
     if (!isLoaded) return;
     try {
       console.log('signIn methods available:', Object.keys(signIn));
-      await signIn.sso({
+      const result = await (signIn as any).sso({
         strategy,
         redirectUrl: `${window.location.origin}/sso-callback`,
-        redirectCallbackUrl: `${window.location.origin}/dashboard`,
+        redirectUrlComplete: `${window.location.origin}/dashboard`,
       });
+      console.log('sso result:', result);
+      
+      // If the SDK returns a redirect URL instead of navigating automatically
+      if (result && result.redirectUrl) {
+        window.location.href = result.redirectUrl;
+      } else if (result && result.verification && result.verification.externalVerificationRedirectURL) {
+        window.location.href = result.verification.externalVerificationRedirectURL;
+      } else if (result && result.firstFactorVerification && result.firstFactorVerification.externalVerificationRedirectURL) {
+        window.location.href = result.firstFactorVerification.externalVerificationRedirectURL;
+      }
     } catch (err: any) {
       console.error('OAuth failed', err?.message || err);
     }

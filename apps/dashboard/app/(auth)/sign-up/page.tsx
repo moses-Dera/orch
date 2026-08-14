@@ -26,7 +26,7 @@ export default function SignUpPage() {
       await signUp.sso({
         strategy,
         redirectUrl: `${window.location.origin}/sso-callback`,
-        redirectCallbackUrl: `${window.location.origin}/onboarding`,
+        redirectUrlComplete: `${window.location.origin}/onboarding`,
       });
     } catch (err: any) {
       console.error('OAuth failed', err);
