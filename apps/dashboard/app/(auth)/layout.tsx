@@ -1,3 +1,6 @@
+import Link from "next/link"
+import { Shield } from "lucide-react"
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex bg-[var(--background)]">
@@ -5,12 +8,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Left — branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-[var(--surface)] border-r">
         <div>
-          <span className="text-lg font-semibold tracking-tight">Orch</span>
+          <Link href="/" className="inline-flex items-center hover:opacity-80 transition-opacity cursor-pointer">
+            <span className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Orch</span>
+          </Link>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-3">
-            <p className="text-3xl font-semibold leading-snug tracking-tight">
+            <p className="text-3xl font-semibold leading-snug tracking-tight text-[var(--text-primary)]">
               Bring your own AI.<br />
               We make sure it<br />
               follows your rules.
@@ -32,7 +37,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                   <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{f.label}</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">{f.label}</p>
                   <p className="text-xs text-[var(--text-secondary)]">{f.desc}</p>
                 </div>
               </div>
@@ -50,8 +55,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden text-center space-y-1">
-            <p className="text-xl font-semibold">Orch</p>
-            <p className="text-sm text-[var(--text-secondary)]">Bring your own AI. We make sure it follows your rules.</p>
+            <Link href="/" className="inline-flex items-center hover:opacity-80 transition-opacity cursor-pointer">
+              <span className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Orch</span>
+            </Link>
+            <p className="text-xs text-[var(--text-secondary)]">Bring your own AI. We make sure it follows your rules.</p>
           </div>
           {children}
         </div>

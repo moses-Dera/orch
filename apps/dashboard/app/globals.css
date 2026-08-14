@@ -5,68 +5,70 @@
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 }
 
+/* LIGHT MODE DEFAULT */
 :root {
   --background: #ffffff;
-  --surface: #fafafa;
-  --border: #eaeaea;
-  --input: #eaeaea;
-  --ring: #000000;
+  --surface: #f9fafb;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #5e6ad2;
   
-  --text-primary: #000000;
-  --text-secondary: #666666;
-  --foreground: #000000;
+  --text-primary: #09090b;
+  --text-secondary: #71717a;
+  --foreground: #09090b;
   --muted: #f4f4f5;
   --muted-foreground: #71717a;
   
-  --primary: #000000;
+  --primary: #5e6ad2;
   --primary-foreground: #ffffff;
   --secondary: #f4f4f5;
   --secondary-foreground: #18181b;
   
-  --accent: #0070f3;
+  --accent: #5e6ad2;
   --accent-foreground: #ffffff;
-  --accent-hover: #0051a2;
+  --accent-hover: #4f46e5;
   
-  --destructive: #ef4444;
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   
-  --chat-user-bg: #f3f4f6;
-  --chat-user-text: #111827;
+  --chat-user-bg: #f4f4f5;
+  --chat-user-text: #09090b;
   
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --critical: #ef4444;
+  --success: #059669;
+  --warning: #d97706;
+  --critical: #dc2626;
   
   --radius: 8px;
   --radius-md: 6px;
 }
 
+/* DARK MODE OVERRIDE */
 .dark {
-  --background: #000000;
-  --surface: #0a0a0a;
-  --border: #27272a;
-  --input: #27272a;
+  --background: #050507;
+  --surface: #0a0a0f;
+  --border: #1f222e;
+  --input: #1f222e;
   --ring: #d4d4d8;
   
   --text-primary: #ededed;
   --text-secondary: #a1a1aa;
   --foreground: #ffffff;
-  --muted: #27272a;
+  --muted: #1f222e;
   --muted-foreground: #a1a1aa;
   
   --primary: #ffffff;
   --primary-foreground: #09090b;
-  --secondary: #27272a;
+  --secondary: #1f222e;
   --secondary-foreground: #fafafa;
   
   --accent: #5e6ad2;
   --accent-foreground: #ffffff;
   --accent-hover: #7b88ec;
   
-  --destructive: #7f1d1d;
-  --destructive-foreground: #fca5a5;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
   
-  --chat-user-bg: #27272a;
+  --chat-user-bg: #1f222e;
   --chat-user-text: #ffffff;
   
   --success: #10b981;
@@ -86,6 +88,7 @@ body {
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Micro-animations for form elements */

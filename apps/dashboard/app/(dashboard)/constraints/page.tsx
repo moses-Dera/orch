@@ -200,7 +200,28 @@ export default function ConstraintsPage() {
             <h2 className="text-sm font-medium">Constraint Profiles</h2>
           </div>
           {constraints.length === 0 ? (
-            <EmptyState title="No constraints" description="Create your first constraint profile above." />
+            <div className="p-8 text-center space-y-3">
+              <p className="text-sm font-medium">No active constraints</p>
+              <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
+                Your workspace starts clean. You can create custom rules or load a starter example to test.
+              </p>
+              {isAdmin && (
+                <div className="flex justify-center gap-3 pt-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditing({
+                    id: "backend",
+                    projectId: projects[0]?.id ?? "",
+                    description: "Backend SQL Security",
+                    constraints: "Do not use raw SQL strings. Use ORM or query builder with parameterized bindings.",
+                    gpt_variant: "", claude_variant: "", gemini_variant: "", version: "1.0",
+                  })}>
+                    Load Starter Example
+                  </Button>
+                  <Button size="sm" onClick={() => setEditing({ ...BLANK, projectId: projects[0]?.id ?? "" })}>
+                    + Custom Constraint
+                  </Button>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="divide-y">
               {constraints.map((c: any) => (

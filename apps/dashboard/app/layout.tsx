@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
+import { dark } from "@clerk/themes"
+import { clerkAppearance } from "@/lib/clerkAppearance"
 import { Providers } from "./providers"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
@@ -16,9 +18,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider
       appearance={{
+        baseTheme: dark,
+        ...clerkAppearance,
         elements: {
           watermark: "hidden",
-          userButtonPopoverFooter: "hidden"
+          userButtonPopoverFooter: "hidden",
+          ...clerkAppearance.elements,
         }
       }}
     >

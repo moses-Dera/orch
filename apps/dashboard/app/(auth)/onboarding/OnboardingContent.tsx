@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
+import { useUser } from "@clerk/nextjs"
 import { useMe } from "@/hooks/useRole"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -18,6 +19,7 @@ const POLICY_DESC: Record<Policy, string> = {
 
 export default function OnboardingContent() {
   const searchParams = useSearchParams()
+  const { user } = useUser()
   const { data: me } = useMe()
   const token = searchParams.get("token")
 
@@ -37,12 +39,25 @@ export default function OnboardingContent() {
   const [workspaceName, setWorkspaceName] = useState("")
   const [personalTeamName, setPersonalTeamName] = useState("Personal")
 
+  // Compute clean display name from Clerk or fallback
+  const rawEmail = user?.primaryEmailAddress?.emailAddress || me?.email || ""
+  const emailPrefix = rawEmail.includes("@") ? rawEmail.split("@")[0] : ""
+  const candidateName = user?.firstName || user?.fullName || me?.name || (emailPrefix.startsWith("user_") ? "" : emailPrefix)
+  const displayName = candidateName && !candidateName.startsWith("user_") ? candidateName : ""
+
   // Pre-fill names from Clerk user data when available
   useEffect(() => {
-    if (me?.name) {
-      setWorkspaceName(me.name + "'s Workspace")
-    } else if (me?.email) {
-      setWorkspaceName(me.email.split("@")[0] + "'s Workspace")
+    if (displayName) {
+      setWorkspaceName(displayName + "'s Workspace")
+    } else {
+      setWorkspaceName("My Workspace")
+    }
+  }, [displayName])
+
+  // If user is already onboarded (has org_id), redirect straight to dashboard home
+  useEffect(() => {
+    if (me?.org_id) {
+      window.location.href = "/home"
     }
   }, [me])
 
@@ -161,14 +176,14 @@ export default function OnboardingContent() {
       <div className="rounded-lg border bg-[var(--surface)] p-8 space-y-6">
         <div>
           <h2 className="text-lg font-semibold">
-            Welcome{me?.name ? `, ${me.name}` : me?.email ? `, ${me.email.split("@")[0]}` : ""}
+            Welcome{displayName ? `, ${displayName}` : ""}
           </h2>
           <p className="text-sm text-[var(--text-secondary)] mt-1">How are you using Orch?</p>
         </div>
         <div className="space-y-3">
           <button
             onClick={() => setFlow("org")}
-            className="w-full text-left rounded-lg border p-4 hover:bg-[var(--border)] transition-colors"
+            className="w-full text-left rounded-lg border p-4 hover:bg-[var(--border)] transition-colors cursor-pointer"
           >
             <p className="text-sm font-medium">For my team</p>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">
@@ -177,7 +192,7 @@ export default function OnboardingContent() {
           </button>
           <button
             onClick={() => setFlow("individual")}
-            className="w-full text-left rounded-lg border p-4 hover:bg-[var(--border)] transition-colors"
+            className="w-full text-left rounded-lg border p-4 hover:bg-[var(--border)] transition-colors cursor-pointer"
           >
             <p className="text-sm font-medium">Just for me</p>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">
@@ -286,7 +301,7 @@ export default function OnboardingContent() {
             <button
               key={p}
               onClick={() => setPolicy(p)}
-              className={`w-full text-left rounded-lg border p-4 transition-colors ${
+              className={`w-full text-left rounded-lg border p-4 transition-colors cursor-pointer ${
                 policy === p ? "border-[var(--accent)] bg-[var(--accent)]/5" : "hover:bg-[var(--border)]"
               }`}
             >

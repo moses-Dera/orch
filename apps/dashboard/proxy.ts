@@ -1,7 +1,9 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-// All dashboard routes are protected except auth pages and the public API
+// Public routes: Landing page (/), Docs (/docs), Auth pages, and GitHub webhook
 const isPublicRoute = createRouteMatcher([
+  '/',
+  '/docs(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/orch/github/webhook(.*)'

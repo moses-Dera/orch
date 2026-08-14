@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../db';
-import { apiKeys, organizations, teams, users } from '../db/schema';
+import { apiKeys, organizations, projects, teams, users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -24,10 +24,8 @@ onboardingRouter.get('/me', async (c) => {
     return c.json({ error: 'User not onboarded', needs_onboarding: true }, 404);
   }
 
-  // Find the user's team via their API key
   const orgIdParam = c.req.query('org_id');
 
-  // Try to find team by org_id if specified (multi-org support)
   let team: typeof teams.$inferSelect | undefined;
   if (orgIdParam) {
     const [t] = await db.select().from(teams).where(eq(teams.orgId, orgIdParam)).limit(1);
@@ -35,8 +33,6 @@ onboardingRouter.get('/me', async (c) => {
   }
 
   if (!team) {
-    // Fall back: find the first team associated with any org for this user
-    // This queries via api keys — which are issued per team
     const [firstTeam] = await db.select().from(teams).limit(1);
     team = firstTeam;
   }
@@ -98,7 +94,13 @@ onboardingRouter.post('/create-org', async (c) => {
     name: team_name.trim(),
   }).returning();
 
-  // 4. Issue API key
+  // 4. Create default project
+  const [project] = await db.insert(projects).values({
+    teamId: team.id,
+    name: 'Main Repository',
+  }).returning();
+
+  // 5. Issue API key
   const rawKey = `orch_${crypto.randomBytes(16).toString('hex')}`;
   const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
   await db.insert(apiKeys).values({ teamId: team.id, keyHash });
@@ -152,7 +154,13 @@ onboardingRouter.post('/create-individual', async (c) => {
     name: (team_name || 'Personal').trim(),
   }).returning();
 
-  // 4. Issue API key
+  // 4. Create default project
+  const [project] = await db.insert(projects).values({
+    teamId: team.id,
+    name: 'Personal Project',
+  }).returning();
+
+  // 5. Issue API key
   const rawKey = `orch_${crypto.randomBytes(16).toString('hex')}`;
   const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
   await db.insert(apiKeys).values({ teamId: team.id, keyHash });
@@ -168,7 +176,6 @@ onboardingRouter.post('/create-individual', async (c) => {
 });
 
 // PATCH /api/v1/onboarding/rename-org
-// Rename the current organization
 onboardingRouter.patch('/rename-org', async (c) => {
   const auth = c.req.header('Authorization');
   if (auth !== `Bearer ${process.env.ORCH_API_KEY || 'orch_your_server_key_here'}`) {
@@ -193,7 +200,6 @@ onboardingRouter.patch('/rename-org', async (c) => {
 });
 
 // PATCH /api/v1/onboarding/rename-team
-// Rename the current team
 onboardingRouter.patch('/rename-team', async (c) => {
   const auth = c.req.header('Authorization');
   if (auth !== `Bearer ${process.env.ORCH_API_KEY || 'orch_your_server_key_here'}`) {

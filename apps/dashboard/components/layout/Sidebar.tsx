@@ -6,7 +6,7 @@ import { useHasAccess } from "@/hooks/useRole"
 import { cn } from "@/lib/utils"
 
 const NAV = [
-  { href: "/", label: "Home", minRole: "member" as const },
+  { href: "/home", label: "Home", minRole: "member" as const },
   { href: "/team", label: "Team", minRole: "admin" as const },
   { href: "/projects", label: "Projects", minRole: "admin" as const },
   { href: "/constraints", label: "Constraints", minRole: "admin" as const },
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/github", label: "GitHub", minRole: "admin" as const },
   { href: "/analytics", label: "Analytics", minRole: "admin" as const },
   null,
+  { href: "/docs", label: "Docs & MCP", minRole: "member" as const },
   { href: "/settings", label: "Settings", minRole: "member" as const },
 ]
 
@@ -26,9 +27,9 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-screen w-[220px] border-r bg-[var(--surface)] flex flex-col justify-between">
       <div>
-        <div className="px-5 py-5 border-b">
+        <Link href="/" className="block px-5 py-5 border-b hover:bg-[var(--border)]/50 transition-colors">
           <span className="text-base font-semibold tracking-tight">Orch</span>
-        </div>
+        </Link>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
           {NAV.map((item, i) => {
