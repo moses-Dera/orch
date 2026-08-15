@@ -18,27 +18,41 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [pendingVerification, setPendingVerification] = useState(false);
   const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   const handleOAuth = async (strategy: 'oauth_google' | 'oauth_github') => {
-    if (!isLoaded) return;
+    if (!isLoaded || !signUp) return;
+    setError(null);
     try {
-      await signUp.sso({
-        strategy,
-        redirectUrl: `${window.location.origin}/sso-callback`,
-        redirectUrlComplete: `${window.location.origin}/onboarding`,
-      });
+      if (typeof signUp.authenticateWithRedirect === 'function') {
+        await signUp.authenticateWithRedirect({
+          strategy,
+          redirectUrl: '/sso-callback',
+          redirectUrlComplete: '/onboarding',
+        });
+      } else if (typeof signUp.sso === 'function') {
+        const result = await signUp.sso({
+          strategy,
+          redirectUrl: `${window.location.origin}/sso-callback`,
+          redirectUrlComplete: `${window.location.origin}/onboarding`,
+        });
+        if (result?.redirectUrl) {
+          window.location.href = result.redirectUrl;
+        }
+      }
     } catch (err: any) {
       console.error('OAuth failed', err);
-      if (err.errors) {
-        console.error('Clerk errors:', err.errors);
-      }
+      setError(err?.errors?.[0]?.message || err?.message || 'OAuth sign-up failed');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || !signUp) return;
+    setError(null);
+    setSubmitting(true);
 
     try {
       const attempt = await signUp.create({
@@ -46,166 +60,163 @@ export default function SignUpPage() {
         password,
       });
 
-      // Handle both modern and legacy Clerk SDK methods by calling it on the attempt object
-      if (typeof (attempt as any).prepareVerification === 'function') {
-        await (attempt as any).prepareVerification({ strategy: 'email_code' });
-      } else if (typeof (attempt as any).prepareEmailAddressVerification === 'function') {
-        await (attempt as any).prepareEmailAddressVerification({ strategy: 'email_code' });
-      } else if (typeof (signUp as any).prepareVerification === 'function') {
-        await (signUp as any).prepareVerification({ strategy: 'email_code' });
+      if (typeof attempt?.prepareVerification === 'function') {
+        await attempt.prepareVerification({ strategy: 'email_code' });
+      } else if (typeof attempt?.prepareEmailAddressVerification === 'function') {
+        await attempt.prepareEmailAddressVerification({ strategy: 'email_code' });
+      } else if (typeof signUp?.prepareVerification === 'function') {
+        await signUp.prepareVerification({ strategy: 'email_code' });
       } else {
-        await (signUp as any).prepareEmailAddressVerification({ strategy: 'email_code' });
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       }
       setPendingVerification(true);
     } catch (err: any) {
       console.error('Error signing up', err);
-      if (err.errors) {
-        console.error('Clerk errors:', err.errors);
-      }
+      setError(err?.errors?.[0]?.message || err?.message || 'Error creating account');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || !signUp) return;
+    setError(null);
+    setSubmitting(true);
 
     try {
-      let completeSignUp;
-      if (typeof (signUp as any).attemptVerification === 'function') {
-        completeSignUp = await (signUp as any).attemptVerification({
-          strategy: 'email_code',
-          code,
-        });
+      let completeSignUp: any;
+      if (typeof signUp?.attemptVerification === 'function') {
+        completeSignUp = await signUp.attemptVerification({ code });
+      } else if (typeof signUp?.attemptEmailAddressVerification === 'function') {
+        completeSignUp = await signUp.attemptEmailAddressVerification({ code });
       } else {
-        completeSignUp = await (signUp as any).attemptEmailAddressVerification({
-          code,
-        });
+        completeSignUp = await signUp.create({ code });
       }
 
-      if (completeSignUp.status === 'complete') {
+      if (completeSignUp?.status !== 'complete') {
+        setError('Verification failed. Please check the code.');
+      }
+      if (completeSignUp?.status === 'complete') {
         await setActive({ session: completeSignUp.createdSessionId });
         router.push('/onboarding');
-      } else {
-        console.error('Sign up requires further steps', completeSignUp);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error verifying code', err);
+      setError(err?.errors?.[0]?.message || err?.message || 'Invalid verification code');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (pendingVerification) {
-    return (
-      <div className="flex w-full items-center justify-center">
-        <div className="w-full max-w-md p-8 shadow-2xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-          <h1 className="text-3xl font-bold mb-2 text-center tracking-tight" style={{ color: 'var(--text-primary)' }}>Check your email</h1>
-          <p className="text-center mb-8 text-sm" style={{ color: 'var(--text-secondary)' }}>We sent a 6-digit code to {email}</p>
-          
+  return (
+    <div className="flex w-full items-center justify-center px-4 sm:px-0">
+      <div className="w-full max-w-md p-5 sm:p-8 shadow-2xl rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)]">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center tracking-tight text-[var(--text-primary)]">Create your account</h1>
+        <p className="text-center mb-6 text-sm text-[var(--text-secondary)]">Start governing your AI workflows with Policy-as-Code</p>
+
+        {error && (
+          <div className="mb-6 p-3 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
+            {error}
+          </div>
+        )}
+
+        {!pendingVerification ? (
+          <>
+            <div className="flex gap-4 mb-6">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1 bg-transparent text-[var(--text-primary)] hover:bg-[var(--border)] border-[var(--border)] cursor-pointer"
+                onClick={() => handleOAuth('oauth_github')}
+                disabled={!isLoaded}
+              >
+                <GithubIcon className="w-4 h-4 mr-2" />
+                GitHub
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1 bg-transparent text-[var(--text-primary)] hover:bg-[var(--border)] border-[var(--border)] cursor-pointer"
+                onClick={() => handleOAuth('oauth_google')}
+                disabled={!isLoaded}
+              >
+                Google
+              </Button>
+            </div>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[var(--border)]" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="px-2 bg-[var(--surface)] text-[var(--text-secondary)]">Or continue with email</span></div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wide mb-1 text-[var(--text-secondary)]">Email address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
+                  placeholder="cto@company.com"
+                  disabled={!isLoaded || submitting}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wide mb-1 text-[var(--text-secondary)]">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
+                  placeholder="••••••••"
+                  disabled={!isLoaded || submitting}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={!isLoaded || submitting}
+                className="w-full mt-4 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
+              >
+                {submitting ? 'Creating account...' : isLoaded ? 'Continue' : 'Loading...'}
+              </Button>
+            </form>
+
+            <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
+              Already have an account?{' '}
+              <Link href="/sign-in" className="text-[var(--accent)] hover:underline font-medium">
+                Sign in
+              </Link>
+            </p>
+          </>
+        ) : (
           <form onSubmit={handleVerify} className="space-y-4">
+            <p className="text-xs text-center text-[var(--text-secondary)]">
+              We sent a verification code to <span className="font-semibold text-[var(--text-primary)]">{email}</span>. Please enter it below.
+            </p>
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Verification Code</label>
+              <label className="block text-xs font-mono uppercase tracking-wide mb-1 text-[var(--text-secondary)]">Verification Code</label>
               <input
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="w-full px-4 py-2 focus:outline-none focus:ring-2"
-                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)' }}
+                className="w-full px-4 py-2.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-sm font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
                 placeholder="123456"
+                disabled={submitting}
+                required
               />
             </div>
-            <Button 
-              type="submit" 
-              className="w-full mt-4 transition-all"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius)' }}
-              onMouseOver={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent-hover)')}
-              onMouseOut={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full mt-4 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
             >
-              Verify Email
+              {submitting ? 'Verifying...' : 'Verify & Continue'}
             </Button>
           </form>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex w-full items-center justify-center">
-      <div className="w-full max-w-md p-8 shadow-2xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-        <h1 className="text-3xl font-bold mb-6 text-center tracking-tight" style={{ color: 'var(--text-primary)' }}>Create an account</h1>
-        <p className="text-center mb-8 text-sm" style={{ color: 'var(--text-secondary)' }}>Start enforcing your organization's AI policies today.</p>
-
-        <div className="flex gap-4 mb-6">
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="flex-1 bg-transparent text-[var(--text-primary)] hover:bg-[var(--background)]"
-            style={{ borderColor: 'var(--border)' }}
-            onClick={() => handleOAuth('oauth_github')}
-            disabled={!isLoaded}
-          >
-            <GithubIcon className="w-4 h-4 mr-2" />
-            GitHub
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="flex-1 bg-transparent text-[var(--text-primary)] hover:bg-[var(--background)]"
-            style={{ borderColor: 'var(--border)' }}
-            onClick={() => handleOAuth('oauth_google')}
-            disabled={!isLoaded}
-          >
-            Google
-          </Button>
-        </div>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[var(--border)]" /></div>
-          <div className="relative flex justify-center text-xs uppercase"><span className="px-2" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-secondary)' }}>Or continue with email</span></div>
-        </div>
-
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Email address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 focus:outline-none focus:ring-2 disabled:opacity-50"
-              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)' }}
-              placeholder="cto@company.com"
-              disabled={!isLoaded}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 focus:outline-none focus:ring-2 disabled:opacity-50"
-              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)' }}
-              placeholder="••••••••"
-              disabled={!isLoaded}
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={!isLoaded}
-            className="w-full mt-4 transition-all"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius)' }}
-            onMouseOver={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent-hover)')}
-            onMouseOut={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-          >
-            {isLoaded ? 'Sign Up' : 'Loading...'}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Already have an account?{' '}
-          <Link href="/sign-in" className="hover:underline" style={{ color: 'var(--text-primary)' }}>
-            Sign in
-          </Link>
-        </p>
+        )}
       </div>
     </div>
   );

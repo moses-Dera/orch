@@ -8,7 +8,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-[var(--background)]">
       <Sidebar />
       <Header />
-      <main className="ml-[220px] pt-14 p-6 max-w-[1200px]">
+      <main className="md:ml-[220px] pt-16 md:pt-16 px-4 sm:px-6 pb-8 max-w-[1400px] mx-auto">
         <TrialBanner />
         <RouteGuard>{children}</RouteGuard>
       </main>

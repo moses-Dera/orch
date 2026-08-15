@@ -138,7 +138,7 @@ export default function HomePage() {
       {!isNew && (
         <>
           {isAdmin && audit && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <StatCard label="Total Sessions" value={audit.total_sessions} />
               <StatCard label="Input Tokens" value={formatTokens(audit.total_input_tokens)} />
               <StatCard label="Output Tokens" value={formatTokens(audit.total_output_tokens)} />
@@ -157,7 +157,7 @@ export default function HomePage() {
               </div>
               <div className="divide-y">
                 {health.scores.map((s) => (
-                  <div key={s.constraint_id} className="flex items-center justify-between px-5 py-3">
+                  <div key={s.constraint_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-5 py-3 gap-2">
                     <div>
                       <p className="text-sm font-medium">{s.constraint_id}</p>
                       {s.recommendation && (
@@ -181,7 +181,7 @@ export default function HomePage() {
               </div>
               <div className="divide-y">
                 {audit.sessions.slice(0, 8).map((s) => (
-                  <div key={s.session_id} className="flex items-center justify-between px-5 py-3">
+                  <div key={s.session_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-5 py-3 gap-1">
                     <div>
                       <p className="text-sm">{s.developer.email}</p>
                       <p className="text-xs text-[var(--text-secondary)]">

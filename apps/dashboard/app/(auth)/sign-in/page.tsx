@@ -12,73 +12,116 @@ const GithubIcon = ({ className }: { className?: string }) => (
 );
 
 export default function SignInPage() {
-  const signInHook = useSignIn() as any;
-  const { signIn, setActive } = signInHook;
+  const { signIn, setActive } = useSignIn() as any;
   const isLoaded = !!signIn;
-  console.log('useSignIn() keys:', Object.keys(signInHook));
-  console.log('signIn object itself:', signIn);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   const handleOAuth = async (strategy: 'oauth_google' | 'oauth_github') => {
-    if (!isLoaded) return;
+    if (!isLoaded || !signIn) return;
+    setError(null);
     try {
-      console.log('signIn methods available:', Object.keys(signIn));
-      const result = await (signIn as any).sso({
-        strategy,
-        redirectUrl: `${window.location.origin}/sso-callback`,
-        redirectUrlComplete: `${window.location.origin}/dashboard`,
-      });
-      console.log('sso result:', result);
+      console.log('handleOAuth called with', strategy);
+      console.log('signIn object:', signIn);
       
-      // If the SDK returns a redirect URL instead of navigating automatically
-      if (result && result.redirectUrl) {
-        window.location.href = result.redirectUrl;
-      } else if (result && result.verification && result.verification.externalVerificationRedirectURL) {
-        window.location.href = result.verification.externalVerificationRedirectURL;
-      } else if (result && result.firstFactorVerification && result.firstFactorVerification.externalVerificationRedirectURL) {
-        window.location.href = result.firstFactorVerification.externalVerificationRedirectURL;
+      let props = [];
+      let obj = signIn;
+      while (obj) {
+        props.push(...Object.getOwnPropertyNames(obj));
+        obj = Object.getPrototypeOf(obj);
+      }
+      console.log('signIn all props:', props);
+      
+      if (typeof signIn.authenticateWithRedirect === 'function') {
+        console.log('calling authenticateWithRedirect');
+        await signIn.authenticateWithRedirect({
+          strategy,
+          redirectUrl: '/sso-callback',
+          redirectUrlComplete: '/home',
+        });
+      } else if (typeof signIn.sso === 'function') {
+        console.log('calling sso');
+        const result = await (signIn as any).sso({
+          strategy,
+          redirectUrl: `${window.location.origin}/sso-callback`,
+          redirectUrlComplete: `${window.location.origin}/home`,
+        });
+        if (result?.redirectUrl) {
+          window.location.href = result.redirectUrl;
+        }
+      } else {
+        console.error("Neither authenticateWithRedirect nor sso is a function!");
       }
     } catch (err: any) {
-      console.error('OAuth failed', err?.message || err);
+      console.error('OAuth failed', err);
+      setError(err?.errors?.[0]?.message || err?.message || 'OAuth sign-in failed');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || !signIn) return;
+    setError(null);
+    setSubmitting(true);
+
     try {
-      const result = await signIn.create({
+      let result: any = await signIn.create({
         identifier: email,
         password,
       });
 
       if (result.status === 'complete') {
-        // Log the user in
         await setActive({ session: result.createdSessionId });
-        // Redirect to protected dashboard
-        router.push('/dashboard');
-      } else {
-        console.error('Sign in requires further steps:', result);
+        window.location.href = '/home';
+        return;
       }
-    } catch (err) {
+
+      if (result.status === 'needs_first_factor') {
+        const passwordFactor = result.supportedFirstFactors?.find((f: any) => f.strategy === 'password');
+        if (passwordFactor) {
+          result = await signIn.attemptFirstFactor({
+            strategy: 'password',
+            password,
+          });
+        }
+      }
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        window.location.href = '/home';
+      } else if (result.status === 'needs_second_factor') {
+        setError('2FA verification is required for this account.');
+      } else {
+        setError('Sign in incomplete. Please verify your credentials.');
+      }
+    } catch (err: any) {
       console.error('Error signing in', err);
+      setError(err?.errors?.[0]?.message || err?.message || 'Invalid email or password');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex w-full items-center justify-center">
-      <div className="w-full max-w-md p-8 shadow-2xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-        <h1 className="text-3xl font-bold mb-6 text-center tracking-tight" style={{ color: 'var(--text-primary)' }}>Sign in to Orch</h1>
-        <p className="text-center mb-8 text-sm" style={{ color: 'var(--text-secondary)' }}>Centralized Control Plane for Policy-as-Code</p>
+    <div className="flex w-full items-center justify-center px-4 sm:px-0">
+      <div className="w-full max-w-md p-5 sm:p-8 shadow-2xl rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)]">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center tracking-tight text-[var(--text-primary)]">Sign in to Orch</h1>
+        <p className="text-center mb-6 text-sm text-[var(--text-secondary)]">Centralized Control Plane for Policy-as-Code</p>
+
+        {error && (
+          <div className="mb-6 p-3 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
+            {error}
+          </div>
+        )}
 
         <div className="flex gap-4 mb-6">
           <Button 
             type="button" 
             variant="outline" 
-            className="flex-1 bg-transparent text-[var(--text-primary)] hover:bg-[var(--background)]"
-            style={{ borderColor: 'var(--border)' }}
+            className="flex-1 bg-transparent text-[var(--text-primary)] hover:bg-[var(--border)] border-[var(--border)] cursor-pointer"
             onClick={() => handleOAuth('oauth_github')}
             disabled={!isLoaded}
           >
@@ -88,8 +131,7 @@ export default function SignInPage() {
           <Button 
             type="button" 
             variant="outline" 
-            className="flex-1 bg-transparent text-[var(--text-primary)] hover:bg-[var(--background)]"
-            style={{ borderColor: 'var(--border)' }}
+            className="flex-1 bg-transparent text-[var(--text-primary)] hover:bg-[var(--border)] border-[var(--border)] cursor-pointer"
             onClick={() => handleOAuth('oauth_google')}
             disabled={!isLoaded}
           >
@@ -99,51 +141,46 @@ export default function SignInPage() {
 
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[var(--border)]" /></div>
-          <div className="relative flex justify-center text-xs uppercase"><span className="px-2" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-secondary)' }}>Or continue with email</span></div>
+          <div className="relative flex justify-center text-xs uppercase"><span className="px-2 bg-[var(--surface)] text-[var(--text-secondary)]">Or continue with email</span></div>
         </div>
-
-
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Email address</label>
+            <label className="block text-xs font-mono uppercase tracking-wide mb-1 text-[var(--text-secondary)]">Email address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 focus:outline-none focus:ring-2 disabled:opacity-50"
-              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)' }}
+              className="w-full px-4 py-2.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
               placeholder="cto@company.com"
-              disabled={!isLoaded}
+              disabled={!isLoaded || submitting}
+              required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Password</label>
+            <label className="block text-xs font-mono uppercase tracking-wide mb-1 text-[var(--text-secondary)]">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 focus:outline-none focus:ring-2 disabled:opacity-50"
-              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)' }}
+              className="w-full px-4 py-2.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
               placeholder="••••••••"
-              disabled={!isLoaded}
+              disabled={!isLoaded || submitting}
+              required
             />
           </div>
           <Button
             type="submit"
-            disabled={!isLoaded}
-            className="w-full mt-4 transition-all"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius)' }}
-            onMouseOver={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent-hover)')}
-            onMouseOut={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+            disabled={!isLoaded || submitting}
+            className="w-full mt-4 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
           >
-            {isLoaded ? 'Sign In' : 'Loading...'}
+            {submitting ? 'Signing in...' : isLoaded ? 'Sign In' : 'Loading...'}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+        <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
           Don't have an account?{' '}
-          <Link href="/sign-up" className="hover:underline" style={{ color: 'var(--text-primary)' }}>
+          <Link href="/sign-up" className="text-[var(--accent)] hover:underline font-medium">
             Sign up
           </Link>
         </p>

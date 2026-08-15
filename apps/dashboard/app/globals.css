@@ -5,34 +5,34 @@
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 }
 
-/* LIGHT MODE DEFAULT */
+/* LIGHT MODE DEFAULT - SOFTENED OFF-WHITE SLATE (EASY ON EYES, NO BLINDING WHITE) */
 :root {
-  --background: #ffffff;
-  --surface: #f9fafb;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #5e6ad2;
+  --background: #f3f4f6; /* Soft light slate grey background instead of glaring #ffffff */
+  --surface: #e5e7eb;    /* Slightly darkened surface container */
+  --border: #d1d5db;     /* Subtle grey border */
+  --input: #d1d5db;
+  --ring: #4f46e5;
   
-  --text-primary: #09090b;
-  --text-secondary: #71717a;
-  --foreground: #09090b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
+  --text-primary: #111827;   /* Deep charcoal black for sharp readability */
+  --text-secondary: #4b5563; /* Slate grey for crisp secondary typography */
+  --foreground: #111827;
+  --muted: #d1d5db;
+  --muted-foreground: #4b5563;
   
-  --primary: #5e6ad2;
+  --primary: #4f46e5;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
+  --secondary: #e5e7eb;
+  --secondary-foreground: #111827;
   
-  --accent: #5e6ad2;
+  --accent: #4f46e5;
   --accent-foreground: #ffffff;
-  --accent-hover: #4f46e5;
+  --accent-hover: #4338ca;
   
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   
-  --chat-user-bg: #f4f4f5;
-  --chat-user-text: #09090b;
+  --chat-user-bg: #d1d5db;
+  --chat-user-text: #111827;
   
   --success: #059669;
   --warning: #d97706;
@@ -42,24 +42,24 @@
   --radius-md: 6px;
 }
 
-/* DARK MODE OVERRIDE */
+/* DARK MODE OVERRIDE - OBSIDIAN HIGH CONTRAST */
 .dark {
   --background: #050507;
-  --surface: #0a0a0f;
+  --surface: #0e1017;
   --border: #1f222e;
   --input: #1f222e;
-  --ring: #d4d4d8;
+  --ring: #6366f1;
   
-  --text-primary: #ededed;
-  --text-secondary: #a1a1aa;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
   --foreground: #ffffff;
   --muted: #1f222e;
-  --muted-foreground: #a1a1aa;
+  --muted-foreground: #94a3b8;
   
   --primary: #ffffff;
   --primary-foreground: #09090b;
   --secondary: #1f222e;
-  --secondary-foreground: #fafafa;
+  --secondary-foreground: #f8fafc;
   
   --accent: #5e6ad2;
   --accent-foreground: #ffffff;

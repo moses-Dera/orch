@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
-import { Shield, Terminal, ArrowRight, ShieldAlert, CheckCircle2, GitPullRequest, Layers, Sun, Moon } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Shield, Terminal, ArrowRight, ShieldAlert, CheckCircle2, GitPullRequest, Layers, Sun, Moon, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { useMe } from "@/hooks/useRole"
 import { useTheme } from "@/components/layout/ThemeProvider"
@@ -101,13 +101,15 @@ export default function LandingPage() {
 
   const [activeTab, setActiveTab] = useState(0)
   const [activeLayer, setActiveLayer] = useState(0)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   const currentExample = INTERACTIVE_EXAMPLES[activeTab]
   const currentLayer = PIPELINE_LAYERS[activeLayer]
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)] font-sans selection:bg-[var(--accent)] selection:text-white relative overflow-hidden transition-colors">
       
-      {/* Background Matrix Overlay - Dynamic for Light/Dark */}
+      {/* Background Matrix Overlay */}
       <div className="absolute top-0 left-0 right-0 h-[750px] pointer-events-none opacity-20 dark:opacity-25">
         <img 
           src="/matrix-bg.png" 
@@ -117,13 +119,14 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/80 to-[var(--background)]" />
       </div>
 
-      {/* Header Navigation */}
+      {/* Responsive Header Navigation */}
       <header className="fixed top-0 left-0 right-0 h-16 border-b border-[var(--border)] bg-[var(--background)]/90 backdrop-blur-md z-50 flex items-center justify-between px-4 sm:px-8 max-w-[1440px] mx-auto">
         <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
           <span className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Orch</span>
         </Link>
 
-        <div className="flex items-center gap-5">
+        {/* Desktop Navigation Links */}
+        <div className="hidden md:flex items-center gap-6">
           <button
             onClick={toggle}
             className="p-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer flex items-center justify-center"
@@ -142,22 +145,77 @@ export default function LandingPage() {
             {ctaLabel}
           </Link>
         </div>
+
+        {/* Mobile Hamburger Controls */}
+        <div className="flex md:hidden items-center gap-3">
+          <button
+            onClick={toggle}
+            className="p-2 rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] flex items-center justify-center cursor-pointer"
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+          </button>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] cursor-pointer"
+            aria-label="Toggle Navigation Menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </header>
 
-      {/* Main Content with Generous Spacing */}
-      <main className="relative z-10 pt-32 pb-24 px-4 sm:px-8 max-w-[1440px] mx-auto space-y-32">
+      {/* Mobile Slide-Down Drawer Navigation */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed inset-x-0 top-16 bg-[var(--surface)] border-b border-[var(--border)] p-6 z-40 md:hidden space-y-4 shadow-2xl"
+          >
+            <nav className="flex flex-col space-y-3 font-mono text-sm">
+              <Link
+                href="/docs"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-md hover:bg-[var(--background)] text-[var(--text-primary)] transition-colors flex items-center justify-between"
+              >
+                <span>DOCS & MCP GUIDE</span>
+                <ArrowRight className="w-4 h-4 text-[var(--text-secondary)]" />
+              </Link>
+              <Link
+                href={me?.org_id ? "/home" : "/sign-in"}
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-md hover:bg-[var(--background)] text-[var(--text-primary)] transition-colors flex items-center justify-between"
+              >
+                <span>{me?.org_id ? "GO TO WORKSPACE" : "SIGN IN"}</span>
+                <ArrowRight className="w-4 h-4 text-[var(--text-secondary)]" />
+              </Link>
+              <Link
+                href={ctaHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-3 rounded-md bg-[var(--accent)] text-white text-center font-semibold transition-colors"
+              >
+                {ctaLabel}
+              </Link>
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* HERO SECTION - Spacious Asymmetric Layout */}
-        <section className="grid lg:grid-cols-12 gap-12 items-center">
+      {/* Main Content with Viewport-Fit Spacing */}
+      <main className="relative z-10 pt-20 sm:pt-24 pb-16 sm:pb-24 px-4 sm:px-8 max-w-[1440px] mx-auto space-y-24 sm:space-y-32">
+
+        {/* HERO SECTION - Viewport Optimized Asymmetric Layout */}
+        <section className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center lg:min-h-[calc(100vh-8rem)]">
           
           {/* Left Column: Title & Intro */}
-          <div className="lg:col-span-5 space-y-8 text-left">
-            <div className="space-y-4">
+          <div className="lg:col-span-5 space-y-6 sm:space-y-8 text-left">
+            <div className="space-y-3 sm:space-y-4">
               <span className="text-xs font-mono text-[var(--accent)] font-semibold tracking-wider uppercase">
                 ORCH GOVERNANCE PLATFORM
               </span>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tighter leading-[1.08] text-[var(--text-primary)]">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tighter leading-[1.1] sm:leading-[1.08] text-[var(--text-primary)]">
                 AI Writes The Code <br />
                 <span className="text-[var(--accent)]">
                   Orch Enforces The Rules
@@ -165,30 +223,30 @@ export default function LandingPage() {
               </h1>
             </div>
 
-            <p className="text-base text-[var(--text-secondary)] leading-relaxed font-sans max-w-lg">
+            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed font-sans max-w-lg">
               Orch is the central control plane for software governance. Define Policy-as-Code once. Orch injects constraints into Cursor & Claude via MCP, and audits PRs at the GitHub boundary.
             </p>
 
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <Link href={ctaHref} className="flex items-center gap-2 bg-[var(--accent)] text-white font-mono text-xs font-semibold px-6 py-3.5 rounded-md hover:bg-[var(--accent-hover)] transition-colors shadow-lg cursor-pointer">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
+              <Link href={ctaHref} className="flex items-center justify-center gap-2 bg-[var(--accent)] text-white font-mono text-xs font-semibold px-6 py-3.5 rounded-md hover:bg-[var(--accent-hover)] transition-colors shadow-lg cursor-pointer">
                 {heroCtaLabel} <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link href="/docs" className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] font-mono text-xs font-medium px-5 py-3.5 rounded-md hover:border-[var(--accent)]/50 transition-colors cursor-pointer">
+              <Link href="/docs" className="flex items-center justify-center gap-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] font-mono text-xs font-medium px-5 py-3.5 rounded-md hover:border-[var(--accent)]/50 transition-colors cursor-pointer">
                 <Terminal className="w-4 h-4 text-[var(--text-secondary)]" /> MCP SPECS
               </Link>
             </div>
           </div>
 
-          {/* Right Column: Clean Interactive Code Interceptor */}
-          <div className="lg:col-span-7 space-y-4">
+          {/* Right Column: Clean Interactive Code Interceptor (Positioned toward bottom) */}
+          <div className="lg:col-span-7 space-y-4 lg:self-end lg:pt-8">
             
             {/* Rule Selector Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-[var(--border)]">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[var(--border)] no-scrollbar">
               {INTERACTIVE_EXAMPLES.map((ex, i) => (
                 <button
                   key={ex.id}
                   onClick={() => setActiveTab(i)}
-                  className={`px-4 py-2 rounded-t-md text-xs font-mono transition-colors cursor-pointer border-t border-x ${
+                  className={`px-3.5 py-2 rounded-t-md text-xs font-mono transition-colors cursor-pointer border-t border-x whitespace-nowrap ${
                     activeTab === i
                       ? "bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] font-semibold border-b-transparent"
                       : "bg-transparent border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -203,41 +261,41 @@ export default function LandingPage() {
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xl">
               
               {/* Header Bar */}
-              <div className="px-5 py-3 bg-[var(--background)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+              <div className="px-4 sm:px-5 py-3 bg-[var(--background)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
                 <div className="flex items-center gap-2 text-[var(--text-primary)] font-semibold">
                   <span>RULE:</span>
-                  <span className="text-[var(--accent)] bg-[var(--accent)]/10 px-2.5 py-0.5 rounded border border-[var(--accent)]/20">{currentExample.rule}</span>
+                  <span className="text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded border border-[var(--accent)]/20 text-[11px] sm:text-xs">{currentExample.rule}</span>
                 </div>
                 <span className="text-[var(--text-secondary)] text-[11px] hidden sm:inline">{currentExample.description}</span>
               </div>
 
-              {/* Side-by-side Diffs */}
-              <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
+              {/* Side-by-side Diffs (Stacks on mobile screens) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
                 
                 {/* Left: Unsafe Code */}
-                <div className="p-5 space-y-3 bg-[var(--surface)]">
+                <div className="p-4 sm:p-5 space-y-3 bg-[var(--surface)]">
                   <div className="flex items-center justify-between text-xs font-mono text-[var(--text-secondary)]">
                     <span className="flex items-center gap-1.5 text-rose-500 dark:text-rose-400 font-semibold"><ShieldAlert className="w-3.5 h-3.5" /> AI Draft</span>
                     <span className="text-[10px] bg-rose-500/10 text-rose-500 dark:text-rose-400 px-2 py-0.5 rounded border border-rose-500/20 font-mono">BLOCKED</span>
                   </div>
-                  <pre className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] font-mono text-rose-600 dark:text-rose-300 leading-relaxed overflow-x-auto">
+                  <pre className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] sm:text-xs font-mono font-medium text-rose-700 dark:text-rose-300 leading-relaxed whitespace-pre-wrap break-all shadow-inner">
                     {currentExample.unsafe}
                   </pre>
                 </div>
 
                 {/* Right: Enforced Code */}
-                <div className="p-5 space-y-3 bg-[var(--surface)]">
+                <div className="p-4 sm:p-5 space-y-3 bg-[var(--surface)]">
                   <div className="flex items-center justify-between text-xs font-mono text-[var(--text-secondary)]">
                     <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Remediated</span>
                     <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">PASSED</span>
                   </div>
-                  <pre className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] font-mono text-emerald-700 dark:text-emerald-300 leading-relaxed overflow-x-auto">
+                  <pre className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] sm:text-xs font-mono font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed whitespace-pre-wrap break-all shadow-inner">
                     {currentExample.remediated}
                   </pre>
                 </div>
               </div>
 
-              <div className="px-5 py-2.5 bg-[var(--background)] border-t border-[var(--border)] flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)]">
+              <div className="px-4 sm:px-5 py-2.5 bg-[var(--background)] border-t border-[var(--border)] flex items-center justify-between text-[10px] sm:text-[11px] font-mono text-[var(--text-secondary)]">
                 <span>Intercepted at commit boundary</span>
                 <span className="text-[var(--text-primary)]">Latency: 0.4ms</span>
               </div>
@@ -245,8 +303,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* PIPELINE BLUEPRINT - Clean Spacious Section */}
-        <section className="space-y-10 border-t border-[var(--border)] pt-16">
+        {/* PIPELINE BLUEPRINT SECTION */}
+        <section className="space-y-8 sm:space-y-10 border-t border-[var(--border)] pt-12 sm:pt-16">
           <div className="space-y-2 text-left">
             <span className="text-xs font-mono text-[var(--accent)] font-semibold uppercase tracking-wider">PIPELINE ARCHITECTURE</span>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] font-mono">
@@ -255,12 +313,12 @@ export default function LandingPage() {
           </div>
 
           {/* 3 Step Interactive Selector */}
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {PIPELINE_LAYERS.map((layer, i) => (
               <button
                 key={layer.step}
                 onClick={() => setActiveLayer(i)}
-                className={`p-6 rounded-xl border text-left transition-all cursor-pointer space-y-4 relative ${
+                className={`p-5 sm:p-6 rounded-xl border text-left transition-all cursor-pointer space-y-4 relative ${
                   activeLayer === i
                     ? "bg-[var(--surface)] border-[var(--accent)] shadow-xl ring-1 ring-[var(--accent)]/30"
                     : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--accent)]/40"
@@ -284,13 +342,13 @@ export default function LandingPage() {
           </div>
 
           {/* Selected Layer Configuration Blueprint */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 space-y-6 shadow-xl">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-8 space-y-6 shadow-xl">
             <div className="flex items-center justify-between text-xs font-mono border-b border-[var(--border)] pb-4">
               <span className="text-[var(--text-primary)] font-bold font-mono">LAYER {currentLayer.step}: {currentLayer.title}</span>
-              <span className="text-[var(--text-secondary)] font-mono">{currentLayer.tag}</span>
+              <span className="text-[var(--text-secondary)] font-mono text-[10px] sm:text-xs">{currentLayer.tag}</span>
             </div>
             
-            <div className="grid lg:grid-cols-12 gap-8 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
               <div className="lg:col-span-5 space-y-4 text-left">
                 <h4 className="text-lg font-bold text-[var(--text-primary)] font-mono">{currentLayer.title}</h4>
                 <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-sans">
@@ -304,7 +362,7 @@ export default function LandingPage() {
               </div>
 
               <div className="lg:col-span-7">
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-5 text-xs font-mono text-[var(--text-primary)] overflow-x-auto">
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4 sm:p-5 text-xs font-mono text-[var(--text-primary)] overflow-x-auto">
                   <div className="flex justify-between items-center text-[10px] text-[var(--text-secondary)] border-b border-[var(--border)] pb-2 mb-4">
                     <span>CONFIG SPECIFICATION</span>
                     <span>JSON / YAML</span>
@@ -321,7 +379,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--border)] py-12 text-center text-xs font-mono text-[var(--text-secondary)] space-y-2">
+      <footer className="border-t border-[var(--border)] py-10 sm:py-12 text-center text-xs font-mono text-[var(--text-secondary)] space-y-2">
         <div className="flex items-center justify-center font-bold text-[var(--text-primary)] text-base tracking-tight">
           Orch
         </div>
