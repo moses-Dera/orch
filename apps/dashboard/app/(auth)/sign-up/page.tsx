@@ -26,22 +26,38 @@ export default function SignUpPage() {
     if (!isLoaded || !signUp) return;
     setError(null);
     try {
-      if (typeof signUp.authenticateWithRedirect === 'function') {
-        await signUp.authenticateWithRedirect({
-          strategy,
-          redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/onboarding',
-        });
-      } else if (typeof signUp.sso === 'function') {
-        const result = await signUp.sso({
-          strategy,
-          redirectUrl: `${window.location.origin}/sso-callback`,
-          redirectUrlComplete: `${window.location.origin}/onboarding`,
-        });
-        if (result?.redirectUrl) {
-          window.location.href = result.redirectUrl;
+      if (typeof window !== 'undefined' && (window as any).Clerk) {
+        const clerk = (window as any).Clerk;
+        
+        // Try Clerk v6 top-level authenticateWithRedirect first (if it exists)
+        if (typeof clerk.authenticateWithRedirect === 'function') {
+          await clerk.authenticateWithRedirect({
+            strategy,
+            redirectUrl: '/sso-callback',
+            redirectUrlComplete: '/onboarding',
+          });
+          return;
         }
+        
+        // Fallback to client.signUp.authenticateWithRedirect (Clerk v5 logic)
+        if (clerk.client?.signUp && typeof clerk.client.signUp.authenticateWithRedirect === 'function') {
+          await clerk.client.signUp.authenticateWithRedirect({
+            strategy,
+            redirectUrl: '/sso-callback',
+            redirectUrlComplete: '/onboarding',
+          });
+          return;
+        }
+        
+        // If we reach here, we log what methods actually exist on the global Clerk object for debugging
+        const clerkMethods = Object.keys(clerk).filter(k => typeof clerk[k] === 'function');
+        const signUpMethods = clerk.client?.signUp ? Object.keys(clerk.client.signUp).filter(k => typeof clerk.client.signUp[k] === 'function') : [];
+        console.error("Clerk Methods:", clerkMethods);
+        console.error("SignUp Methods:", signUpMethods);
+        throw new Error("authenticateWithRedirect not found on window.Clerk");
       }
+      
+      throw new Error("window.Clerk not found");
     } catch (err: any) {
       console.error('OAuth failed', err);
       setError(err?.errors?.[0]?.message || err?.message || 'OAuth sign-up failed');

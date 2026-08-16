@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit push"
   },

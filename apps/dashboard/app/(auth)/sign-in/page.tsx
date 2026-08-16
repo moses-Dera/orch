@@ -24,37 +24,38 @@ export default function SignInPage() {
     if (!isLoaded || !signIn) return;
     setError(null);
     try {
-      console.log('handleOAuth called with', strategy);
-      console.log('signIn object:', signIn);
-      
-      let props = [];
-      let obj = signIn;
-      while (obj) {
-        props.push(...Object.getOwnPropertyNames(obj));
-        obj = Object.getPrototypeOf(obj);
-      }
-      console.log('signIn all props:', props);
-      
-      if (typeof signIn.authenticateWithRedirect === 'function') {
-        console.log('calling authenticateWithRedirect');
-        await signIn.authenticateWithRedirect({
-          strategy,
-          redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/home',
-        });
-      } else if (typeof signIn.sso === 'function') {
-        console.log('calling sso');
-        const result = await (signIn as any).sso({
-          strategy,
-          redirectUrl: `${window.location.origin}/sso-callback`,
-          redirectUrlComplete: `${window.location.origin}/home`,
-        });
-        if (result?.redirectUrl) {
-          window.location.href = result.redirectUrl;
+      if (typeof window !== 'undefined' && (window as any).Clerk) {
+        const clerk = (window as any).Clerk;
+        
+        // Try Clerk v6 top-level authenticateWithRedirect first (if it exists)
+        if (typeof clerk.authenticateWithRedirect === 'function') {
+          await clerk.authenticateWithRedirect({
+            strategy,
+            redirectUrl: '/sso-callback',
+            redirectUrlComplete: '/home',
+          });
+          return;
         }
-      } else {
-        console.error("Neither authenticateWithRedirect nor sso is a function!");
+        
+        // Fallback to client.signIn.authenticateWithRedirect (Clerk v5 logic)
+        if (clerk.client?.signIn && typeof clerk.client.signIn.authenticateWithRedirect === 'function') {
+          await clerk.client.signIn.authenticateWithRedirect({
+            strategy,
+            redirectUrl: '/sso-callback',
+            redirectUrlComplete: '/home',
+          });
+          return;
+        }
+        
+        // If we reach here, we log what methods actually exist on the global Clerk object for debugging
+        const clerkMethods = Object.keys(clerk).filter(k => typeof clerk[k] === 'function');
+        const signInMethods = clerk.client?.signIn ? Object.keys(clerk.client.signIn).filter(k => typeof clerk.client.signIn[k] === 'function') : [];
+        console.error("Clerk Methods:", clerkMethods);
+        console.error("SignIn Methods:", signInMethods);
+        throw new Error("authenticateWithRedirect not found on window.Clerk");
       }
+      
+      throw new Error("window.Clerk not found");
     } catch (err: any) {
       console.error('OAuth failed', err);
       setError(err?.errors?.[0]?.message || err?.message || 'OAuth sign-in failed');

@@ -12,7 +12,7 @@ const appId = process.env.GITHUB_APP_ID || "123456";
 const privateKey = process.env.GITHUB_PRIVATE_KEY || "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----";
 const secret = process.env.GITHUB_WEBHOOK_SECRET || "development_secret";
 
-const app = new App({
+export const githubApp = new App({
   appId,
   privateKey,
   webhooks: {
@@ -20,7 +20,7 @@ const app = new App({
   },
 });
 
-app.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
+githubApp.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
   console.log(`Received PR opened event for ${payload.repository.full_name}#${payload.pull_request.number}`);
   
   // 1. Fetch the PR diff
@@ -92,7 +92,7 @@ app.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
   });
 });
 
-app.webhooks.on('pull_request.synchronize', async ({ octokit, payload }) => {
+githubApp.webhooks.on('pull_request.synchronize', async ({ octokit, payload }) => {
   // Re-evaluate when new commits are pushed
   console.log(`Re-evaluating PR ${payload.pull_request.number}`);
 });
@@ -105,7 +105,7 @@ githubRouter.post('/webhook', async (c) => {
   const payload = await c.req.text();
 
   try {
-    await app.webhooks.verifyAndReceive({
+    await githubApp.webhooks.verifyAndReceive({
       id: id || '',
       name,
       payload,

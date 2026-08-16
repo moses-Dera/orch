@@ -14,9 +14,14 @@ export default function ProjectsPage() {
   const isAdmin = useHasAccess("admin")
   const queryClient = useQueryClient()
   
-  const { data: projectsData, isLoading } = useQuery({
+  const { data: projectsData, isLoading: isLoadingProjects } = useQuery({
     queryKey: ["projects"],
     queryFn: api.listProjects,
+  })
+
+  const { data: reposData, isLoading: isLoadingRepos } = useQuery({
+    queryKey: ["github-repos"],
+    queryFn: api.listGithubRepos,
   })
 
   const [creating, setCreating] = useState(false)
@@ -35,9 +40,10 @@ export default function ProjectsPage() {
     onError: (e: any) => toast.error(e.message),
   })
 
-  if (isLoading) return <PageSkeleton />
+  if (isLoadingProjects) return <PageSkeleton />
 
   const projects = projectsData?.projects ?? []
+  const repos = reposData?.repos ?? []
 
   return (
     <PageShell
@@ -60,13 +66,23 @@ export default function ProjectsPage() {
                 onChange={e => setName(e.target.value)}
                 className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
               />
-              <input
-                placeholder="GitHub Repo (e.g. acme/frontend)"
+              <select
                 value={repoName}
                 onChange={e => setRepoName(e.target.value)}
-                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              />
+                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
+                disabled={isLoadingRepos}
+              >
+                <option value="" disabled>Select GitHub Repo</option>
+                {repos.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
             </div>
+            {repos.length === 0 && !isLoadingRepos && (
+              <p className="text-xs text-amber-500">
+                No repositories found. Ensure your GitHub App is linked in the Settings page and has access to your repositories.
+              </p>
+            )}
             <div className="flex gap-2">
               <Button disabled={!name || !repoName || create.isPending} onClick={() => create.mutate()}>
                 {create.isPending ? "Saving..." : "Save Project"}

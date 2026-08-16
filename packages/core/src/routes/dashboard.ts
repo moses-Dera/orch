@@ -4,6 +4,7 @@ import { apiKeys, constraints, models, sessions, teams, organizations, tokenBudg
 import { eq, desc, inArray, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { embedConstraint } from '../ai/embedder';
+import { githubApp } from './github';
 import type { AppVariables } from '../types';
 
 export const dashboardRouter = new Hono<{ Variables: AppVariables }>();
@@ -370,6 +371,25 @@ dashboardRouter.post('/teams/github', async (c) => {
     githubInstallationId: String(body.installation_id)
   }).where(eq(teams.id, teamId));
   return c.json({ success: true });
+});
+
+// GET /v1/teams/github/repos
+dashboardRouter.get('/teams/github/repos', async (c) => {
+  const teamId = c.get('teamId');
+  const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
+  
+  if (!team || !team.githubInstallationId) {
+    return c.json({ repos: [] });
+  }
+
+  try {
+    const octokit = await githubApp.getInstallationOctokit(Number(team.githubInstallationId));
+    const res = await octokit.rest.apps.listReposAccessibleToInstallation();
+    return c.json({ repos: res.data.repositories.map((r: any) => r.full_name) });
+  } catch (err: any) {
+    console.error("Failed to fetch repos", err);
+    return c.json({ error: 'Failed to fetch repositories' }, 500);
+  }
 });
 
 // GET /v1/registry

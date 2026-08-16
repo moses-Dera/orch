@@ -123,6 +123,7 @@ export const api = {
     method: "POST",
     body: JSON.stringify({ installation_id }),
   }),
+  listGithubRepos: () => req<{ repos: string[] }>("/v1/dashboard/teams/github/repos"),
 
   listProjects: () => req<{ projects: any[] }>("/v1/dashboard/projects"),
   createProject: (body: { name: string; githubRepoFullName: string }) => req("/v1/dashboard/projects", {

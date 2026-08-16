@@ -15,7 +15,8 @@ import '@xyflow/react/dist/style.css';
 import { nodeTypes } from './nodes';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
-import { Plus, Trash2, Save, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Save, RefreshCw, Sparkles, Loader2 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 const initialNodes = [
   { id: 'node-1', type: 'triggerNode', position: { x: 50, y: 100 }, data: { label: 'Any Code Modified' } },
@@ -31,6 +32,109 @@ const initialEdges = [
 export function NodeCanvas({ onSave }: { onSave?: (markdown: string) => void }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Handle AI Flow Generation
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsGenerating(true);
+    
+    try {
+      const systemPrompt = `You are a workflow editor. Convert the user's natural language constraint into this exact JSON format. Output ONLY valid JSON, no markdown formatting.
+      
+{
+  "trigger": "The trigger event, e.g. 'Any Code Modified'",
+  "conditions": ["Condition 1", "Condition 2"],
+  "action": "The enforcement rule details"
+}
+
+CURRENT WORKFLOW STATE:
+${JSON.stringify(nodes.map(n => ({ type: n.type, label: n.data.label })))}
+
+USER REQUEST:
+${aiPrompt}`;
+
+      const res = await api.ask({
+        user_prompt: systemPrompt,
+        domain: "auto",
+        model: "auto",
+        session_id: null
+      });
+
+      let content = res.structured_output || "";
+      if (content.startsWith("\`\`\`json")) {
+        content = content.replace(/\`\`\`json\n?/, "").replace(/\`\`\`$/, "");
+      } else if (content.startsWith("\`\`\`")) {
+        content = content.replace(/\`\`\`\n?/, "").replace(/\`\`\`$/, "");
+      }
+      
+      const parsed = JSON.parse(content.trim());
+      
+      const newNodes = [];
+      const newEdges: any[] = [];
+      
+      let currentX = 50;
+      const y = 100;
+      
+      const triggerId = 'node-' + Date.now() + '-t';
+      newNodes.push({
+        id: triggerId,
+        type: 'triggerNode',
+        position: { x: currentX, y },
+        data: { label: parsed.trigger || 'Trigger' }
+      });
+      currentX += 310;
+      
+      let lastNodeId = triggerId;
+      
+      if (Array.isArray(parsed.conditions)) {
+        parsed.conditions.forEach((cond: string, i: number) => {
+          const condId = 'node-' + Date.now() + '-c' + i;
+          newNodes.push({
+            id: condId,
+            type: 'conditionNode',
+            position: { x: currentX, y },
+            data: { label: cond }
+          });
+          newEdges.push({
+            id: `e-${lastNodeId}-${condId}`,
+            source: lastNodeId,
+            target: condId,
+            animated: true,
+            style: { stroke: 'var(--accent)', strokeWidth: 2 }
+          });
+          lastNodeId = condId;
+          currentX += 310;
+        });
+      }
+      
+      const actionId = 'node-' + Date.now() + '-a';
+      newNodes.push({
+        id: actionId,
+        type: 'actionNode',
+        position: { x: currentX, y },
+        data: { label: parsed.action || 'Action' }
+      });
+      newEdges.push({
+        id: `e-${lastNodeId}-${actionId}`,
+        source: lastNodeId,
+        target: actionId,
+        animated: true,
+        style: { stroke: 'var(--accent)', strokeWidth: 2 }
+      });
+      
+      setNodes(newNodes as any);
+      setEdges(newEdges);
+      toast.success("Workflow generated successfully!");
+      setAiPrompt("");
+      
+    } catch (e: any) {
+      toast.error(e.message || "Failed to generate workflow. Try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Handle live editing of node labels
   const handleNodeChange = useCallback((id: string, newLabel: string) => {
@@ -131,6 +235,30 @@ export function NodeCanvas({ onSave }: { onSave?: (markdown: string) => void }) 
       >
         <Controls className="bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-md !fill-[var(--text-primary)]" />
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--border)" />
+        
+        {/* AI Generator Panel */}
+        <Panel position="top-left" className="bg-[var(--surface)] p-3 rounded-lg border border-[var(--border)] shadow-md w-[320px]">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold flex items-center gap-1 text-[var(--text-primary)]">
+              <Sparkles className="w-3.5 h-3.5 text-blue-500" /> AI Flow Builder
+            </label>
+            <textarea
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="e.g. When a file is modified, if it's in src/, ensure no raw SQL is used."
+              className="w-full resize-none text-xs rounded-md border border-[var(--border)] bg-[var(--background)] p-2 outline-none focus:border-blue-500"
+              rows={3}
+            />
+            <Button 
+              size="sm" 
+              onClick={handleAiGenerate} 
+              disabled={isGenerating || !aiPrompt.trim()} 
+              className="w-full text-xs h-7 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+            >
+              {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : "Generate Flow"}
+            </Button>
+          </div>
+        </Panel>
         
         {/* Controls Panel */}
         <Panel position="top-right" className="flex items-center gap-2 bg-[var(--surface)] p-2 rounded-lg border border-[var(--border)] shadow-md">

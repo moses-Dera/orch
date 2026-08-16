@@ -9,6 +9,7 @@
     "dev": "concurrently \"bun run --cwd packages/core dev\" \"bun run --cwd apps/dashboard dev\""
   },
   "devDependencies": {
-    "concurrently": "^10.0.4"
+    "concurrently": "^10.0.4",
+    "puppeteer": "^25.7.0"
   }
 }

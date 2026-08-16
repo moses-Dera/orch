@@ -91,14 +91,8 @@ export function Sidebar() {
               </nav>
             </div>
 
-            <div className="pt-4 border-t border-[var(--border)] flex items-center justify-between">
+            <div className="pt-4 border-t border-[var(--border)] flex items-center justify-center">
               <span className="text-xs text-[var(--text-secondary)] font-mono">WORKSPACE</span>
-              <button
-                onClick={toggle}
-                className="p-1.5 rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)]"
-              >
-                {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
-              </button>
             </div>
           </div>
         </div>
@@ -111,13 +105,6 @@ export function Sidebar() {
             <Link href="/" className="hover:opacity-80 transition-opacity">
               <span className="text-base font-bold tracking-tight text-[var(--text-primary)]">Orch</span>
             </Link>
-            <button
-              onClick={toggle}
-              className="p-1.5 rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-              title="Toggle theme"
-            >
-              {theme === "dark" ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
-            </button>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
