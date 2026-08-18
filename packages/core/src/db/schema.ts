@@ -18,6 +18,7 @@ export const organizations = pgTable('organizations', {
 export const teams = pgTable('teams', {
   id: uuid('id').primaryKey().defaultRandom(),
   orgId: text('org_id').notNull().references(() => organizations.id),
+  userId: text('user_id').references(() => users.id), // Link the team to the user who created it
   name: text('name').notNull(),
   githubInstallationId: text('github_installation_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

@@ -7,11 +7,6 @@ export const clerkAppearance: Appearance = {
     showOptionalFields: false,
   },
   variables: {
-    colorBackground: "var(--surface)",
-    colorInputBackground: "var(--background)",
-    colorInputText: "var(--text-primary)",
-    colorText: "var(--text-primary)",
-    colorTextSecondary: "var(--text-secondary)",
     colorPrimary: "#6366f1",
     colorDanger: "#ef4444",
     borderRadius: "8px",
@@ -20,6 +15,23 @@ export const clerkAppearance: Appearance = {
   },
   elements: {
     // Strip the outer card entirely — we provide the container
+    userButtonPopoverCard: "bg-[var(--surface)] border border-[var(--border)] shadow-xl",
+    userPreviewMainIdentifier: "text-[var(--text-primary)] font-semibold",
+    userPreviewSecondaryIdentifier: "text-[var(--text-secondary)]",
+    userButtonPopoverActionButton: "hover:bg-[var(--background)] transition-colors",
+    userButtonPopoverActionButtonText: "text-[var(--text-primary)]",
+    userButtonPopoverActionButtonIcon: "text-[var(--text-secondary)]",
+    
+    // Profile Page elements
+    profileSectionTitle: "text-[var(--text-primary)] border-b border-[var(--border)]",
+    profileSectionPrimaryButton: "text-[var(--text-primary)]",
+    profilePage: "bg-[var(--background)] text-[var(--text-primary)]",
+    navbar: "bg-[var(--surface)] border-r border-[var(--border)]",
+    navbarButton: "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)]",
+    breadcrumbsItem: "text-[var(--text-primary)]",
+    breadcrumbsItemDivider: "text-[var(--text-secondary)]",
+    pageScrollBox: "bg-[var(--background)]",
+    badge: "text-[var(--text-primary)] bg-[var(--surface)] border border-[var(--border)]",
     card: "shadow-none border-0 bg-transparent p-0 gap-6",
     headerTitle: "text-xl font-semibold text-[var(--text-primary)]",
     headerSubtitle: "text-sm text-[var(--text-secondary)]",

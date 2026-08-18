@@ -140,5 +140,8 @@ export const api = {
 
   renameTeam: (teamId: string, name: string) =>
     req("/v1/onboarding/rename-team", { method: "PATCH", body: JSON.stringify({ team_id: teamId, name }) }),
-}
 
+  deleteProject: (id: string) => req(`/v1/dashboard/projects/${id}`, { method: "DELETE" }),
+  
+  deleteOrg: (orgId: string) => req("/v1/onboarding/org", { method: "DELETE", body: JSON.stringify({ org_id: orgId }) }),
+}

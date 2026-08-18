@@ -38,9 +38,15 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
 
   const isOnboarding = path.startsWith("v1/onboarding")
 
+  const jar = await cookies()
+  const activeOrgId = jar.get("orch_active_org")?.value ?? ""
+
+  if (path === "v1/onboarding/me" && activeOrgId) {
+    url.searchParams.set("org_id", activeOrgId)
+  }
+
   // Read API key from cookie — set once at onboarding, never fetched again
   // Fallback: if cookie missing (existing users), fetch /me once and set it
-  const jar = await cookies()
   let apiKey = isOnboarding ? ORCH_API_KEY : (jar.get("orch_key")?.value ?? "")
 
   if (!isOnboarding && !apiKey) {
@@ -101,6 +107,7 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
     method: req.method,
     headers: reqHeaders,
     body,
+    cache: "no-store",
   })
 
   if (upstream.headers.get("content-type")?.includes("text/event-stream")) {

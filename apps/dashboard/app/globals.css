@@ -7,32 +7,33 @@
 
 /* LIGHT MODE DEFAULT - SOFTENED OFF-WHITE SLATE (EASY ON EYES, NO BLINDING WHITE) */
 :root {
-  --background: #f3f4f6; /* Soft light slate grey background instead of glaring #ffffff */
-  --surface: #e5e7eb;    /* Slightly darkened surface container */
-  --border: #d1d5db;     /* Subtle grey border */
-  --input: #d1d5db;
-  --ring: #4f46e5;
+  color-scheme: light;
+  --background: #e1ded7f8;
+  --surface: #efece6;
+  --border: #e5e2dc;
+  --input: #e5e2dc;
+  --ring: #8c6d58;
   
-  --text-primary: #111827;   /* Deep charcoal black for sharp readability */
-  --text-secondary: #4b5563; /* Slate grey for crisp secondary typography */
-  --foreground: #111827;
-  --muted: #d1d5db;
-  --muted-foreground: #4b5563;
+  --text-primary: #2c221e;
+  --text-secondary: #5a4a42;
+  --foreground: #2c221e;
+  --muted: #e5e2dc;
+  --muted-foreground: #5a4a42;
   
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
-  --secondary: #e5e7eb;
-  --secondary-foreground: #111827;
+  --primary: #8c6d58;
+  --primary-foreground: #fdfbf7;
+  --secondary: #efece6;
+  --secondary-foreground: #2c221e;
   
-  --accent: #4f46e5;
-  --accent-foreground: #ffffff;
-  --accent-hover: #4338ca;
+  --accent: #8c6d58;
+  --accent-foreground: #fdfbf7;
+  --accent-hover: #7a5c4a;
   
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   
-  --chat-user-bg: #d1d5db;
-  --chat-user-text: #111827;
+  --chat-user-bg: #efece6;
+  --chat-user-text: #2c221e;
   
   --success: #059669;
   --warning: #d97706;
@@ -44,32 +45,33 @@
 
 /* DARK MODE OVERRIDE - OBSIDIAN HIGH CONTRAST */
 .dark {
-  --background: #050507;
-  --surface: #0e1017;
-  --border: #1f222e;
-  --input: #1f222e;
-  --ring: #6366f1;
+  color-scheme: dark;
+  --background: #161311;
+  --surface: #26201d;
+  --border: #3a312d;
+  --input: #3a312d;
+  --ring: #c4a48c;
   
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --foreground: #ffffff;
-  --muted: #1f222e;
-  --muted-foreground: #94a3b8;
+  --text-primary: #f4f1ea;
+  --text-secondary: #a39287;
+  --foreground: #f4f1ea;
+  --muted: #26201d;
+  --muted-foreground: #a39287;
   
-  --primary: #ffffff;
-  --primary-foreground: #09090b;
-  --secondary: #1f222e;
-  --secondary-foreground: #f8fafc;
+  --primary: #c4a48c;
+  --primary-foreground: #161311;
+  --secondary: #26201d;
+  --secondary-foreground: #f4f1ea;
   
-  --accent: #5e6ad2;
-  --accent-foreground: #ffffff;
-  --accent-hover: #7b88ec;
+  --accent: #c4a48c;
+  --accent-foreground: #161311;
+  --accent-hover: #d6b9a1;
   
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   
-  --chat-user-bg: #1f222e;
-  --chat-user-text: #ffffff;
+  --chat-user-bg: #26201d;
+  --chat-user-text: #f4f1ea;
   
   --success: #10b981;
   --warning: #f59e0b;

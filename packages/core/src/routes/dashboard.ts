@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '../db';
 import { apiKeys, constraints, models, sessions, teams, organizations, tokenBudgets, projects, githubEvaluations } from '../db/schema';
-import { eq, desc, inArray, sql } from 'drizzle-orm';
+import { eq, desc, inArray, sql, and } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { embedConstraint } from '../ai/embedder';
 import { githubApp } from './github';
@@ -149,6 +149,20 @@ dashboardRouter.post('/projects', async (c) => {
   return c.json({ success: true });
 });
 
+// DELETE /v1/projects/:id
+dashboardRouter.delete('/projects/:id', async (c) => {
+  const teamId = c.get('teamId');
+  const id = c.req.param('id');
+  
+  // Clean up children (githubEvaluations and constraints)
+  await db.delete(githubEvaluations).where(eq(githubEvaluations.projectId, id));
+  await db.delete(constraints).where(eq(constraints.projectId, id));
+  
+  // Delete the project (ensure it belongs to the team)
+  await db.delete(projects).where(and(eq(projects.id, id), eq(projects.teamId, teamId)));
+  
+  return c.json({ success: true });
+});
 // GET /v1/constraints
 dashboardRouter.get('/constraints', async (c) => {
   const teamId = c.get('teamId');

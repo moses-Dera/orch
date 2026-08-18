@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Shield, Terminal, ArrowLeft, Copy, Check, Cpu, BookOpen, GitBranch, Key, Layers, Lock, Server, Sun, Moon, Menu, X } from "lucide-react"
+import { Shield, Terminal, ArrowLeft, Copy, Check, Cpu, BookOpen, GitBranch, Key, Layers, Lock, Server, Sun, Moon, Menu, X, ChevronDown } from "lucide-react"
 import { useTheme } from "@/components/layout/ThemeProvider"
 
 const SECTIONS = [
@@ -19,6 +19,7 @@ export default function DocsPage() {
   const [activeSection, setActiveSection] = useState("overview")
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
   const { theme, toggle } = useTheme()
 
   function copyCode(text: string, id: string) {
@@ -142,21 +143,41 @@ export default function DocsPage() {
         {/* Mobile Section Switcher Dropdown */}
         <div className="md:hidden p-4 border-b border-[var(--border)] bg-[var(--surface)] sticky top-14 sm:top-16 z-30 w-full">
           <label className="block text-[10px] font-mono text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">Documentation Section:</label>
-          <select
-            value={activeSection}
-            onChange={(e) => {
-              setActiveSection(e.target.value)
-              const el = document.getElementById(e.target.value)
-              if (el) el.scrollIntoView({ behavior: 'smooth' })
-            }}
-            className="w-full p-2.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] outline-none"
-          >
-            {SECTIONS.map((sec) => (
-              <option key={sec.id} value={sec.id}>
-                {sec.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <button
+              onClick={() => setSectionDropdownOpen(!sectionDropdownOpen)}
+              className="w-full p-2.5 flex items-center justify-between rounded-md bg-[var(--background)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] outline-none"
+            >
+              <span className="truncate">{SECTIONS.find(s => s.id === activeSection)?.label}</span>
+              <ChevronDown className="w-4 h-4 text-[var(--text-secondary)] shrink-0 ml-2" />
+            </button>
+            
+            {sectionDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setSectionDropdownOpen(false)} />
+                <div className="absolute top-full left-0 right-0 mt-1 py-1 bg-[var(--background)] border border-[var(--border)] rounded-md shadow-2xl overflow-y-auto max-h-[60vh] z-50">
+                  {SECTIONS.map((sec) => (
+                    <button
+                      key={sec.id}
+                      onClick={() => {
+                        setActiveSection(sec.id)
+                        setSectionDropdownOpen(false)
+                        const el = document.getElementById(sec.id)
+                        if (el) el.scrollIntoView({ behavior: 'smooth' })
+                      }}
+                      className={`w-full text-left px-3 py-2.5 text-xs transition-colors ${
+                        activeSection === sec.id 
+                          ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-semibold' 
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] font-medium'
+                      }`}
+                    >
+                      {sec.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Sticky Sidebar Navigation (Desktop) */}

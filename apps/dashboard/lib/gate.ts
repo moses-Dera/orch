@@ -7,7 +7,7 @@ export async function requireOnboarded() {
   if (!userId) redirect("/sign-in")
 
   const me = await getMe()
-  if (!me?.onboarded) redirect("/onboarding")
+  if (!me?.org_id) redirect("/onboarding")
 
   return me
 }

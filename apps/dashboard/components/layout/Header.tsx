@@ -12,7 +12,7 @@ export function Header() {
 
   return (
     <header className="hidden md:flex fixed top-0 left-[220px] right-0 h-14 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md items-center justify-between px-4 lg:px-6 z-10">
-      <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+      <div className="flex items-center gap-3 min-w-0">
         <OrgSwitcher />
         {status && (
           <>

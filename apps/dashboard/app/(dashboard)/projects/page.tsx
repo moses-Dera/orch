@@ -40,6 +40,15 @@ export default function ProjectsPage() {
     onError: (e: any) => toast.error(e.message),
   })
 
+  const deleteProj = useMutation({
+    mutationFn: (id: string) => api.deleteProject(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] })
+      toast.success("Project deleted")
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
   if (isLoadingProjects) return <PageSkeleton />
 
   const projects = projectsData?.projects ?? []
@@ -101,9 +110,25 @@ export default function ProjectsPage() {
           ) : (
             <div className="divide-y">
               {projects.map((p: any) => (
-                <div key={p.id} className="flex flex-col px-5 py-3 gap-1">
-                  <p className="text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-[var(--text-secondary)]">Repo: {p.githubRepoFullName || "Unlinked"}</p>
+                <div key={p.id} className="flex px-5 py-3 gap-1 items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">{p.name}</p>
+                    <p className="text-xs text-[var(--text-secondary)]">Repo: {p.githubRepoFullName || "Unlinked"}</p>
+                  </div>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to delete ${p.name}? This will remove all constraints linked to it.`)) {
+                          deleteProj.mutate(p.id)
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

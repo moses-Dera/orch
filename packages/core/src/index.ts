@@ -7,8 +7,8 @@ import { reviewRouter } from './routes/review';
 import { dashboardRouter } from './routes/dashboard';
 import { onboardingRouter } from './routes/onboarding';
 import { githubRouter } from './routes/github';
-
 import { billingRouter } from './routes/billing';
+import { orchestrateRouter } from './routes/orchestrate';
 
 const app = new Hono();
 
@@ -31,6 +31,8 @@ app.onError((err, c) => {
   return c.json({ error: err.message || 'Internal Server Error' }, 500);
 });
 
+import { clerkMiddleware } from '@hono/clerk-auth';
+
 // Register Routers
 const routes = app
   .route('/api/auth', authRouter)
@@ -39,8 +41,10 @@ const routes = app
   .route('/v1', reviewRouter)
   .route('/v1/dashboard', dashboardRouter)
   .route('/v1/github', githubRouter)
+  .use('/v1/billing/*', clerkMiddleware())
   .route('/v1/billing', billingRouter)
-  .route('/api/v1/onboarding', onboardingRouter);
+  .route('/api/v1/onboarding', onboardingRouter)
+  .route('/v1', orchestrateRouter);
 
 // Export the AppType so the Dashboard and CLI can consume Hono RPC
 export type AppType = typeof routes;

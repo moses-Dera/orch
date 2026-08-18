@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { useMe } from "@/hooks/useRole"
-import { createAdditionalOrg } from "@/app/actions/onboarding"
+import { switchActiveOrg, createAdditionalOrg } from "@/app/actions/onboarding"
 import { toast } from "sonner"
+import { Check } from "lucide-react"
 
 export function OrgSwitcher() {
   const { data: me } = useMe()
@@ -49,6 +50,24 @@ export function OrgSwitcher() {
     }
   }
 
+  async function handleSwitch(orgId: string) {
+    if (orgId === me?.org_id) {
+      setOpen(false)
+      return
+    }
+    setLoading(true)
+    try {
+      await switchActiveOrg(orgId)
+      queryClient.invalidateQueries()
+      router.refresh()
+      setOpen(false)
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!me) return null
 
   const orgName = me.org_name ?? "—"
@@ -57,7 +76,8 @@ export function OrgSwitcher() {
     <div ref={ref} className="relative">
       <button
         onClick={() => { setOpen(!open); setCreating(false) }}
-        className="flex items-center gap-1.5 text-sm hover:text-[var(--text-primary)] transition-colors"
+        className="flex items-center gap-1.5 text-sm hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
+        disabled={loading}
       >
         <span className="text-[var(--text-secondary)]">{orgName}</span>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[var(--text-secondary)]">
@@ -68,13 +88,25 @@ export function OrgSwitcher() {
       {open && (
         <div className="absolute top-full left-0 mt-2 w-64 rounded-lg border bg-[var(--surface)] shadow-lg z-50 overflow-hidden">
 
-          {/* Current org info */}
+          {/* Available orgs info */}
           <div className="px-4 py-3 border-b">
-            <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">Current workspace</p>
-            <p className="text-sm font-semibold mt-0.5">{orgName}</p>
-            {me.team_name && (
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">Team: {me.team_name}</p>
-            )}
+            <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">Workspaces</p>
+          </div>
+
+          <div className="py-1 max-h-60 overflow-y-auto">
+            {me.available_teams?.map((t: any) => (
+              <button
+                key={t.team_id}
+                onClick={() => handleSwitch(t.org_id)}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--border)] transition-colors flex items-center justify-between"
+              >
+                <div>
+                  <div className="font-semibold">{t.org_name}</div>
+                  <div className="text-xs text-[var(--text-secondary)]">{t.team_name}</div>
+                </div>
+                {t.org_id === me.org_id && <Check className="w-4 h-4 text-[var(--accent)]" />}
+              </button>
+            ))}
           </div>
 
           <div className="border-t py-1">

@@ -12,7 +12,7 @@ export default function SSOCallbackPage() {
           signUpUrl="/sign-up"
           continueSignUpUrl="/onboarding"
           signUpForceRedirectUrl="/onboarding"
-          signInForceRedirectUrl="/home"
+          signInForceRedirectUrl="/constraints"
         />
       </div>
     </div>

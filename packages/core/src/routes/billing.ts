@@ -2,11 +2,11 @@ import { Hono } from 'hono';
 import { db } from '../db';
 import { models, tokenBudgets, subscriptions } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { getAuth } from '@hono/clerk-auth';
+import { getAuth, clerkMiddleware } from '@hono/clerk-auth';
 
 export const billingRouter = new Hono();
 
-billingRouter.get('/', async (c) => {
+billingRouter.get('/', clerkMiddleware(), async (c) => {
   const auth = getAuth(c);
   if (!auth?.userId || !auth?.orgId) {
     return c.json({ error: 'Unauthorized or not in an organization' }, 401);
@@ -22,7 +22,7 @@ billingRouter.get('/', async (c) => {
   });
 });
 
-billingRouter.post('/key', async (c) => {
+billingRouter.post('/key', clerkMiddleware(), async (c) => {
   const auth = getAuth(c);
   if (!auth?.userId || !auth?.orgId) {
     return c.json({ error: 'Unauthorized or not in an organization' }, 401);
@@ -54,7 +54,7 @@ billingRouter.post('/key', async (c) => {
 });
 
 // Generate a Lemon Squeezy Checkout URL (Mocked for now)
-billingRouter.post('/checkout', async (c) => {
+billingRouter.post('/checkout', clerkMiddleware(), async (c) => {
   const auth = getAuth(c);
   if (!auth?.userId || !auth?.orgId) {
     return c.json({ error: 'Unauthorized or not in an organization' }, 401);

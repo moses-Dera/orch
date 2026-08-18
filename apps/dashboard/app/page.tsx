@@ -95,9 +95,9 @@ jobs:
 export default function LandingPage() {
   const { data: me } = useMe()
   const { theme, toggle } = useTheme()
-  const ctaHref = me?.org_id ? "/home" : "/onboarding"
-  const ctaLabel = me?.org_id ? "DASHBOARD →" : "GET STARTED →"
-  const heroCtaLabel = me?.org_id ? "OPEN WORKSPACE" : "LAUNCH WORKSPACE"
+  const ctaHref = "/constraints"
+  const ctaLabel = "WORKSPACE →"
+  const heroCtaLabel = "LAUNCH WORKSPACE"
 
   const [activeTab, setActiveTab] = useState(0)
   const [activeLayer, setActiveLayer] = useState(0)
@@ -105,18 +105,12 @@ export default function LandingPage() {
 
   const currentExample = INTERACTIVE_EXAMPLES[activeTab]
   const currentLayer = PIPELINE_LAYERS[activeLayer]
-
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)] font-sans selection:bg-[var(--accent)] selection:text-white relative overflow-hidden transition-colors">
       
-      {/* Background Matrix Overlay */}
-      <div className="absolute top-0 left-0 right-0 h-[750px] pointer-events-none opacity-20 dark:opacity-25">
-        <img 
-          src="/matrix-bg.png" 
-          alt="Orch Matrix Background" 
-          className="w-full h-full object-cover object-center mask-radial"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/80 to-[var(--background)]" />
+      {/* Background Overlay (Removed matrix-bg.png to fix color bleed) */}
+      <div className="absolute top-0 left-0 right-0 h-[500px] pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--surface)]/50 to-transparent" />
       </div>
 
       {/* Responsive Header Navigation */}
@@ -137,9 +131,6 @@ export default function LandingPage() {
 
           <Link href="/docs" className="text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             DOCS
-          </Link>
-          <Link href={me?.org_id ? "/home" : "/sign-in"} className="text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-            {me?.org_id ? "WORKSPACE" : "SIGN IN"}
           </Link>
           <Link href={ctaHref} className="text-xs font-semibold bg-[var(--accent)] text-white px-4 py-2 rounded-md hover:bg-[var(--accent-hover)] transition-colors shadow-sm font-mono cursor-pointer">
             {ctaLabel}
@@ -183,14 +174,6 @@ export default function LandingPage() {
                 <ArrowRight className="w-4 h-4 text-[var(--text-secondary)]" />
               </Link>
               <Link
-                href={me?.org_id ? "/home" : "/sign-in"}
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-md hover:bg-[var(--background)] text-[var(--text-primary)] transition-colors flex items-center justify-between"
-              >
-                <span>{me?.org_id ? "GO TO WORKSPACE" : "SIGN IN"}</span>
-                <ArrowRight className="w-4 h-4 text-[var(--text-secondary)]" />
-              </Link>
-              <Link
                 href={ctaHref}
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-3 rounded-md bg-[var(--accent)] text-white text-center font-semibold transition-colors"
@@ -206,16 +189,21 @@ export default function LandingPage() {
       <main className="relative z-10 pt-20 sm:pt-24 pb-16 sm:pb-24 px-4 sm:px-8 max-w-[1440px] mx-auto space-y-24 sm:space-y-32">
 
         {/* HERO SECTION - Viewport Optimized Asymmetric Layout */}
-        <section className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center lg:min-h-[calc(100vh-8rem)]">
+        <section className="relative flex items-center lg:min-h-[calc(100vh-8rem)] w-full py-12 lg:py-0">
           
-          {/* Left Column: Title & Intro */}
-          <div className="lg:col-span-5 space-y-6 sm:space-y-8 text-left">
-            <div className="space-y-3 sm:space-y-4">
-              <span className="text-xs font-mono text-[var(--accent)] font-semibold tracking-wider uppercase">
-                ORCH GOVERNANCE PLATFORM
-              </span>
+          {/* Fused Background Image (Absolute, right-aligned) */}
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-full lg:w-[65%] h-full pointer-events-none opacity-20 lg:opacity-100 flex items-center justify-end z-0 overflow-hidden">
+             <img 
+               src="/orch_bg.png" 
+               alt="Orch Platform Interface" 
+               className="w-full h-auto max-h-[120%] object-cover object-right"
+             />
+          </div>
 
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tighter leading-[1.1] sm:leading-[1.08] text-[var(--text-primary)]">
+          {/* Text Content */}
+          <div className="relative z-10 w-full lg:w-[55%] space-y-6 sm:space-y-8 text-left">
+            <div className="space-y-3 sm:space-y-4">
+              <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold tracking-tighter leading-[1.1] sm:leading-[1.05] text-[var(--text-primary)]">
                 AI Writes The Code <br />
                 <span className="text-[var(--accent)]">
                   Orch Enforces The Rules
@@ -223,23 +211,29 @@ export default function LandingPage() {
               </h1>
             </div>
 
-            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed font-sans max-w-lg">
+            <p className="text-sm sm:text-base lg:text-lg text-[var(--text-secondary)] leading-relaxed font-sans max-w-lg">
               Orch is the central control plane for software governance. Define Policy-as-Code once. Orch injects constraints into Cursor & Claude via MCP, and audits PRs at the GitHub boundary.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
-              <Link href={ctaHref} className="flex items-center justify-center gap-2 bg-[var(--accent)] text-white font-mono text-xs font-semibold px-6 py-3.5 rounded-md hover:bg-[var(--accent-hover)] transition-colors shadow-lg cursor-pointer">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-4">
+              <Link href={ctaHref} className="flex items-center justify-center gap-2 bg-[var(--accent)] text-[var(--primary-foreground)] font-mono text-xs lg:text-sm font-semibold px-8 py-4 rounded-md hover:bg-[var(--accent-hover)] transition-colors shadow-lg cursor-pointer">
                 {heroCtaLabel} <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link href="/docs" className="flex items-center justify-center gap-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] font-mono text-xs font-medium px-5 py-3.5 rounded-md hover:border-[var(--accent)]/50 transition-colors cursor-pointer">
+              <Link href="/docs" className="flex items-center justify-center gap-2 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] font-mono text-xs lg:text-sm font-medium px-6 py-4 rounded-md hover:border-[var(--accent)]/50 transition-colors cursor-pointer">
                 <Terminal className="w-4 h-4 text-[var(--text-secondary)]" /> MCP SPECS
               </Link>
             </div>
           </div>
+        </section>
 
-          {/* Right Column: Clean Interactive Code Interceptor (Positioned toward bottom) */}
-          <div className="lg:col-span-7 space-y-4 lg:self-end lg:pt-8">
-            
+        {/* NEW SECTION: INTERACTIVE POLICY ENGINE */}
+        <section className="space-y-8 max-w-5xl mx-auto w-full pt-12 sm:pt-16">
+          <div className="text-center space-y-2">
+             <h2 className="text-2xl font-bold font-mono text-[var(--text-primary)]">See Orch in Action</h2>
+             <p className="text-sm text-[var(--text-secondary)] font-mono">Live Policy Interception & Remediation</p>
+          </div>
+          
+          <div className="space-y-4 w-full">
             {/* Rule Selector Tabs */}
             <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[var(--border)] no-scrollbar">
               {INTERACTIVE_EXAMPLES.map((ex, i) => (
@@ -259,7 +253,6 @@ export default function LandingPage() {
 
             {/* Interceptor Code Box */}
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xl">
-              
               {/* Header Bar */}
               <div className="px-4 sm:px-5 py-3 bg-[var(--background)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
                 <div className="flex items-center gap-2 text-[var(--text-primary)] font-semibold">
@@ -269,7 +262,7 @@ export default function LandingPage() {
                 <span className="text-[var(--text-secondary)] text-[11px] hidden sm:inline">{currentExample.description}</span>
               </div>
 
-              {/* Side-by-side Diffs (Stacks on mobile screens) */}
+              {/* Side-by-side Diffs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
                 
                 {/* Left: Unsafe Code */}
@@ -286,10 +279,10 @@ export default function LandingPage() {
                 {/* Right: Enforced Code */}
                 <div className="p-4 sm:p-5 space-y-3 bg-[var(--surface)]">
                   <div className="flex items-center justify-between text-xs font-mono text-[var(--text-secondary)]">
-                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Remediated</span>
+                    <span className="flex items-center gap-1.5 text-[var(--text-primary)] font-semibold"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Remediated</span>
                     <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">PASSED</span>
                   </div>
-                  <pre className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] sm:text-xs font-mono font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed whitespace-pre-wrap break-all shadow-inner">
+                  <pre className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] sm:text-xs font-mono font-medium text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap break-all shadow-inner">
                     {currentExample.remediated}
                   </pre>
                 </div>

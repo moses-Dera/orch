@@ -57,7 +57,7 @@ export default function OnboardingContent() {
   // If user is already onboarded (has org_id), redirect straight to dashboard home
   useEffect(() => {
     if (me?.org_id) {
-      window.location.href = "/home"
+      window.location.href = "/constraints"
     }
   }, [me])
 

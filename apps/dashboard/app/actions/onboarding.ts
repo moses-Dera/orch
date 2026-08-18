@@ -51,6 +51,25 @@ export async function switchOrg(orgId: string, apiKey: string) {
   await setOrchKeyCookie(apiKey)
 }
 
+export async function switchActiveOrg(orgId: string) {
+  const { userId } = await auth()
+  if (!userId) redirect("/sign-in")
+
+  const res = await fetch(`${ORCH_API_URL}/api/v1/onboarding/switch-org`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      clerk_id: userId,
+      org_id: orgId,
+    }),
+  })
+
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? "Failed to switch org")
+  await switchOrg(orgId, data.api_key)
+  return data
+}
+
 export async function createAdditionalOrg(formData: {
   orgName: string
   teamName: string
