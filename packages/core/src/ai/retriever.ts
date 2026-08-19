@@ -45,25 +45,29 @@ async function embedQuery(text: string): Promise<number[]> {
  */
 export async function retrieveChunks(
   query: string,
-  constraintIds: string[],
+  constraintIds?: string[],
   topK: number = DEFAULT_TOP_K,
-): Promise<string[]> {
-  if (constraintIds.length === 0) return [];
-
+): Promise<{ constraintId: string; chunkText: string }[]> {
   const queryEmbedding = await embedQuery(query);
   const vectorLiteral = `[${queryEmbedding.join(',')}]`;
 
-  // Cosine similarity search scoped to the team's constraint IDs
-  const idsArray = constraintIds.map((id) => `'${id}'`).join(',');
+  let whereClause = sql``;
+  if (constraintIds && constraintIds.length > 0) {
+    const idsArray = constraintIds.map((id) => `'${id}'`).join(',');
+    whereClause = sql`WHERE constraint_id = ANY(ARRAY[${sql.raw(idsArray)}]::text[])`;
+  }
 
-  const result = await db.execute<{ chunk_text: string }>(sql`
-    SELECT chunk_text
+  const result = await db.execute<{ chunk_text: string; constraint_id: string }>(sql`
+    SELECT chunk_text, constraint_id
     FROM constraint_chunks
-    WHERE constraint_id = ANY(ARRAY[${sql.raw(idsArray)}]::text[])
+    ${whereClause}
     ORDER BY embedding <=> ${vectorLiteral}::vector
     LIMIT ${topK}
   `);
 
   // db.execute() with postgres.js returns a RowList which extends Array directly
-  return (result as unknown as Array<{ chunk_text: string }>).map((r) => r.chunk_text);
+  return (result as unknown as Array<{ chunk_text: string; constraint_id: string }>).map((r) => ({
+    constraintId: r.constraint_id,
+    chunkText: r.chunk_text
+  }));
 }

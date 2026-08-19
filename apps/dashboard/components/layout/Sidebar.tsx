@@ -17,6 +17,7 @@ const NAV = [
   { href: "/github", label: "GitHub", minRole: "admin" as const },
   { href: "/analytics", label: "Analytics", minRole: "admin" as const },
   null,
+  { href: "/chat", label: "Assistant", minRole: "member" as const },
   { href: "/docs", label: "Docs & MCP", minRole: "member" as const },
   { href: "/settings", label: "Settings", minRole: "member" as const },
 ]

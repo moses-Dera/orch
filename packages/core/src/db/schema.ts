@@ -50,6 +50,7 @@ export const constraints = pgTable('constraints', {
   geminiVariant: text('gemini_variant'),
   goodExamples: jsonb('good_examples'), // Array of strings representing good code
   badExamples: jsonb('bad_examples'),   // Array of strings representing bad code
+  status: text('status').notNull().default('active'), // 'active' or 'draft'
   version: text('version').notNull().default('1.0'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
