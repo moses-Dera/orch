@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { embedConstraint } from '../ai/embedder';
 import { githubApp } from './github';
 import type { AppVariables } from '../types';
+import { encrypt } from '../utils/encryption';
 
 export const dashboardRouter = new Hono<{ Variables: AppVariables }>();
 
@@ -68,6 +69,7 @@ dashboardRouter.get('/models', async (c) => {
       context_window: m.contextWindow,
       is_critic: m.isCritic,
       is_judge: m.isJudge,
+      has_api_key: !!m.apiKey,
     }))
   });
 });
@@ -89,7 +91,7 @@ dashboardRouter.post('/models', async (c) => {
     provider: body.provider,
     modelId: body.model_id,
     displayName: body.display_name,
-    apiKey: body.api_key,
+    apiKey: body.api_key ? encrypt(body.api_key) : null,
     endpoint: body.endpoint,
     contextWindow: body.context_window || 8192,
     isCritic: body.is_critic || false,
@@ -114,6 +116,7 @@ dashboardRouter.put('/models/:id', async (c) => {
   const updateData: any = {};
   if (body.is_critic !== undefined) updateData.isCritic = body.is_critic;
   if (body.is_judge !== undefined) updateData.isJudge = body.is_judge;
+  if (body.api_key) updateData.apiKey = encrypt(body.api_key);
 
   if (Object.keys(updateData).length > 0) {
     await db.update(models).set(updateData).where(sql`${models.id} = ${id} AND ${models.teamId} = ${teamId}`);

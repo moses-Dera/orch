@@ -1,0 +1,37 @@
+# Use the official Bun image
+FROM oven/bun:1 as base
+WORKDIR /usr/src/app
+
+# Cache dependencies
+FROM base AS install
+RUN mkdir -p /temp/dev
+# Copy the root package manager files
+COPY package.json bun.lock /temp/dev/
+
+# Copy the core package definition (and types if they are a dependency)
+COPY packages/core/package.json /temp/dev/packages/core/
+COPY packages/types/package.json /temp/dev/packages/types/
+
+# Install dependencies for the monorepo
+RUN cd /temp/dev && bun install --frozen-lockfile
+
+# Final Release Image
+FROM base AS release
+# Copy the node_modules from the install stage
+COPY --from=install /temp/dev/node_modules node_modules
+COPY --from=install /temp/dev/packages/core/node_modules packages/core/node_modules
+
+# Copy the entire source code
+COPY . .
+
+# Set environment variables for production
+ENV NODE_ENV=production
+ENV PORT=3001
+
+EXPOSE 3001
+
+# Set the working directory to the core package
+WORKDIR /usr/src/app/packages/core
+
+# Run the API
+ENTRYPOINT [ "bun", "run", "src/index.ts" ]

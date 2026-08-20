@@ -5,6 +5,16 @@ import { UserProfile } from "@clerk/nextjs"
 import { PageShell } from "@/components/layout/PageShell"
 import { PageSkeleton } from "@/components/shared/LoadingSkeleton"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
 import { useMe } from "@/hooks/useRole"
 import { useQueryClient, useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -73,6 +83,10 @@ export default function SettingsPage() {
   const [teamNameInput, setTeamNameInput] = useState("")
   const [renamingOrg, setRenamingOrg] = useState(false)
   const [renamingTeam, setRenamingTeam] = useState(false)
+
+  // Dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
 
   useEffect(() => {
     if (me?.org_name) setOrgNameInput(me.org_name)
@@ -319,21 +333,50 @@ export default function SettingsPage() {
               Permanently delete this organization, including all its teams, projects, constraints, and data. This action cannot be undone.
             </p>
             <div className="pt-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={deleteOrgMutation.isPending}
-                onClick={() => {
-                  const confirmText = prompt(`Type "${me.org_name}" to confirm deletion.`)
-                  if (confirmText === me.org_name) {
-                    deleteOrgMutation.mutate(me.org_id)
-                  } else if (confirmText !== null) {
-                    toast.error("Organization name did not match.")
-                  }
-                }}
-              >
-                {deleteOrgMutation.isPending ? "Deleting..." : "Delete Organization"}
-              </Button>
+              <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+                setDeleteDialogOpen(open)
+                if (!open) setDeleteConfirmText("")
+              }}>
+                <DialogTrigger render={<Button variant="destructive" size="sm" />}>
+                  Delete Organization
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Are you absolutely sure?</DialogTitle>
+                    <DialogDescription>
+                      This action cannot be undone. This will permanently delete your
+                      organization and remove all data from our servers.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4 space-y-3">
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      Please type <strong className="text-[var(--text-primary)]">{me.org_name}</strong> to confirm.
+                    </p>
+                    <input
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      className="w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-red-500"
+                      placeholder={me.org_name}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <DialogClose render={<Button variant="outline" />}>
+                      Cancel
+                    </DialogClose>
+                    <Button
+                      variant="destructive"
+                      disabled={deleteConfirmText !== me.org_name || deleteOrgMutation.isPending}
+                      onClick={() => {
+                        if (deleteConfirmText === me.org_name) {
+                          deleteOrgMutation.mutate(me.org_id)
+                        }
+                      }}
+                    >
+                      {deleteOrgMutation.isPending ? "Deleting..." : "Delete Organization"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         )}

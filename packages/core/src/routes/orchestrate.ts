@@ -5,6 +5,7 @@ import { db } from '../db';
 import { constraints, projects, tokenBudgets, models } from '../db/schema';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { retrieveChunks } from '../ai/retriever';
+import { decrypt } from '../utils/encryption';
 import type { AppVariables } from '../types';
 
 export const orchestrateRouter = new Hono<{ Variables: AppVariables }>();
@@ -16,16 +17,27 @@ orchestrateRouter.post('/orchestrate', apiAuthMiddleware, async (c) => {
     const teamId = c.get('teamId');
     const { user_prompt, domain, model, session_id } = body;
 
-    // 1. Budget Enforcement
-    const [budgetRecord] = await db.select()
-      .from(tokenBudgets)
-      .where(eq(tokenBudgets.teamId, teamId));
+    // 1. Fetch BYOK API Key
+    const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
+    const modelObj = teamModels[0];
+    const encryptedApiKey = modelObj?.apiKey;
+    let apiKey = encryptedApiKey ? decrypt(encryptedApiKey) : null;
+    let isTrial = false;
+    let defaultModel = modelObj?.modelId || model || 'openai/gpt-4o-mini';
 
-    if (budgetRecord && budgetRecord.consumedTokens >= budgetRecord.allocatedTokens) {
-      return c.json({
-        error: 'Payment Required',
-        message: 'Agent Token Budget Exceeded. Please contact your organization administrator to increase limits.'
-      }, 402);
+    if (!apiKey) {
+      apiKey = process.env.TRIAL_API_KEY || null;
+      isTrial = true;
+      if (!apiKey) {
+        return c.json({
+          error: 'Payment Required',
+          message: 'No API key provided and no TRIAL_API_KEY configured. Please add your API key in the Orch dashboard.'
+        }, 402);
+      }
+    }
+
+    if (isTrial && process.env.TRIAL_MODEL) {
+      defaultModel = process.env.TRIAL_MODEL;
     }
 
     // 2. Fetch constraints & RAG
@@ -54,15 +66,22 @@ orchestrateRouter.post('/orchestrate', apiAuthMiddleware, async (c) => {
       { role: 'user', content: user_prompt }
     ];
 
-    const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
-    const defaultModel = teamModels[0]?.modelId || model || 'openai/gpt-4o-mini';
+    // 3. OpenRouter call
+
+    let endpoint = modelObj?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+    if (isTrial) {
+      const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
+      if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+      else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+      else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+    }
 
     // 3. OpenRouter call
-    const openRouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const openRouterRes = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: defaultModel,
@@ -75,12 +94,7 @@ orchestrateRouter.post('/orchestrate', apiAuthMiddleware, async (c) => {
     const outputTokens = responseData.usage?.completion_tokens || 0;
     const outputText = responseData.choices?.[0]?.message?.content || '';
 
-    // 4. Update Token Budget (Fire and Forget)
-    db.update(tokenBudgets)
-      .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${inputTokens + outputTokens}` })
-      .where(eq(tokenBudgets.teamId, teamId))
-      .execute()
-      .catch(err => console.error('[Orchestrate] Failed to update token budget:', err));
+    // 4. Update Token Budget skipped (BYOK model)
 
     return c.json({
       domain_identified: domain || 'auto',
@@ -103,12 +117,23 @@ orchestrateRouter.post('/orchestrate/stream', apiAuthMiddleware, async (c) => {
   const teamId = c.get('teamId');
   const { user_prompt, domain, model, session_id } = body;
 
-  const [budgetRecord] = await db.select()
-    .from(tokenBudgets)
-    .where(eq(tokenBudgets.teamId, teamId));
+  const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
+  const modelObj = teamModels[0];
+  const encryptedApiKey = modelObj?.apiKey;
+  let apiKey = encryptedApiKey ? decrypt(encryptedApiKey) : null;
+  let isTrial = false;
+  let defaultModel = modelObj?.modelId || model || 'openai/gpt-4o-mini';
 
-  if (budgetRecord && budgetRecord.consumedTokens >= budgetRecord.allocatedTokens) {
-    return c.text('data: {"error": "Payment Required - Token Budget Exceeded"}\n\ndata: [DONE]\n', 402);
+  if (!apiKey) {
+    apiKey = process.env.TRIAL_API_KEY || null;
+    isTrial = true;
+    if (!apiKey) {
+      return c.text('data: {"error": "Payment Required - No API key provided"}\n\ndata: [DONE]\n', 402);
+    }
+  }
+
+  if (isTrial && process.env.TRIAL_MODEL) {
+    defaultModel = process.env.TRIAL_MODEL;
   }
 
   const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
@@ -136,14 +161,21 @@ orchestrateRouter.post('/orchestrate/stream', apiAuthMiddleware, async (c) => {
     { role: 'user', content: user_prompt }
   ];
 
-  const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
-  const defaultModel = teamModels[0]?.modelId || model || 'openai/gpt-4o-mini';
+  // OpenRouter call
 
-  const openRouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  let endpoint = modelObj?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  if (isTrial) {
+    const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
+    if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+    else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+    else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+  }
+
+  const openRouterRes = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
       model: defaultModel,
@@ -202,15 +234,7 @@ orchestrateRouter.post('/orchestrate/stream', apiAuthMiddleware, async (c) => {
       reader.releaseLock();
       await stream.write('data: [DONE]\n\n');
 
-      // Update token budget
-      const totalTokens = totalPromptTokens + totalCompletionTokens;
-      if (totalTokens > 0) {
-        db.update(tokenBudgets)
-          .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalTokens}` })
-          .where(eq(tokenBudgets.teamId, teamId))
-          .execute()
-          .catch(err => console.error('[Orchestrate] Failed to update token budget:', err));
-      }
+      // Update token budget skipped (BYOK model)
     }
   });
 });

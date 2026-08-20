@@ -212,8 +212,12 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm sm:text-base lg:text-lg text-[var(--text-secondary)] leading-relaxed font-sans max-w-lg">
-              Orch is the central control plane for software governance. Define Policy-as-Code once. Orch injects constraints into Cursor & Claude via MCP, and audits PRs at the GitHub boundary.
+              The AI Staff Engineer that never sleeps. Orch is the central control plane for software governance. Define Policy-as-Code once, and Orch enforces it across any language—injecting constraints into any AI Agent or IDE and auditing PRs at the GitHub boundary.
             </p>
+            
+            <div className="flex items-center gap-2 pt-2">
+              <span className="text-xs text-[var(--text-secondary)] font-medium">Start for $0 using free models from any AI provider.</span>
+            </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-4">
               <Link href={ctaHref} className="flex items-center justify-center gap-2 bg-[var(--accent)] text-[var(--primary-foreground)] font-mono text-xs lg:text-sm font-semibold px-8 py-4 rounded-md hover:bg-[var(--accent-hover)] transition-colors shadow-lg cursor-pointer">
@@ -269,7 +273,7 @@ export default function LandingPage() {
                 <div className="p-4 sm:p-5 space-y-3 bg-[var(--surface)]">
                   <div className="flex items-center justify-between text-xs font-mono text-[var(--text-secondary)]">
                     <span className="flex items-center gap-1.5 text-rose-500 dark:text-rose-400 font-semibold"><ShieldAlert className="w-3.5 h-3.5" /> AI Draft</span>
-                    <span className="text-[10px] bg-rose-500/10 text-rose-500 dark:text-rose-400 px-2 py-0.5 rounded border border-rose-500/20 font-mono">BLOCKED</span>
+                    <span className="text-[10px] text-rose-500 dark:text-rose-400 font-mono">BLOCKED</span>
                   </div>
                   <pre className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] sm:text-xs font-mono font-medium text-rose-700 dark:text-rose-300 leading-relaxed whitespace-pre-wrap break-all shadow-inner">
                     {currentExample.unsafe}
@@ -279,8 +283,8 @@ export default function LandingPage() {
                 {/* Right: Enforced Code */}
                 <div className="p-4 sm:p-5 space-y-3 bg-[var(--surface)]">
                   <div className="flex items-center justify-between text-xs font-mono text-[var(--text-secondary)]">
-                    <span className="flex items-center gap-1.5 text-[var(--text-primary)] font-semibold"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Remediated</span>
-                    <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">PASSED</span>
+                    <span className="flex items-center gap-1.5 text-[var(--text-primary)] font-semibold"><CheckCircle2 className="w-3.5 h-3.5 text-[var(--text-primary)]" /> Remediated</span>
+                    <span className="text-[10px] text-[var(--text-secondary)] font-mono">PASSED</span>
                   </div>
                   <pre className="p-3.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] sm:text-xs font-mono font-medium text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap break-all shadow-inner">
                     {currentExample.remediated}

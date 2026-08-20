@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useHasAccess } from "@/hooks/useRole"
+import { Lightbulb, Globe, Zap, Sparkles, Server, ExternalLink } from "lucide-react"
 
 const POLICY_DESC: Record<string, string> = {
   enforced: "All developers use one model. Developer choice is overridden.",
@@ -204,6 +205,64 @@ export default function ModelsPage() {
                       {isFetching ? "Fetching..." : "Fetch Models"}
                     </Button>
                   )}
+                </div>
+              </div>
+
+              {/* Free AI Models Guide */}
+              <div className="max-w-2xl mt-8 rounded-lg border border-[var(--border)] bg-[var(--background)] overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-[var(--border)] bg-[var(--surface)] flex items-start gap-3">
+                  <div className="text-[var(--text-secondary)] mt-0.5"><Lightbulb size={18} /></div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Zero-Cost AI Providers</h3>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      Don't want to pay for API tokens? These providers offer generous free tiers to get you started immediately.
+                    </p>
+                  </div>
+                </div>
+                <div className="p-5 space-y-6">
+                  <div className="flex gap-4">
+                    <div className="text-[var(--text-secondary)] mt-0.5"><Globe size={18} /></div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                        OpenRouter 
+                        <span className="text-[10px] uppercase tracking-wider bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-0.5 rounded-full font-bold">Recommended</span>
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+                        Offers dozens of 100% free models like <code className="bg-[var(--surface)] border border-[var(--border)] px-1.5 py-0.5 rounded font-mono text-[10px]">google/gemini-pro</code> and <code className="bg-[var(--surface)] border border-[var(--border)] px-1.5 py-0.5 rounded font-mono text-[10px]">meta-llama/llama-3-8b-instruct:free</code>. 
+                        <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="ml-1.5 text-[var(--accent)] hover:underline font-medium inline-flex items-center gap-0.5">Get a free key <ExternalLink size={12} /></a>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="text-[var(--text-secondary)] mt-0.5"><Zap size={18} /></div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Groq</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+                        Lightning fast Llama 3 inference with a very generous free tier. 
+                        <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="ml-1.5 text-[var(--accent)] hover:underline font-medium inline-flex items-center gap-0.5">Get a free key <ExternalLink size={12} /></a>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="text-[var(--text-secondary)] mt-0.5"><Sparkles size={18} /></div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Google AI Studio</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+                        1,500 free requests per day for Gemini 1.5 Pro and Flash. 
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="ml-1.5 text-[var(--accent)] hover:underline font-medium inline-flex items-center gap-0.5">Get a free key <ExternalLink size={12} /></a>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="text-[var(--text-secondary)] mt-0.5"><Server size={18} /></div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Ollama</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+                        Run models locally for maximum privacy, or offload large models for free using Ollama Cloud. 
+                        <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer" className="ml-1.5 text-[var(--accent)] hover:underline font-medium inline-flex items-center gap-0.5">Get a free key <ExternalLink size={12} /></a>
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

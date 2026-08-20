@@ -26,8 +26,7 @@ export default function AssistantPage() {
     <div className="flex flex-col h-[calc(100vh-64px)] w-full max-w-4xl mx-auto p-4 md:p-6">
       <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
-          <div className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+          <div className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-full text-xs font-medium flex items-center">
             Active Context: Workspace Constraints
           </div>
         </div>
@@ -116,14 +115,14 @@ export default function AssistantPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                handleSubmit(e as any);
+                e.currentTarget.form?.requestSubmit();
               }
             }}
           />
           <button
             type="submit"
-            disabled={!input.trim() || isLoading}
-            className="p-3 mb-1 bg-[var(--accent)] text-[var(--accent-foreground)] rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            disabled={!input?.trim() || isLoading}
+            className="p-3 mb-1 bg-[var(--accent)] text-[var(--accent-foreground)] rounded-lg hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
           >
             <Send size={18} />
           </button>

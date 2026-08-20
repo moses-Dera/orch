@@ -1,8 +1,9 @@
 import { db } from '../db';
-import { models, tokenBudgets } from '../db/schema';
+import { constraints, models, tokenBudgets } from '../db/schema';
 import { eq, sql, inArray } from 'drizzle-orm';
 import { redactSecrets } from './dlp';
 import { retrieveChunks } from './retriever';
+import { decrypt } from '../utils/encryption';
 
 export interface EvaluationViolation {
   file: string;
@@ -35,23 +36,22 @@ export async function evaluateDiff(
   const criticModel = teamModels.find(m => m.isCritic) || teamModels[0];
   const judgeModel = teamModels.find(m => m.isJudge) || teamModels[0];
 
-  let apiKey = criticModel?.apiKey || judgeModel?.apiKey;
-  const isTrial = !apiKey && budget && budget.consumedTokens < budget.allocatedTokens;
+  const encryptedApiKey = criticModel?.apiKey || judgeModel?.apiKey;
+  let apiKey = encryptedApiKey ? decrypt(encryptedApiKey) : null;
+  let isTrial = false;
 
   if (!apiKey) {
-    if (isTrial) {
-      // Fallback to global key for testing
-      apiKey = process.env.OPENROUTER_API_KEY || null;
-    } else {
-      // Trial exhausted and no key provided
+    apiKey = process.env.TRIAL_API_KEY || null;
+    isTrial = true;
+    if (!apiKey) {
       return {
-        reasoning: "The testing trial budget is exhausted and no custom API key was found.",
+        reasoning: "No custom API key was found for this workspace.",
         status: 'VIOLATION',
         violations: [{ 
-          file: "N/A", line: 1, rule: "Billing", 
-          explanation: "Testing budget exhausted. Please add your own API key in the Orch dashboard to continue reviewing code." 
+          file: "N/A", line: 1, rule: "Billing / Missing API Key", 
+          explanation: "No API key provided and no TRIAL_API_KEY configured. Please add your API key in the Orch dashboard to review code." 
         }],
-        explanation: 'API Key required. Trial exhausted.'
+        explanation: 'API Key required. Please configure a Model in Settings.'
       };
     }
   }
@@ -85,7 +85,6 @@ export async function evaluateDiff(
       }
       
       // Inject Few-Shot Examples from active constraints
-      const { constraints } = await import('../db/schema');
       const activeConstraints = await db.select({
         goodExamples: constraints.goodExamples,
         badExamples: constraints.badExamples
@@ -119,7 +118,22 @@ export async function evaluateDiff(
     rules = fallbackRules ?? '';
   }
 
-  const endpoint = criticModel?.endpoint || judgeModel?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  let cheapModelToUse = criticModel?.modelId || DEFAULT_CHEAP_MODEL;
+  let strongModelToUse = judgeModel?.modelId || DEFAULT_STRONG_MODEL;
+
+  let endpoint = criticModel?.endpoint || judgeModel?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  
+  if (isTrial) {
+    const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
+    if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+    else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+    else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+
+    if (process.env.TRIAL_MODEL) {
+      cheapModelToUse = process.env.TRIAL_MODEL;
+      strongModelToUse = process.env.TRIAL_MODEL;
+    }
+  }
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
 
@@ -164,7 +178,7 @@ If there are absolutely no potential violations, return an empty array for poten
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: criticModel?.modelId || DEFAULT_CHEAP_MODEL,
+        model: cheapModelToUse,
         messages: [
           { role: 'system', content: criticPrompt },
           { role: 'user', content: `Diff:\n${safeDiff}` }
@@ -185,11 +199,7 @@ If there are absolutely no potential violations, return an empty array for poten
 
   // EARLY EXIT: If the critic found nothing, we are done!
   if (!criticResult.potential_violations || criticResult.potential_violations.length === 0) {
-    if (isTrial && apiKey === process.env.OPENROUTER_API_KEY) {
-      await db.update(tokenBudgets)
-        .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalInputTokens + totalOutputTokens}` })
-        .where(eq(tokenBudgets.teamId, teamId));
-    }
+    // Tracking tokens skipped (BYOK model)
     return {
       reasoning: "The Critic reviewed the diff and found zero potential violations. Early exit triggered.",
       status: 'CLEAN',
@@ -201,7 +211,6 @@ If there are absolutely no potential violations, return an empty array for poten
   // ==========================================
   // PHASE 2: THE JUDGE (Slow & Smart)
   // ==========================================
-  const judgeModelId = judgeModel?.modelId || DEFAULT_STRONG_MODEL;
   const judgePrompt = `
 You are Orch, an expert Senior Staff Engineer.
 A junior reviewer (The Critic) has flagged potential violations in the following Pull Request.
@@ -248,7 +257,7 @@ If you dismiss all of the Critic's claims, return status CLEAN and an empty viol
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: judgeModelId,
+        model: strongModelToUse,
         messages: [
           { role: 'system', content: judgePrompt },
           { role: 'user', content: `Diff:\n${safeDiff}` }
@@ -264,11 +273,7 @@ If you dismiss all of the Critic's claims, return status CLEAN and an empty viol
     const resultJson: EvaluationResult = JSON.parse(judgeData.choices[0].message.content);
 
     // Track Input and Output tokens accurately for both phases combined
-    if (isTrial && apiKey === process.env.OPENROUTER_API_KEY) {
-      await db.update(tokenBudgets)
-        .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalInputTokens + totalOutputTokens}` })
-        .where(eq(tokenBudgets.teamId, teamId));
-    }
+    // Tracking tokens skipped (BYOK model)
 
     // Default ensure empty array if CLEAN
     if (resultJson.status === 'CLEAN' && !resultJson.violations) {

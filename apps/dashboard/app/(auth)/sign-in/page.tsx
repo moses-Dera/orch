@@ -1,6 +1,6 @@
 'use client';
-import { useSignIn } from '@clerk/nextjs';
-import { useState } from 'react';
+import { useSignIn, useAuth } from '@clerk/nextjs';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
@@ -13,12 +13,19 @@ const GithubIcon = ({ className }: { className?: string }) => (
 
 export default function SignInPage() {
   const { signIn, setActive } = useSignIn() as any;
+  const { isSignedIn } = useAuth();
   const isLoaded = !!signIn;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      router.push('/home');
+    }
+  }, [isSignedIn, router]);
 
   const handleOAuth = async (strategy: 'oauth_google' | 'oauth_github') => {
     if (!isLoaded || !signIn) return;
@@ -58,6 +65,11 @@ export default function SignInPage() {
       throw new Error("window.Clerk not found");
     } catch (err: any) {
       console.error('OAuth failed', err);
+      const isAlreadySignedIn = err?.message?.includes("already signed in") || err?.errors?.[0]?.message?.includes("already signed in");
+      if (isAlreadySignedIn) {
+         router.push('/home');
+         return;
+      }
       setError(err?.errors?.[0]?.message || err?.message || 'OAuth sign-in failed');
     }
   };

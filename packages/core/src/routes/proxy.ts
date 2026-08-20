@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { apiAuthMiddleware } from '../middlewares';
 import { db } from '../db';
-import { constraints, projects, tokenBudgets } from '../db/schema';
+import { constraints, projects, models } from '../db/schema';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { retrieveChunks } from '../ai/retriever';
+import { decrypt } from '../utils/encryption';
 import type { AppVariables } from '../types';
 
 const proxyRouter = new Hono<{ Variables: AppVariables }>();
@@ -17,22 +18,27 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   const body = await c.req.json();
   const teamId = c.get('teamId');
 
-  // 2. Token Budget Enforcement
-  const [budgetRecord] = await db.select()
-    .from(tokenBudgets)
-    .where(eq(tokenBudgets.teamId, teamId));
+  // 2. Fetch custom API key (BYOK Enforcement)
+  const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
+  const encryptedApiKey = teamModels[0]?.apiKey;
+  
+  let apiKey = encryptedApiKey ? decrypt(encryptedApiKey) : null;
+  let isTrial = false;
 
-  if (budgetRecord && budgetRecord.consumedTokens >= budgetRecord.allocatedTokens) {
-    // Send email to admin (fire and forget).
-    // In production, you would throttle this to 1 email per day per team.
-    import('../services/email').then(({ sendBudgetExceededEmail }) => {
-      sendBudgetExceededEmail(process.env.ADMIN_EMAIL || 'admin@example.com', teamId).catch(console.error);
-    });
+  if (!apiKey) {
+    apiKey = process.env.TRIAL_API_KEY || null;
+    isTrial = true;
+    if (!apiKey) {
+      return c.json({
+        error: 'Payment Required',
+        message: 'No API key provided and no TRIAL_API_KEY configured. Please add your API key in the Orch dashboard.'
+      }, 402);
+    }
+  }
 
-    return c.json({
-      error: 'Payment Required',
-      message: 'Agent Token Budget Exceeded. Please contact your organization administrator to increase limits.'
-    }, 402);
+  // Override model if trial model is set
+  if (isTrial && process.env.TRIAL_MODEL) {
+    body.model = process.env.TRIAL_MODEL;
   }
 
   // 3. Trim conversation history to the sliding window
@@ -89,58 +95,35 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     ...trimmedMessages,
   ];
 
-  // 8. Forward to OpenRouter
-  const openRouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  // Determine endpoint
+  let endpoint = teamModels[0]?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  if (isTrial) {
+    const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
+    if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+    else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+    else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+  }
+
+  // 8. Forward to provider
+  const openRouterRes = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({ ...body, messages })
   });
 
-  // 9. Stream the response directly back to the IDE/Client and intercept to calculate usage
+  // 9. Stream the response directly back to the IDE/Client
+  const resHeaders = new Headers(openRouterRes.headers);
+  if (isTrial) resHeaders.set('X-Orch-Trial', 'true');
+
   if (!openRouterRes.body) {
-    return new Response(null, { headers: openRouterRes.headers, status: openRouterRes.status });
+    return new Response(null, { headers: resHeaders, status: openRouterRes.status });
   }
 
-  const transformStream = new TransformStream({
-    transform(chunk, controller) {
-      // Pass the chunk through unchanged
-      controller.enqueue(chunk);
-      
-      // Try to parse the chunk for usage data
-      try {
-        const text = new TextDecoder().decode(chunk);
-        
-        // OpenRouter streaming uses SSE format, check for usage block
-        if (text.includes('"usage"')) {
-          const lines = text.split('\n');
-          for (const line of lines) {
-            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-              const data = JSON.parse(line.slice(6));
-              if (data.usage && (data.usage.prompt_tokens || data.usage.completion_tokens)) {
-                const promptTokens = data.usage.prompt_tokens || 0;
-                const completionTokens = data.usage.completion_tokens || 0;
-                const totalTokens = promptTokens + completionTokens;
-                
-                // Fire and forget db update
-                db.update(tokenBudgets)
-                  .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalTokens}` })
-                  .where(eq(tokenBudgets.teamId, teamId))
-                  .execute()
-                  .catch(err => console.error('[Proxy] Failed to update token budget:', err));
-              }
-            }
-          }
-        }
-      } catch (err) {
-        // Ignore parse errors on partial chunks
-      }
-    }
-  });
-
-  return new Response(openRouterRes.body.pipeThrough(transformStream), {
+  // Pass-through stream without tracking usage
+  return new Response(openRouterRes.body, {
     headers: openRouterRes.headers
   });
 });
