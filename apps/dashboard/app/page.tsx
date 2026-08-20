@@ -95,7 +95,7 @@ jobs:
 export default function LandingPage() {
   const { data: me } = useMe()
   const { theme, toggle } = useTheme()
-  const ctaHref = "/constraints"
+  const ctaHref = "/chat"
   const ctaLabel = "WORKSPACE →"
   const heroCtaLabel = "LAUNCH WORKSPACE"
 

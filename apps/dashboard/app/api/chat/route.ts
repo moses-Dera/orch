@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 
@@ -46,18 +46,20 @@ export async function POST(req: Request) {
     };
   }
 
-  const result = await generateText({
+  const result = streamText({
     model: orchProxy('anthropic/claude-3.5-sonnet'), // Using OpenRouter via our proxy
     messages,
     tools: aiTools,
+    maxSteps: 5, // Allows the AI to use tools and then respond in a loop
     system: `You are the Orchestrator CTO AI Assistant. 
 You help technical leaders design architectures, enforce constraints, and review rules.
 You have access to MCP tools to fetch the company's active constraints and draft new ones.
 Always use the tools provided when the user asks about constraints or wants to create new rules.`,
+    onFinish: async () => {
+      // Clean up the MCP connection when the generation finishes
+      await transport.close();
+    }
   });
 
-  // Clean up the MCP connection when the generation finishes
-  await transport.close();
-
-  return Response.json({ text: result.text, toolCalls: result.toolCalls });
+  return result.toDataStreamResponse();
 }

@@ -10,6 +10,7 @@ import { Menu, X, Sun, Moon } from "lucide-react"
 import { useTheme } from "@/components/layout/ThemeProvider"
 
 const NAV = [
+  { href: "/chat", label: "Chat", minRole: "member" as const },
   { href: "/constraints", label: "Constraints", minRole: "member" as const },
   { href: "/team", label: "Team", minRole: "admin" as const },
   { href: "/projects", label: "Projects", minRole: "admin" as const },
@@ -17,7 +18,6 @@ const NAV = [
   { href: "/github", label: "GitHub", minRole: "admin" as const },
   { href: "/analytics", label: "Analytics", minRole: "admin" as const },
   null,
-  { href: "/chat", label: "Assistant", minRole: "member" as const },
   { href: "/docs", label: "Docs & MCP", minRole: "member" as const },
   { href: "/settings", label: "Settings", minRole: "member" as const },
 ]
