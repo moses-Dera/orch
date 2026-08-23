@@ -470,3 +470,40 @@ dashboardRouter.post('/provider/models', async (c) => {
     return c.json({ error: 'Failed to connect to the provider URL.' }, 400);
   }
 });
+
+// GET /v1/dashboard/members
+dashboardRouter.get('/members', async (c) => {
+  const teamId = c.get('teamId');
+  const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
+  if (!team) return c.json({ error: 'Team not found' }, 404);
+
+  // MOCK: Return a mock list of members for the prototype
+  // In production, this would join with team_members and users tables
+  return c.json({
+    team: team.name,
+    members: [
+      {
+        id: team.userId,
+        email: "founder@company.com",
+        name: "Founder",
+        last_active: new Date().toISOString(),
+        role: "owner"
+      }
+    ]
+  });
+});
+
+// POST /v1/dashboard/members/invite
+dashboardRouter.post('/members/invite', async (c) => {
+  const { email, role } = await c.req.json();
+  if (!email) return c.json({ error: 'Email is required' }, 400);
+
+  // MOCK: Return a fake invite token
+  const token = crypto.randomBytes(16).toString('hex');
+  return c.json({
+    email,
+    role,
+    token,
+    message: 'Invite created successfully'
+  });
+});

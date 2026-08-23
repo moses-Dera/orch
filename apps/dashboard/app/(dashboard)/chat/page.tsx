@@ -1,20 +1,39 @@
 "use client";
 
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Send, Loader2, CheckCircle2 } from "lucide-react";
 import { useChat } from '@ai-sdk/react';
 
 export default function AssistantPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
-    api: '/api/chat',
-    initialMessages: [
+  const [input, setInput] = useState('');
+  
+  const { messages, sendMessage, status, error } = useChat({
+    messages: [
       {
         id: 'welcome',
         role: 'assistant',
-        content: 'Hello! I am the Orchestrator CTO AI Assistant. How can I help you design architectures or review constraints today?'
+        parts: [{ type: 'text', text: 'Hello! I am the Orchestrator CTO AI Assistant. How can I help you design architectures or review constraints today?' }]
       }
     ]
   });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    if (!input.trim()) return;
+    sendMessage({ text: input });
+    setInput('');
+  };
+
+  const append = (msg: { text: string }) => {
+    sendMessage(msg);
+  };
+
+  const isLoading = status === 'streaming' || status === 'submitted';
 
   const SUGGESTIONS = [
     "Draft a new security constraint",
@@ -33,55 +52,68 @@ export default function AssistantPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-6 pb-6">
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`flex w-full ${m.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            {m.role === "assistant" && (
-              <div className="w-8 h-8 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center flex-shrink-0 mt-1 mr-3">
-                <span className="font-bold text-xs">O</span>
-              </div>
-            )}
-            
-            <div className={`flex flex-col gap-2 max-w-[85%] sm:max-w-[75%] ${m.role === "user" ? "items-end" : "items-start"}`}>
-              {/* Tool Invocations (Citations) */}
-              {m.toolInvocations?.map((tool, i) => {
-                const isComplete = tool.state === 'result';
-                return (
-                  <div key={i} className="text-[11px] text-[var(--text-secondary)] bg-[var(--background)] border border-[var(--border)] px-3 py-1.5 rounded-full flex items-center gap-2 font-mono shadow-sm">
-                    {isComplete ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                    ) : (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent)]" />
-                    )}
-                    {isComplete ? `Used Tool: ${tool.toolName}` : `Running Tool: ${tool.toolName}...`}
-                  </div>
-                );
-              })}
+        {messages.map((m) => {
+          const textContent = m.parts?.filter(p => p.type === 'text').map(p => (p as any).text).join('') || '';
+          
+          return (
+            <div
+              key={m.id}
+              className={`flex w-full ${m.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              {m.role === "assistant" && (
+                <div className="w-8 h-8 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center flex-shrink-0 mt-1 mr-3">
+                  <span className="font-bold text-xs">O</span>
+                </div>
+              )}
+              
+              <div className={`flex flex-col gap-2 max-w-[85%] sm:max-w-[75%] ${m.role === "user" ? "items-end" : "items-start"}`}>
+                {/* Tool Invocations (Citations) */}
+                {m.parts?.map((part, i) => {
+                  const toolName = part.type === 'dynamic-tool' 
+                    ? (part as any).toolName 
+                    : part.type.startsWith('tool-') 
+                      ? part.type.replace('tool-', '') 
+                      : null;
+                      
+                  if (!toolName) return null;
+                  
+                  const isComplete = (part as any).state === 'output-available' || (part as any).state === 'result';
+                  
+                  return (
+                    <div key={i} className="text-[11px] text-[var(--text-secondary)] bg-[var(--background)] border border-[var(--border)] px-3 py-1.5 rounded-full flex items-center gap-2 font-mono shadow-sm">
+                      {isComplete ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                      ) : (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent)]" />
+                      )}
+                      {isComplete ? `Used Tool: ${toolName}` : `Running Tool: ${toolName}...`}
+                    </div>
+                  );
+                })}
 
-              <div
-                className={`px-5 py-4 rounded-3xl ${
-                  m.role === "user"
-                    ? "bg-[var(--chat-user-bg)] text-[var(--chat-user-text)]"
-                    : "bg-transparent text-[var(--text-primary)] prose prose-sm dark:prose-invert max-w-full"
-                }`}
-              >
-                {m.role === 'user' ? (
-                  <div className="whitespace-pre-wrap">{m.content}</div>
-                ) : (
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
-                )}
+                <div
+                  className={`px-5 py-4 rounded-3xl ${
+                    m.role === "user"
+                      ? "bg-[var(--chat-user-bg)] text-[var(--chat-user-text)]"
+                      : "bg-transparent text-[var(--text-primary)] prose prose-sm dark:prose-invert max-w-full"
+                  }`}
+                >
+                  {m.role === 'user' ? (
+                    <div className="whitespace-pre-wrap">{textContent}</div>
+                  ) : (
+                    <ReactMarkdown>{textContent}</ReactMarkdown>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {messages.length === 1 && (
           <div className="flex flex-wrap gap-2 mt-2 sm:ml-12">
             {SUGGESTIONS.map((s, i) => (
               <button 
                 key={i} 
-                onClick={() => append({ role: 'user', content: s })}
+                onClick={() => append({ text: s })}
                 className="text-xs px-3 py-1.5 bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] hover:border-[var(--accent)] rounded-lg transition-all"
               >
                 {s}
@@ -115,7 +147,7 @@ export default function AssistantPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                e.currentTarget.form?.requestSubmit();
+                handleSubmit();
               }
             }}
           />
@@ -127,6 +159,11 @@ export default function AssistantPage() {
             <Send size={18} />
           </button>
         </form>
+        {error && (
+          <div className="text-center mt-2 text-sm font-medium text-red-500 bg-red-50 dark:bg-red-950/20 py-2 px-3 rounded-lg border border-red-200 dark:border-red-900">
+            {error.message || "An error occurred. Please try again."}
+          </div>
+        )}
         <div className="text-center mt-2 text-xs text-[var(--text-secondary)]">
           Orch Assistant can make mistakes. Always review the constraints before applying them.
         </div>

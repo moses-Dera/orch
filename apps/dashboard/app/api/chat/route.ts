@@ -2,16 +2,19 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-
-const orchProxy = createOpenAI({
-  baseURL: `${process.env.ORCH_API_URL || 'http://127.0.0.1:3001'}/v1`,
-  apiKey: process.env.ORCH_API_KEY || 'orch_dummy',
-});
+import { cookies } from 'next/headers';
 
 export const maxDuration = 30; // Allow up to 30 seconds for SSE connection + generation
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
+  const jar = await cookies();
+  const apiKey = jar.get("orch_key")?.value || process.env.ORCH_API_KEY || 'orch_dummy';
+
+  const orchProxy = createOpenAI({
+    baseURL: `${process.env.ORCH_API_URL || 'http://127.0.0.1:3001'}/v1`,
+    apiKey,
+  });
 
   // Connect to the backend MCP Server via SSE
   const mcpUrl = new URL('/v1/mcp/sse', process.env.ORCH_API_URL || 'http://127.0.0.1:3001');
@@ -50,7 +53,6 @@ export async function POST(req: Request) {
     model: orchProxy('anthropic/claude-3.5-sonnet'), // Using OpenRouter via our proxy
     messages,
     tools: aiTools,
-    maxSteps: 5, // Allows the AI to use tools and then respond in a loop
     system: `You are the Orchestrator CTO AI Assistant. 
 You help technical leaders design architectures, enforce constraints, and review rules.
 You have access to MCP tools to fetch the company's active constraints and draft new ones.
@@ -61,5 +63,5 @@ Always use the tools provided when the user asks about constraints or wants to c
     }
   });
 
-  return result.toDataStreamResponse();
+  return result.toTextStreamResponse();
 }

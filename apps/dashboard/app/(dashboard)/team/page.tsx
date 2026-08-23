@@ -19,14 +19,13 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 async function fetchMembers(): Promise<{ members: any[]; team: string }> {
-  // const res = await fetch("/api/orch/v1/members")
-  // if (!res.ok) throw new Error("Failed to fetch members")
-  // return res.json()
-  return { members: [], team: "" } // Not implemented on backend yet
+  const res = await fetch("/api/orch/v1/dashboard/members")
+  if (!res.ok) throw new Error("Failed to fetch members")
+  return res.json()
 }
 
 async function inviteMember(email: string, role: string) {
-  const res = await fetch("/api/orch/v1/members/invite", {
+  const res = await fetch("/api/orch/v1/dashboard/members/invite", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, role }),
@@ -83,7 +82,7 @@ export default function TeamPage() {
         {showInvite && (
           <div className="px-5 py-4 border-b bg-[var(--background)] space-y-3">
             <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">New Invite</p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 value={email}
