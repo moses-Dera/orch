@@ -14,7 +14,7 @@ services:
         sync: false
       - key: ORCH_API_KEY
         sync: false
-      - key: LOCAL_ENCRYPTION_KEY
+      - key: ENCRYPTION_KEY
         sync: false
       - key: GITHUB_APP_ID
         sync: false
