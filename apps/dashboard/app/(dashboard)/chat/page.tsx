@@ -15,7 +15,7 @@ export default function AssistantPage() {
         role: 'assistant',
         parts: [{ type: 'text', text: 'Hello! I am the Orchestrator CTO AI Assistant. How can I help you design architectures or review constraints today?' }]
       }
-    ]
+    ] as any
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
