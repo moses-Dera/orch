@@ -11,7 +11,7 @@ export function Header() {
   const { data: models } = useModels()
   const { theme, toggle } = useTheme()
 
-  const hasConfiguredModels = models && models.length > 0;
+  const hasConfiguredModels = models && models.models && models.models.length > 0;
   const isTrial = models !== undefined && !hasConfiguredModels;
 
   return (
