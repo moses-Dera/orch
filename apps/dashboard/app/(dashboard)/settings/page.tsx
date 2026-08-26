@@ -295,7 +295,7 @@ export default function SettingsPage() {
           </p>
           <div className="flex items-center gap-2 pt-2">
             <Button size="sm" variant="default" onClick={() => {
-              const githubAppUrl = process.env.NEXT_PUBLIC_GITHUB_APP_URL || "https://github.com/apps/orch-ai-governance/installations/new";
+              const githubAppUrl = process.env.NEXT_PUBLIC_GITHUB_APP_URL || "https://github.com/apps/orch-ai-reviewer/installations/new";
               window.open(githubAppUrl, '_blank');
             }}>
               Connect GitHub

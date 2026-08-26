@@ -19,8 +19,9 @@ export default function GithubAppPage() {
   }, [searchParams])
 
   const handleInstall = () => {
-    // Redirects to the actual GitHub App installation URL
-    window.open("https://github.com/apps/orch-ai-reviewer/installations/new", "_blank");
+    // Navigate to github app installation
+    const githubAppUrl = process.env.NEXT_PUBLIC_GITHUB_APP_URL || "https://github.com/apps/orch-ai-reviewer/installations/new";
+    window.open(githubAppUrl, '_blank');
   };
 
   const handleSave = async () => {
