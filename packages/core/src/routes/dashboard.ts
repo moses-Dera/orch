@@ -422,9 +422,25 @@ dashboardRouter.get('/teams/github/repos', async (c) => {
   }
 
   try {
-    const octokit = await githubApp.getInstallationOctokit(Number(team.githubInstallationId));
+    const installationId = Number(team.githubInstallationId);
+    
+    // Fetch installation details to get the account avatar and name
+    const { data: installation } = await githubApp.octokit.rest.apps.getInstallation({
+      installation_id: installationId
+    });
+    
+    const accountName = (installation.account as any)?.login || (installation.account as any)?.name || 'GitHub Account';
+    const avatarUrl = (installation.account as any)?.avatar_url || '';
+
+    // Fetch the repos accessible to this installation
+    const octokit = await githubApp.getInstallationOctokit(installationId);
     const res = await octokit.rest.apps.listReposAccessibleToInstallation();
-    return c.json({ repos: res.data.repositories.map((r: any) => r.full_name) });
+    
+    return c.json({ 
+      accountName,
+      avatarUrl,
+      repos: res.data.repositories.map((r: any) => r.full_name) 
+    });
   } catch (err: any) {
     console.error("Failed to fetch repos", err);
     return c.json({ error: 'Failed to fetch repositories' }, 500);
