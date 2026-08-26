@@ -1,0 +1,14 @@
+name: Backend Keep-Alive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # Runs every 10 minutes
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Orch Core Backend
+        run: |
+          curl -f -s -S --retry 3 https://orch-core.onrender.com/ || exit 1

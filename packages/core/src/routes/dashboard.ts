@@ -74,21 +74,26 @@ dashboardRouter.get('/models', async (c) => {
   });
 });
 
-import { sendEmail } from '../services/email';
+import { sendEmail, getOrchEmailTemplate } from '../services/email';
 
 // GET /v1/test-email (For Testing Gmail Setup)
 dashboardRouter.get('/test-email', async (c) => {
   try {
     const adminEmail = process.env.ADMIN_EMAIL || 'test@example.com';
+    const content = `
+      <p style="margin-top: 0; font-size: 16px;">Hello,</p>
+      <p>Your Gmail API integration on Render is configured perfectly and your email templates are looking great.</p>
+      <div style="background-color: #ecfdf5; padding: 16px; border-radius: 8px; margin: 24px 0; border: 1px solid #d1fae5;">
+        <strong style="color: #065f46; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">🎉</span> System Online
+        </strong>
+      </div>
+      <p style="margin-bottom: 0;">You are ready to govern your AI!</p>
+    `;
     await sendEmail({
       to: adminEmail,
       subject: 'Orch: Gmail API Test Successful! 🎉',
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; line-height: 1.5; color: #333;">
-          <h2 style="color: #10b981; margin: 0;">It works!</h2>
-          <p>Your Gmail API integration on Render is configured perfectly.</p>
-        </div>
-      `
+      html: getOrchEmailTemplate('Connection Successful', content)
     });
     return c.json({ success: true, message: `Test email sent to ${adminEmail}` });
   } catch (error: any) {
