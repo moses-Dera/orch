@@ -26,12 +26,12 @@ export default function AssistantPage() {
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (!input.trim()) return;
-    sendMessage({ content: input, role: 'user' });
+    sendMessage({ text: input });
     setInput('');
   };
 
-  const append = (msg: { text?: string, content?: string, role?: string }) => {
-    sendMessage({ content: msg.text || msg.content || '', role: (msg.role as any) || 'user' });
+  const append = (msg: { text: string }) => {
+    sendMessage(msg);
   };
 
   const isLoading = status === 'streaming' || status === 'submitted';
