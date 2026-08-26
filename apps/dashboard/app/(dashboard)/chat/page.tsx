@@ -9,7 +9,7 @@ import Link from 'next/link';
 export default function AssistantPage() {
   const [input, setInput] = useState('');
   
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, append, status, error } = useChat({
     messages: [
       {
         id: 'welcome',
@@ -26,12 +26,8 @@ export default function AssistantPage() {
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (!input.trim()) return;
-    sendMessage({ text: input });
+    append({ role: 'user', content: input });
     setInput('');
-  };
-
-  const append = (msg: { text: string }) => {
-    sendMessage(msg);
   };
 
   const isLoading = status === 'streaming' || status === 'submitted';

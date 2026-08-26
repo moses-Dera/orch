@@ -6,6 +6,14 @@ import { PageShell } from "@/components/layout/PageShell"
 import { PageSkeleton } from "@/components/shared/LoadingSkeleton"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useHasAccess } from "@/hooks/useRole"
@@ -29,6 +37,7 @@ export default function ProjectsPage() {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState("")
   const [repoName, setRepoName] = useState("")
+  const [projectToDelete, setProjectToDelete] = useState<{id: string, name: string} | null>(null)
 
   const create = useMutation({
     mutationFn: () => api.createProject({ name, githubRepoFullName: repoName }),
@@ -139,11 +148,7 @@ export default function ProjectsPage() {
                       variant="ghost"
                       size="sm"
                       className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                      onClick={() => {
-                        if (confirm(`Are you sure you want to delete ${p.name}? This will remove all constraints linked to it.`)) {
-                          deleteProj.mutate(p.id)
-                        }
-                      }}
+                      onClick={() => setProjectToDelete({ id: p.id, name: p.name })}
                     >
                       Delete
                     </Button>
@@ -154,6 +159,31 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Project</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {projectToDelete?.name}? This will remove all constraints linked to it. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" onClick={() => setProjectToDelete(null)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                if (projectToDelete) {
+                  deleteProj.mutate(projectToDelete.id)
+                  setProjectToDelete(null)
+                }
+              }}
+            >
+              Delete Project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   )
 }

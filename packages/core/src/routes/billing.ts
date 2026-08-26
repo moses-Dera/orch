@@ -2,19 +2,20 @@ import { Hono } from 'hono';
 import { db } from '../db';
 import { models, tokenBudgets, subscriptions } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { getAuth, clerkMiddleware } from '@hono/clerk-auth';
+import { apiAuthMiddleware } from '../middlewares';
+import type { AppVariables } from '../types';
 
-export const billingRouter = new Hono();
+export const billingRouter = new Hono<{ Variables: AppVariables }>();
 
-billingRouter.get('/', clerkMiddleware(), async (c) => {
-  const auth = getAuth(c);
-  if (!auth?.userId || !auth?.orgId) {
+billingRouter.get('/', apiAuthMiddleware, async (c) => {
+  const teamId = c.get('teamId');
+  if (!teamId) {
     return c.json({ error: 'Unauthorized or not in an organization' }, 401);
   }
 
   // Fetch token budget (assuming orgId acts as teamId for this MVP)
-  const [budget] = await db.select().from(tokenBudgets).where(eq(tokenBudgets.teamId, auth.orgId));
-  const [configuredModel] = await db.select().from(models).where(eq(models.teamId, auth.orgId));
+  const [budget] = await db.select().from(tokenBudgets).where(eq(tokenBudgets.teamId, teamId));
+  const [configuredModel] = await db.select().from(models).where(eq(models.teamId, teamId));
 
   return c.json({
     budget: budget || { allocatedTokens: 100000, consumedTokens: 0 },
@@ -22,9 +23,9 @@ billingRouter.get('/', clerkMiddleware(), async (c) => {
   });
 });
 
-billingRouter.post('/key', clerkMiddleware(), async (c) => {
-  const auth = getAuth(c);
-  if (!auth?.userId || !auth?.orgId) {
+billingRouter.post('/key', apiAuthMiddleware, async (c) => {
+  const teamId = c.get('teamId');
+  if (!teamId) {
     return c.json({ error: 'Unauthorized or not in an organization' }, 401);
   }
 
@@ -34,15 +35,15 @@ billingRouter.post('/key', clerkMiddleware(), async (c) => {
   }
 
   // Upsert the model configuration with the API key
-  const [existing] = await db.select().from(models).where(eq(models.teamId, auth.orgId));
+  const [existing] = await db.select().from(models).where(eq(models.teamId, teamId));
   
   if (existing) {
     await db.update(models)
       .set({ apiKey })
-      .where(eq(models.teamId, auth.orgId));
+      .where(eq(models.teamId, teamId));
   } else {
     await db.insert(models).values({
-      teamId: auth.orgId,
+      teamId: teamId,
       provider: 'openai',
       modelId: 'openai/gpt-4o',
       displayName: 'GPT-4o',
@@ -54,9 +55,9 @@ billingRouter.post('/key', clerkMiddleware(), async (c) => {
 });
 
 // Generate a Lemon Squeezy Checkout URL (Mocked for now)
-billingRouter.post('/checkout', clerkMiddleware(), async (c) => {
-  const auth = getAuth(c);
-  if (!auth?.userId || !auth?.orgId) {
+billingRouter.post('/checkout', apiAuthMiddleware, async (c) => {
+  const teamId = c.get('teamId');
+  if (!teamId) {
     return c.json({ error: 'Unauthorized or not in an organization' }, 401);
   }
 
@@ -64,7 +65,7 @@ billingRouter.post('/checkout', clerkMiddleware(), async (c) => {
   // const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', ...)
   
   // For local testing, we return a mock URL
-  const mockCheckoutUrl = `https://store.lemonsqueezy.com/checkout?teamId=${auth.orgId}`;
+  const mockCheckoutUrl = `https://store.lemonsqueezy.com/checkout?teamId=${teamId}`;
 
   return c.json({ url: mockCheckoutUrl });
 });

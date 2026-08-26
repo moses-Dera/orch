@@ -65,7 +65,6 @@ const routes = app
   .route('/v1', reviewRouter)
   .route('/v1/dashboard', dashboardRouter)
   .route('/v1/github', githubRouter)
-  .use('/v1/billing/*', clerkMiddleware())
   .route('/v1/billing', billingRouter)
   .route('/api/v1/onboarding', onboardingRouter)
   .route('/v1', orchestrateRouter)
