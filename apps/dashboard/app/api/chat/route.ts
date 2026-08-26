@@ -27,10 +27,18 @@ export async function POST(req: Request) {
     { capabilities: {} }
   );
 
-  await mcpClient.connect(transport);
-
-  // Fetch available tools from the MCP server
-  const { tools: mcpTools } = await mcpClient.listTools();
+  let mcpTools: any[] = [];
+  try {
+    await mcpClient.connect(transport);
+    const { tools } = await mcpClient.listTools();
+    mcpTools = tools;
+  } catch (error: any) {
+    console.error("MCP Connection failed:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to connect to the backend MCP server. Please ensure the backend is running." }),
+      { status: 502, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
   // Convert MCP tools to Vercel AI SDK tools
   const aiTools: Record<string, any> = {};
