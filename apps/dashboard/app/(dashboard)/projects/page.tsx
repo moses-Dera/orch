@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useHasAccess } from "@/hooks/useRole"
+import Link from "next/link"
+import { AlertCircle } from "lucide-react"
 
 export default function ProjectsPage() {
   const isAdmin = useHasAccess("admin")
@@ -65,6 +67,23 @@ export default function ProjectsPage() {
       ) : undefined}
     >
       <div className="space-y-6">
+        {!isLoadingRepos && repos.length === 0 && (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-medium text-amber-500">GitHub App Not Connected</h3>
+              <p className="text-sm text-amber-500/80 mt-1">
+                You haven't linked a GitHub account yet, or your app doesn't have access to any repositories. You need to connect GitHub to map projects to repositories.
+              </p>
+              <Link href="/github">
+                <button className="mt-3 text-xs font-medium bg-transparent border border-amber-500/30 text-amber-500 hover:bg-amber-500/20 px-3 py-1.5 rounded-md transition-colors">
+                  Connect GitHub App
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {creating && (
           <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-4">
             <h2 className="text-sm font-medium">New Project</h2>
