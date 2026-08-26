@@ -3,7 +3,10 @@ import { streamText } from 'ai';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { cookies } from 'next/headers';
+import { EventSource } from 'eventsource';
 
+// @ts-ignore - Polyfill EventSource for Node.js runtime so the MCP SDK doesn't crash
+global.EventSource = EventSource as any;
 export const maxDuration = 30; // Allow up to 30 seconds for SSE connection + generation
 
 export async function POST(req: Request) {
