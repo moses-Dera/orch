@@ -5,7 +5,6 @@ import { HonoSSEServerTransport } from '../mcp/hono-transport';
 import { randomUUID } from 'crypto';
 
 export const mcpRouter = new Hono();
-const mcpServer = getMcpServer();
 
 mcpRouter.get('/sse', async (c) => {
   return streamSSE(c, async (stream) => {
@@ -19,6 +18,7 @@ mcpRouter.get('/sse', async (c) => {
 
     activeTransports.set(sessionId, transport);
     
+    const mcpServer = getMcpServer();
     await mcpServer.connect(transport);
 
     // Keep the stream alive to prevent closing
