@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, ChevronDown, ChevronUp, Loader2 } from "lucide-react"
@@ -28,6 +28,7 @@ import { toast } from "sonner"
 
 export default function GithubAppPage() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [installationId, setInstallationId] = useState("")
   const [loading, setLoading] = useState(false)
   const [fetchingStatus, setFetchingStatus] = useState(true)
@@ -41,8 +42,26 @@ export default function GithubAppPage() {
 
   useEffect(() => {
     const id = searchParams.get("installation_id")
-    if (id) setInstallationId(id)
-  }, [searchParams])
+    if (id) {
+      setInstallationId(id)
+      
+      // Auto-save the installation ID from the callback URL
+      const autoSave = async () => {
+        setLoading(true)
+        try {
+          await api.setGithubInstallation(id)
+          toast.success("GitHub App installed and linked successfully!")
+          router.replace("/github") // Strip query param from URL
+          fetchStatus()
+        } catch (e: any) {
+          toast.error(e.message)
+        } finally {
+          setLoading(false)
+        }
+      }
+      autoSave()
+    }
+  }, [searchParams, router])
 
   const fetchStatus = async () => {
     setFetchingStatus(true)
