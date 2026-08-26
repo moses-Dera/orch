@@ -102,6 +102,16 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
     else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
     else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+  } else {
+    // If not a trial, override the frontend's hardcoded model with the user's configured model
+    if (teamModels[0]?.modelId) {
+      body.model = teamModels[0].modelId;
+    }
+    // Custom endpoints configured in the dashboard UI are base URLs (e.g., http://localhost:11434/v1).
+    // Ensure we append the chat completions route if it's missing.
+    if (endpoint && !endpoint.endsWith('/chat/completions')) {
+      endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+    }
   }
 
   // 8. Forward to provider
