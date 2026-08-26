@@ -150,22 +150,18 @@ export default function GithubAppPage() {
         {githubData ? (
           // Connected State
           <div className="space-y-6">
-            <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-6 flex items-center gap-4">
+            <div className="rounded-lg border bg-[var(--surface)] p-6 flex items-center gap-4">
               {githubData.avatarUrl ? (
                 <img src={githubData.avatarUrl} alt="GitHub Avatar" className="w-12 h-12 rounded-full border border-[var(--border)]" />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-[var(--surface)] flex items-center justify-center border border-[var(--border)]">
-                  <GithubIcon className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-full bg-[var(--background)] flex items-center justify-center border border-[var(--border)]">
+                  <GithubIcon className="w-6 h-6 text-[var(--text-secondary)]" />
                 </div>
               )}
               
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-white">{githubData.accountName || "GitHub Account"}</h2>
-                  <span className="flex items-center gap-1 text-xs font-medium text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Connected
-                  </span>
                 </div>
                 <p className="text-sm text-[var(--text-secondary)] mt-1">
                   Orch is actively monitoring your authorized repositories for Pull Requests.
