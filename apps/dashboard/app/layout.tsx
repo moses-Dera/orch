@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body className={`${inter.variable} font-sans antialiased`}>
           <Providers>
             {children}
-            <Toaster position="bottom-right" richColors />
+            <Toaster position="bottom-right" />
           </Providers>
         </body>
       </html>

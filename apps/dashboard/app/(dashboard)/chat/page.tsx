@@ -55,16 +55,27 @@ export default function AssistantPage() {
       <div className="flex-1 overflow-y-auto space-y-6 pb-6">
         {error && (
           <div className="mx-auto w-full mb-6">
-            <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="rounded-none border border-red-500/50 bg-transparent p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-medium text-red-400">Assistant Error</h3>
-                <p className="text-sm text-red-400/80 mt-1">
+                <h3 className="text-sm font-medium text-red-500">Assistant Error</h3>
+                <p className="text-sm text-red-500/80 mt-1">
                   The chat assistant encountered an error. If you haven't configured an LLM API key yet, please do so.
-                  {error.message && <span className="block mt-1 font-mono text-xs opacity-75">{error.message}</span>}
+                  {error.message && (
+                    <span className="block mt-2 font-mono text-xs">
+                      {(() => {
+                        try {
+                          const parsed = JSON.parse(error.message);
+                          return parsed.error || error.message;
+                        } catch {
+                          return error.message;
+                        }
+                      })()}
+                    </span>
+                  )}
                 </p>
                 <Link href="/models">
-                  <button className="mt-3 text-xs font-medium bg-transparent border border-red-500/30 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-md transition-colors">
+                  <button className="mt-3 text-xs font-medium bg-transparent border border-red-500/30 text-red-500 hover:border-red-500/70 px-3 py-1.5 rounded-none transition-colors">
                     Configure Models
                   </button>
                 </Link>
