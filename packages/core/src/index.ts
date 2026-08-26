@@ -21,6 +21,28 @@ app.get('/', (c) => {
   return c.text('Orch Core API running smoothly on Bun.');
 });
 
+import { sendEmail } from './services/email';
+
+// Public Email Test Route
+app.get('/test-email', async (c) => {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || 'test@example.com';
+    await sendEmail({
+      to: adminEmail,
+      subject: 'Orch: Gmail API Test Successful! 🎉',
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; line-height: 1.5; color: #333;">
+          <h2 style="color: #10b981; margin: 0;">It works!</h2>
+          <p>Your Gmail API integration on Render is configured perfectly.</p>
+        </div>
+      `
+    });
+    return c.json({ success: true, message: `Test email sent to ${adminEmail}` });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
 // Global Error Handlers
 app.notFound((c) => {
   return c.json({ error: 'Not Found' }, 404);
