@@ -25,7 +25,7 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (isSignedIn) {
-      router.push('/home');
+      router.push('/');
     }
   }, [isSignedIn, router]);
 
@@ -69,7 +69,7 @@ export default function SignUpPage() {
       console.error('OAuth failed', err);
       const isAlreadySignedIn = err?.message?.includes("already signed in") || err?.errors?.[0]?.message?.includes("already signed in");
       if (isAlreadySignedIn) {
-         router.push('/home');
+         router.push('/');
          return;
       }
       setError(err?.errors?.[0]?.message || err?.message || 'OAuth sign-up failed');

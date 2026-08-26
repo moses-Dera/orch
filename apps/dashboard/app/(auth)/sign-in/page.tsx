@@ -23,7 +23,7 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (isSignedIn) {
-      router.push('/home');
+      router.push('/');
     }
   }, [isSignedIn, router]);
 
@@ -39,7 +39,7 @@ export default function SignInPage() {
           await clerk.authenticateWithRedirect({
             strategy,
             redirectUrl: '/sso-callback',
-            redirectUrlComplete: '/home',
+            redirectUrlComplete: '/',
           });
           return;
         }
@@ -49,7 +49,7 @@ export default function SignInPage() {
           await clerk.client.signIn.authenticateWithRedirect({
             strategy,
             redirectUrl: '/sso-callback',
-            redirectUrlComplete: '/home',
+            redirectUrlComplete: '/',
           });
           return;
         }
@@ -67,7 +67,7 @@ export default function SignInPage() {
       console.error('OAuth failed', err);
       const isAlreadySignedIn = err?.message?.includes("already signed in") || err?.errors?.[0]?.message?.includes("already signed in");
       if (isAlreadySignedIn) {
-         router.push('/home');
+         router.push('/');
          return;
       }
       setError(err?.errors?.[0]?.message || err?.message || 'OAuth sign-in failed');
@@ -104,7 +104,7 @@ export default function SignInPage() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        window.location.href = '/home';
+        window.location.href = '/';
       } else if (result.status === 'needs_second_factor') {
         setError('2FA verification is required for this account.');
       } else {
