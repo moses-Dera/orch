@@ -3,6 +3,12 @@
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
 }
 
 /* LIGHT MODE DEFAULT - SOFTENED OFF-WHITE SLATE (EASY ON EYES, NO BLINDING WHITE) */
@@ -39,8 +45,8 @@
   --warning: #d97706;
   --critical: #dc2626;
   
-  --radius: 8px;
-  --radius-md: 6px;
+  --radius: 0px;
+  --radius-md: 0px;
 }
 
 /* DARK MODE OVERRIDE - OBSIDIAN HIGH CONTRAST */

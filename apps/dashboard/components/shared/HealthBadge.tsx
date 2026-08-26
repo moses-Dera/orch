@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 import type { HealthStatus } from "@/types"
 
 const styles: Record<HealthStatus, string> = {
-  healthy: "bg-green-500/10 text-green-500 border-green-500/20",
+  healthy: "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20",
   warning: "bg-amber-500/10 text-amber-500 border-amber-500/20",
   critical: "bg-red-500/10 text-red-500 border-red-500/20",
 }

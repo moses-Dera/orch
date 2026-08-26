@@ -99,7 +99,7 @@ export default function AssistantPage() {
                   return (
                     <div key={i} className="text-[11px] text-[var(--text-secondary)] bg-[var(--background)] border border-[var(--border)] px-3 py-1.5 rounded-full flex items-center gap-2 font-mono shadow-sm">
                       {isComplete ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent)]" />
                       ) : (
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent)]" />
                       )}

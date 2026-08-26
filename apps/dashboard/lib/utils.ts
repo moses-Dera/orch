@@ -23,7 +23,7 @@ export function formatTokens(n: number): string {
 }
 
 export function scoreColor(score: number): string {
-  if (score >= 80) return "text-green-500"
+  if (score >= 80) return "text-[var(--accent)]"
   if (score >= 60) return "text-amber-500"
   return "text-red-500"
 }

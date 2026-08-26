@@ -181,7 +181,7 @@ export default function GithubAppPage() {
                         <GithubIcon className="w-4 h-4" />
                         <span className="text-white">{repo}</span>
                       </div>
-                      <span className="text-xs text-green-400">Active</span>
+                      <span className="text-xs text-[var(--accent)]">Active</span>
                     </li>
                   ))}
                 </ul>

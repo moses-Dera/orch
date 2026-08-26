@@ -37,7 +37,7 @@ function ChecklistItem({
   return (
     <div className="flex items-start gap-4 px-5 py-4">
       <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-        done ? "bg-green-500 text-white" : "border-2 border-[var(--border)] text-[var(--text-secondary)]"
+        done ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "border-2 border-[var(--border)] text-[var(--text-secondary)]"
       }`}>
         {done ? "✓" : ""}
       </div>
