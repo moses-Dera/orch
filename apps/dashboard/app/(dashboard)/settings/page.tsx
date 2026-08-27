@@ -294,12 +294,23 @@ export default function SettingsPage() {
             Connect the Orch GitHub App to your repositories to automatically run the Evaluator (Judge) on every Pull Request.
           </p>
           <div className="flex items-center gap-2 pt-2">
-            <Button size="sm" variant="default" onClick={() => {
-              const githubAppUrl = process.env.NEXT_PUBLIC_GITHUB_APP_URL || "https://github.com/apps/orch-ai-reviewer/installations/new";
-              window.open(githubAppUrl, '_blank');
-            }}>
-              Connect GitHub
-            </Button>
+            {me?.github_installation_id ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+                  ✓ Connected
+                </span>
+                <span className="text-xs text-[var(--text-secondary)]">
+                  Installation ID: {me.github_installation_id}
+                </span>
+              </div>
+            ) : (
+              <Button size="sm" variant="default" onClick={() => {
+                const githubAppUrl = process.env.NEXT_PUBLIC_GITHUB_APP_URL || "https://github.com/apps/orch-ai-reviewer/installations/new";
+                window.open(githubAppUrl, '_blank');
+              }}>
+                Connect to GitHub
+              </Button>
+            )}
           </div>
         </div>
 

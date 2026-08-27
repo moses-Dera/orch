@@ -439,7 +439,9 @@ dashboardRouter.get('/teams/github/repos', async (c) => {
 
     // Fetch the repos accessible to this installation
     const octokit = await githubApp.getInstallationOctokit(installationId);
-    const res = await octokit.rest.apps.listReposAccessibleToInstallation();
+    const res = await octokit.rest.apps.listReposAccessibleToInstallation({
+      per_page: 100
+    });
     
     return c.json({ 
       accountName,

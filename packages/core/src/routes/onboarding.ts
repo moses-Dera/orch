@@ -68,6 +68,7 @@ onboardingRouter.get('/me', async (c) => {
     org_name: org?.name,
     team_id: team.id,
     team_name: team.name,
+    github_installation_id: team.githubInstallationId,
     role: 'owner',
     available_teams,
   });
