@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { apiAuthMiddleware } from '../middlewares';
 import { db } from '../db';
-import { constraints, projects, models } from '../db/schema';
+import { constraints, projects, models, tokenBudgets } from '../db/schema';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { retrieveChunks } from '../ai/retriever';
 import { decrypt } from '../utils/encryption';
@@ -179,8 +179,43 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   finalHeaders.delete('content-length');
   finalHeaders.delete('transfer-encoding');
 
-  // Pass-through stream without tracking usage
-  return new Response(openRouterRes.body, {
+  // 11. Pass-through stream with usage tracking
+  let totalTokens = 0;
+  let usageTracked = false;
+
+  const transform = new TransformStream({
+    transform(chunk, controller) {
+      controller.enqueue(chunk);
+      // We only track usage for logged-in teams (non-trial)
+      if (!isTrial && teamId && !usageTracked) {
+        try {
+          const text = new TextDecoder().decode(chunk);
+          // Regex to lazily find total_tokens in the SSE stream
+          const usageMatch = text.match(/"total_tokens"\s*:\s*(\d+)/);
+          if (usageMatch) {
+            totalTokens = parseInt(usageMatch[1], 10);
+            usageTracked = true;
+          }
+        } catch (e) {
+          // Ignore parsing errors for partial chunks
+        }
+      }
+    },
+    async flush() {
+      if (usageTracked && totalTokens > 0) {
+        try {
+          // Increment the token budget asynchronously
+          await db.update(tokenBudgets)
+            .set({ consumedTokens: sql`${tokenBudgets.consumedTokens} + ${totalTokens}` })
+            .where(eq(tokenBudgets.teamId, teamId));
+        } catch (e) {
+          console.error('[Proxy] Failed to update token budget:', e);
+        }
+      }
+    }
+  });
+
+  return new Response(openRouterRes.body.pipeThrough(transform), {
     status: openRouterRes.status,
     statusText: openRouterRes.statusText,
     headers: finalHeaders
