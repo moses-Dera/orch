@@ -17,16 +17,15 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   // 1. Parse OpenAI-compatible payload
   const body = await c.req.json();
   const teamId = c.get('teamId');
+  const isTrial = c.get('isTrial');
 
   // 2. Fetch custom API key (BYOK Enforcement)
   let apiKey: string | null = null;
-  let isTrial = false;
   let teamModels: any[] = [];
 
-  if (teamId === 'trial') {
-    // Trial mode — skip DB lookup entirely
+  if (isTrial) {
+    // Trial mode — use env vars directly, no DB lookup
     apiKey = process.env.TRIAL_API_KEY || null;
-    isTrial = true;
     if (!apiKey) {
       return c.json({
         error: 'Payment Required',
@@ -40,7 +39,6 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
 
     if (!apiKey) {
       apiKey = process.env.TRIAL_API_KEY || null;
-      isTrial = true;
       if (!apiKey) {
         return c.json({
           error: 'Payment Required',
@@ -63,49 +61,49 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   const lastUserMessage = trimmedMessages.findLast((m) => m.role === 'user')?.content ?? '';
 
   // 5. Fetch constraint IDs via projects (constraints are linked to projects, not teams directly)
+  //    In trial mode, teamId is empty so DB queries return nothing — trial users get no constraints
   let systemConstraints = '';
 
-  try {
-    const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
-    const projectIds = teamProjects.map((p) => p.id);
+  if (teamId) {
+    try {
+      const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+      const projectIds = teamProjects.map((p) => p.id);
 
-    const teamConstraints = projectIds.length > 0
-      ? await db.select({ id: constraints.id }).from(constraints).where(inArray(constraints.projectId, projectIds)).orderBy(desc(constraints.createdAt))
-      : [];
+      const teamConstraints = projectIds.length > 0
+        ? await db.select({ id: constraints.id }).from(constraints).where(inArray(constraints.projectId, projectIds)).orderBy(desc(constraints.createdAt))
+        : [];
 
-    const constraintIds = teamConstraints.map((c) => c.id);
+      const constraintIds = teamConstraints.map((c) => c.id);
 
-    // 6. RAG: Retrieve semantically relevant constraint chunks
-    //    Falls back to full content dump if embeddings aren't ready yet
-    if (constraintIds.length > 0 && lastUserMessage) {
-      try {
-        const chunks = await retrieveChunks(lastUserMessage, constraintIds);
-        if (chunks.length > 0) {
-          systemConstraints = chunks.map((chunk) => `- ${chunk}`).join('\n');
-        } else {
-          // No chunks found — fall back to full content dump
+      // 6. RAG: Retrieve semantically relevant constraint chunks
+      //    Falls back to full content dump if embeddings aren't ready yet
+      if (constraintIds.length > 0 && lastUserMessage) {
+        try {
+          const chunks = await retrieveChunks(lastUserMessage, constraintIds);
+          if (chunks.length > 0) {
+            systemConstraints = chunks.map((chunk) => `- ${chunk}`).join('\n');
+          } else {
+            const fullConstraints = projectIds.length > 0
+              ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds))
+              : [];
+            systemConstraints = fullConstraints.map((c) => `- ${c.content}`).join('\n');
+          }
+        } catch (ragErr) {
+          console.warn('[RAG] Retrieval failed, falling back to full dump:', ragErr);
           const fullConstraints = projectIds.length > 0
             ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds))
             : [];
           systemConstraints = fullConstraints.map((c) => `- ${c.content}`).join('\n');
         }
-      } catch (ragErr) {
-        // RAG not configured (no GEMINI_API_KEY) — graceful fallback
-        console.warn('[RAG] Retrieval failed, falling back to full dump:', ragErr);
+      } else {
         const fullConstraints = projectIds.length > 0
           ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds))
           : [];
         systemConstraints = fullConstraints.map((c) => `- ${c.content}`).join('\n');
       }
-    } else {
-      const fullConstraints = projectIds.length > 0
-        ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds))
-        : [];
-      systemConstraints = fullConstraints.map((c) => `- ${c.content}`).join('\n');
+    } catch (dbErr) {
+      console.warn('[Proxy] Could not fetch constraints:', dbErr);
     }
-  } catch (dbErr) {
-    // Trial mode uses a non-UUID teamId ('trial') which may fail DB queries — gracefully continue with no constraints
-    console.warn('[Proxy] Could not fetch constraints (trial mode or DB issue):', dbErr);
   }
 
   // 7. Inject relevant constraints into the system message
