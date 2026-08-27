@@ -70,10 +70,19 @@ orchestrateRouter.post('/orchestrate', apiAuthMiddleware, async (c) => {
 
     let endpoint = modelObj?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
     if (isTrial) {
-      const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
-      if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-      else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
-      else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+      if (process.env.TRIAL_API_URL) {
+        endpoint = process.env.TRIAL_API_URL;
+        if (!endpoint.endsWith('/chat/completions')) {
+          endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+        }
+      } else {
+        const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
+        if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+        else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+        else if (provider === 'fireworks') endpoint = 'https://api.fireworks.ai/inference/v1/chat/completions';
+        else if (provider === 'ollama') endpoint = 'http://127.0.0.1:11434/v1/chat/completions';
+        else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+      }
     }
 
     // 3. OpenRouter call
@@ -165,10 +174,19 @@ orchestrateRouter.post('/orchestrate/stream', apiAuthMiddleware, async (c) => {
 
   let endpoint = modelObj?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
   if (isTrial) {
-    const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
-    if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-    else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
-    else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+    if (process.env.TRIAL_API_URL) {
+      endpoint = process.env.TRIAL_API_URL;
+      if (!endpoint.endsWith('/chat/completions')) {
+        endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+      }
+    } else {
+      const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
+      if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+      else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+      else if (provider === 'fireworks') endpoint = 'https://api.fireworks.ai/inference/v1/chat/completions';
+      else if (provider === 'ollama') endpoint = 'http://127.0.0.1:11434/v1/chat/completions';
+      else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+    }
   }
 
   const openRouterRes = await fetch(endpoint, {
