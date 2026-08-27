@@ -141,11 +141,16 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     return new Response(null, { headers: resHeaders, status: openRouterRes.status });
   }
 
+  const finalHeaders = new Headers(resHeaders);
+  finalHeaders.delete('content-encoding');
+  finalHeaders.delete('content-length');
+  finalHeaders.delete('transfer-encoding');
+
   // Pass-through stream without tracking usage
   return new Response(openRouterRes.body, {
     status: openRouterRes.status,
     statusText: openRouterRes.statusText,
-    headers: openRouterRes.headers
+    headers: finalHeaders
   });
 });
 

@@ -76,4 +76,5 @@ export type AppType = typeof routes;
 export default {
   port: process.env.PORT || 3001,
   fetch: app.fetch,
+  idleTimeout: 255, // Prevent SSE connections from being dropped by default 10s timeout
 };
