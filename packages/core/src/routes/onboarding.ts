@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../db';
-import { apiKeys, organizations, projects, teams, users, models, sessions, tokenBudgets, constraints, githubEvaluations } from '../db/schema';
+import { apiKeys, organizations, projects, teams, users, models, sessions, tokenBudgets, constraints, githubEvaluations, teamGithubInstallations } from '../db/schema';
 import { eq, inArray, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -60,6 +60,8 @@ onboardingRouter.get('/me', async (c) => {
     };
   });
 
+  const teamInstallations = await db.select().from(teamGithubInstallations).where(eq(teamGithubInstallations.teamId, team.id));
+
   return c.json({
     user_id: user.id,
     email: user.email,
@@ -68,7 +70,8 @@ onboardingRouter.get('/me', async (c) => {
     org_name: org?.name,
     team_id: team.id,
     team_name: team.name,
-    github_installation_id: team.githubInstallationId,
+    github_installation_id: team.githubInstallationId, // keeping for backward compatibility if needed temporarily
+    github_installations: teamInstallations.map(inst => inst.installationId),
     role: 'owner',
     available_teams,
   });

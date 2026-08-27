@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../db';
-import { apiKeys, constraints, models, sessions, teams, organizations, tokenBudgets, projects, githubEvaluations } from '../db/schema';
+import { apiKeys, constraints, models, sessions, teams, organizations, tokenBudgets, projects, githubEvaluations, teamGithubInstallations } from '../db/schema';
 import { eq, desc, inArray, sql, and } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { embedConstraint } from '../ai/embedder';
@@ -401,54 +401,79 @@ dashboardRouter.get('/health/scores', async (c) => {
       warning: 0,
       critical: 0
     }
-  });
-});
-
-// POST /v1/teams/github
+ // POST /v1/teams/github
 dashboardRouter.post('/teams/github', async (c) => {
   const teamId = c.get('teamId');
   const body = await c.req.json();
   if (!body.installation_id) {
     return c.json({ error: 'installation_id is required' }, 400);
   }
-  await db.update(teams).set({
-    githubInstallationId: String(body.installation_id)
-  }).where(eq(teams.id, teamId));
+  
+  const existing = await db.select().from(teamGithubInstallations).where(
+    and(
+      eq(teamGithubInstallations.teamId, teamId),
+      eq(teamGithubInstallations.installationId, String(body.installation_id))
+    )
+  );
+  
+  if (existing.length === 0) {
+    await db.insert(teamGithubInstallations).values({
+      teamId,
+      installationId: String(body.installation_id)
+    });
+  }
+  
   return c.json({ success: true });
 });
 
 // GET /v1/teams/github/repos
 dashboardRouter.get('/teams/github/repos', async (c) => {
   const teamId = c.get('teamId');
-  const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
   
-  if (!team || !team.githubInstallationId) {
-    return c.json({ repos: [] });
+  const installations = await db.select().from(teamGithubInstallations).where(eq(teamGithubInstallations.teamId, teamId));
+  
+  if (installations.length === 0) {
+    return c.json({ repos: [], accounts: [] });
   }
 
   try {
-    const installationId = Number(team.githubInstallationId);
+    let allRepos: any[] = [];
+    let accounts: any[] = [];
     
-    // Fetch installation details to get the account avatar and name
-    const { data: installation } = await githubApp.octokit.rest.apps.getInstallation({
-      installation_id: installationId
-    });
-    
-    const accountName = (installation.account as any)?.login || (installation.account as any)?.name || 'GitHub Account';
-    const avatarUrl = (installation.account as any)?.avatar_url || '';
+    await Promise.all(installations.map(async (inst) => {
+      try {
+        const installationId = Number(inst.installationId);
+        
+        // Fetch installation details to get the account avatar and name
+        const { data: installation } = await githubApp.octokit.rest.apps.getInstallation({
+          installation_id: installationId
+        });
+        
+        const accountName = (installation.account as any)?.login || (installation.account as any)?.name || 'GitHub Account';
+        const avatarUrl = (installation.account as any)?.avatar_url || '';
+        
+        accounts.push({ name: accountName, avatarUrl, installationId });
 
-    // Fetch the repos accessible to this installation
-    const octokit = await githubApp.getInstallationOctokit(installationId);
-    const repos = await octokit.paginate(octokit.rest.apps.listReposAccessibleToInstallation, {
-      per_page: 100
-    });
+        // Fetch the repos accessible to this installation
+        const octokit = await githubApp.getInstallationOctokit(installationId);
+        const repos = await octokit.paginate(octokit.rest.apps.listReposAccessibleToInstallation, {
+          per_page: 100
+        });
+        
+        allRepos = [...allRepos, ...repos];
+      } catch (err) {
+        console.error(`Failed to fetch for installation ${inst.installationId}`, err);
+      }
+    }));
+    
     // Sort repositories by most recently pushed
-    repos.sort((a: any, b: any) => new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime());
+    allRepos.sort((a: any, b: any) => new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime());
     
     return c.json({ 
-      accountName,
-      avatarUrl,
-      repos: repos.map((r: any) => ({
+      accountName: accounts[0]?.name,
+      avatarUrl: accounts[0]?.avatarUrl,
+      accounts,
+      repos: allRepos.map((r: any) => ({
         id: r.id,
         name: r.name,
         full_name: r.full_name,
@@ -459,7 +484,7 @@ dashboardRouter.get('/teams/github/repos', async (c) => {
     });
   } catch (err: any) {
     console.error("Failed to fetch repos", err);
-    return c.json({ error: 'Failed to fetch repositories' }, 500);
+    return c.json({ error: "Failed to fetch repositories" }, 500);
   }
 });
 

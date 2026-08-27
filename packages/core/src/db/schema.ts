@@ -23,6 +23,12 @@ export const teams = pgTable('teams', {
   githubInstallationId: text('github_installation_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+export const teamGithubInstallations = pgTable('team_github_installations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').notNull().references(() => teams.id),
+  installationId: text('installation_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 export const apiKeys = pgTable('api_keys', {
   id: uuid('id').primaryKey().defaultRandom(),

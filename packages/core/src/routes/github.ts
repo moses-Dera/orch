@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { App } from 'octokit';
 import { db } from '../db';
-import { constraints, teams, projects, githubEvaluations } from '../db/schema';
+import { constraints, teams, projects, githubEvaluations, teamGithubInstallations } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { evaluateDiff } from '../ai/evaluator';
 
@@ -35,16 +35,18 @@ githubApp.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
   const installationId = String(payload.installation?.id);
   const repoFullName = payload.repository.full_name;
   
-  const [team] = await db.select().from(teams).where(eq(teams.githubInstallationId, installationId));
+  const [installation] = await db.select().from(teamGithubInstallations).where(eq(teamGithubInstallations.installationId, installationId));
   
-  if (!team) {
+  if (!installation) {
     console.log(`No team found for installation ID ${installationId}`);
     return;
   }
+  
+  const teamId = installation.teamId;
 
   const [project] = await db.select().from(projects).where(
     and(
-      eq(projects.teamId, team.id),
+      eq(projects.teamId, teamId),
       eq(projects.githubRepoFullName, repoFullName)
     )
   );
