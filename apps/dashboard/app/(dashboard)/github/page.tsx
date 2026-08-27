@@ -176,10 +176,10 @@ export default function GithubAppPage() {
               {githubData.repos.length > 0 ? (
                 <ul className="divide-y divide-[var(--background)]">
                   {githubData.repos.map((repo) => (
-                    <li key={repo} className="p-4 text-sm flex items-center justify-between">
+                    <li key={repo.id} className="p-4 text-sm flex items-center justify-between">
                       <div className="flex items-center gap-3 text-[var(--text-secondary)]">
                         <GithubIcon className="w-4 h-4" />
-                        <span className="text-white">{repo}</span>
+                        <span className="text-white">{repo.full_name}</span>
                       </div>
                       <span className="text-xs text-[var(--accent)]">Active</span>
                     </li>
