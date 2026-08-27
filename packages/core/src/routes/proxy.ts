@@ -150,7 +150,21 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     body: JSON.stringify({ ...body, messages })
   });
 
-  // 9. Stream the response directly back to the IDE/Client
+  // 9. Handle trial exhaustion — intercept provider errors and show a friendly message
+  if (isTrial && !openRouterRes.ok) {
+    const status = openRouterRes.status;
+    // 401/402/403/429 all indicate the trial key is exhausted, invalid, or rate-limited
+    if (status === 401 || status === 402 || status === 403 || status === 429) {
+      return c.json({
+        error: 'Trial Expired',
+        message: 'Your free trial credits have been exhausted. Please add your own API key in the Orch dashboard under Settings → Models to continue using the AI features.',
+        action: 'add_api_key',
+        settingsUrl: '/models'
+      }, 402);
+    }
+  }
+
+  // 10. Stream the response directly back to the IDE/Client
   const resHeaders = new Headers(openRouterRes.headers);
   if (isTrial) resHeaders.set('X-Orch-Trial', 'true');
 
