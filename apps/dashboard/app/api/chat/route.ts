@@ -33,9 +33,9 @@ export async function POST(req: Request) {
     const { tools } = await mcpClient.listTools();
     mcpTools = tools;
   } catch (error: any) {
-    console.error("MCP Connection failed:", error);
+    console.error("MCP Connection failed for URL:", mcpUrl.toString(), "Error:", error?.message || error);
     return new Response(
-      JSON.stringify({ error: "Failed to connect to the backend MCP server. Please ensure the backend is running." }),
+      JSON.stringify({ error: `Failed to connect to the backend MCP server at ${mcpUrl.toString()}. Error: ${error?.message || 'Unknown'}` }),
       { status: 502, headers: { 'Content-Type': 'application/json' } }
     );
   }

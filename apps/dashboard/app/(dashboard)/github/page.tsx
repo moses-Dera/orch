@@ -37,7 +37,7 @@ export default function GithubAppPage() {
   const [githubData, setGithubData] = useState<{
     accountName?: string;
     avatarUrl?: string;
-    repos: string[];
+    repos: { id: number; name: string; full_name: string; private: boolean; pushed_at: string; language: string; }[];
   } | null>(null)
 
   useEffect(() => {
