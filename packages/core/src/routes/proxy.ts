@@ -101,6 +101,7 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
     if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
     else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+    else if (provider === 'ollama') endpoint = 'https://ollama.com/v1/chat/completions';
     else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
   } else {
     // If not a trial, override the frontend's hardcoded model with the user's configured model

@@ -10,6 +10,13 @@ services:
       - key: DATABASE_URL
         sync: false
 
+      - key: TRIAL_API_KEY
+        sync: false
+      - key: TRIAL_PROVIDER
+        sync: false
+      - key: TRIAL_MODEL
+        sync: false
+
       - key: GEMINI_API_KEY
         sync: false
       - key: ORCH_API_KEY
