@@ -401,6 +401,9 @@ dashboardRouter.get('/health/scores', async (c) => {
       warning: 0,
       critical: 0
     }
+  });
+});
+
  // POST /v1/teams/github
 dashboardRouter.post('/teams/github', async (c) => {
   const teamId = c.get('teamId');
