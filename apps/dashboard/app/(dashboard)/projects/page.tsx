@@ -18,7 +18,7 @@ import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useHasAccess } from "@/hooks/useRole"
 import Link from "next/link"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Search, Lock, Globe } from "lucide-react"
 
 export default function ProjectsPage() {
   const isAdmin = useHasAccess("admin")
@@ -37,6 +37,7 @@ export default function ProjectsPage() {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState("")
   const [repoName, setRepoName] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [projectToDelete, setProjectToDelete] = useState<{id: string, name: string} | null>(null)
 
   const create = useMutation({
@@ -64,6 +65,8 @@ export default function ProjectsPage() {
 
   const projects = projectsData?.projects ?? []
   const repos = reposData?.repos ?? []
+  
+  const filteredRepos = repos.filter((r: any) => r.full_name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   return (
     <PageShell
@@ -96,24 +99,54 @@ export default function ProjectsPage() {
         {creating && (
           <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-4">
             <h2 className="text-sm font-medium">New Project</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                placeholder="Project Name (e.g. Frontend)"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              />
-              <select
-                value={repoName}
-                onChange={e => setRepoName(e.target.value)}
-                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
-                disabled={isLoadingRepos}
-              >
-                <option value="" disabled>Select GitHub Repo</option>
-                {repos.map(r => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">Project Name</label>
+                <input
+                  placeholder="e.g. Frontend Web App"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                />
+              </div>
+              
+              <div>
+                <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">GitHub Repository</label>
+                <div className="rounded-md border bg-[var(--background)] overflow-hidden flex flex-col h-[280px]">
+                  <div className="p-2 border-b bg-[var(--surface)] flex items-center gap-2">
+                    <Search className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                    <input 
+                      placeholder="Search repositories..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="bg-transparent text-sm w-full outline-none"
+                    />
+                  </div>
+                  <div className="overflow-y-auto flex-1 p-1">
+                    {filteredRepos.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-[var(--text-secondary)]">No repositories found.</div>
+                    ) : (
+                      filteredRepos.map((r: any) => (
+                        <div 
+                          key={r.id} 
+                          onClick={() => setRepoName(r.full_name)}
+                          className={`flex items-center justify-between p-2 rounded cursor-pointer ${repoName === r.full_name ? 'bg-[var(--accent)]/10 border-[var(--accent)] text-[var(--accent)]' : 'hover:bg-[var(--surface)] border-transparent'} border mb-1 transition-colors`}
+                        >
+                          <div className="flex flex-col min-w-0 pr-2">
+                            <span className={`text-sm font-medium truncate ${repoName === r.full_name ? 'text-[var(--accent)]' : ''}`}>{r.full_name}</span>
+                            <span className="text-xs text-[var(--text-secondary)] truncate">
+                              {r.pushed_at ? new Date(r.pushed_at).toLocaleDateString() : 'Never pushed'} • {r.language || 'Mixed'}
+                            </span>
+                          </div>
+                          <div className="shrink-0 text-[var(--text-secondary)] flex items-center">
+                            {r.private ? <Lock className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
             {repos.length === 0 && !isLoadingRepos && (
               <p className="text-xs text-amber-500">

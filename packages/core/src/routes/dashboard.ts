@@ -439,14 +439,23 @@ dashboardRouter.get('/teams/github/repos', async (c) => {
 
     // Fetch the repos accessible to this installation
     const octokit = await githubApp.getInstallationOctokit(installationId);
-    const res = await octokit.rest.apps.listReposAccessibleToInstallation({
+    const repos = await octokit.paginate(octokit.rest.apps.listReposAccessibleToInstallation, {
       per_page: 100
     });
+    // Sort repositories by most recently pushed
+    repos.sort((a: any, b: any) => new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime());
     
     return c.json({ 
       accountName,
       avatarUrl,
-      repos: res.data.repositories.map((r: any) => r.full_name) 
+      repos: repos.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        full_name: r.full_name,
+        private: r.private,
+        pushed_at: r.pushed_at,
+        language: r.language
+      }))
     });
   } catch (err: any) {
     console.error("Failed to fetch repos", err);
