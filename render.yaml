@@ -12,6 +12,8 @@ services:
 
       - key: TRIAL_API_KEY
         sync: false
+      - key: TRIAL_API_URL
+        sync: false
       - key: TRIAL_PROVIDER
         sync: false
       - key: TRIAL_MODEL
