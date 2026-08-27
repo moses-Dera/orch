@@ -52,7 +52,7 @@ githubApp.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
   );
 
   if (!project) {
-    console.log(`No project found for repo ${repoFullName} under team ${team.id}`);
+    console.log(`No project found for repo ${repoFullName} under team ${teamId}`);
     return;
   }
   
@@ -68,7 +68,7 @@ githubApp.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
     repoName: payload.repository.full_name
   };
   
-  const result = await evaluateDiff(String(diff), constraintIds, team.id, context, fallbackRules);
+  const result = await evaluateDiff(String(diff), constraintIds, teamId, context, fallbackRules);
 
   // 4. Log the evaluation
   await db.insert(githubEvaluations).values({
