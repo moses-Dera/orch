@@ -18,6 +18,12 @@ export const apiAuthMiddleware = createMiddleware(async (c, next) => {
   }
   
   const token = authHeader.split(' ')[1];
+  
+  if (token === 'orch_dummy' && process.env.TRIAL_API_KEY) {
+    c.set('teamId', 'trial'); // Set a fake teamId for trial mode
+    return await next();
+  }
+
   const keyHash = crypto.createHash('sha256').update(token).digest('hex');
 
   const [apiKeyRecord] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash));
