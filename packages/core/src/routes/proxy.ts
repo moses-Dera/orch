@@ -17,7 +17,7 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   // 1. Parse OpenAI-compatible payload
   const body = await c.req.json();
   const teamId = c.get('teamId');
-  const isTrial = c.get('isTrial');
+  let isTrial = c.get('isTrial'); // Use let so we can override it
 
   // 2. Fetch custom API key (BYOK Enforcement)
   let apiKey: string | null = null;
@@ -45,6 +45,8 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
           message: 'No API key provided and no TRIAL_API_KEY configured. Please add your API key in the Orch dashboard.'
         }, 402);
       }
+      // If we are falling back to the trial key for a logged-in user, treat this request as a trial
+      isTrial = true;
     }
   }
 
