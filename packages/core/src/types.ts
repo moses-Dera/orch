@@ -5,4 +5,5 @@
 export type AppVariables = {
   teamId: string;
   userId?: string;
+  isTrial: boolean;
 };
