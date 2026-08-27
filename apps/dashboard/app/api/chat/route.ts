@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: orchProxy('anthropic/claude-3.5-sonnet'), // Using OpenRouter via our proxy
+    model: orchProxy.chat('anthropic/claude-3.5-sonnet'), // Using OpenRouter via our proxy
     messages,
     tools: aiTools,
     system: `You are the Orchestrator CTO AI Assistant. 
