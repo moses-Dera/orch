@@ -50,6 +50,19 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     }
   }
 
+  // Enforce Trial Token Budget
+  if (isTrial && teamId) {
+    const [budget] = await db.select().from(tokenBudgets).where(eq(tokenBudgets.teamId, teamId));
+    if (budget && budget.consumedTokens >= budget.allocatedTokens) {
+      return c.json({
+        error: 'Trial Expired',
+        message: 'Your free trial credits have been exhausted. Please add your own API key in the Orch dashboard under Settings → Models to continue using the AI features.',
+        action: 'add_api_key',
+        settingsUrl: '/models'
+      }, 402);
+    }
+  }
+
   // Override model if trial model is set
   if (isTrial && process.env.TRIAL_MODEL) {
     body.model = process.env.TRIAL_MODEL;
@@ -186,8 +199,8 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   const transform = new TransformStream({
     transform(chunk, controller) {
       controller.enqueue(chunk);
-      // We only track usage for logged-in teams (non-trial)
-      if (!isTrial && teamId && !usageTracked) {
+      // We track usage for all logged-in teams (trial or BYOK)
+      if (teamId && !usageTracked) {
         try {
           const text = new TextDecoder().decode(chunk);
           // Regex to lazily find total_tokens in the SSE stream
