@@ -10,10 +10,26 @@ const isPublicRoute = createRouteMatcher([
   '/api/orch/github/webhook(.*)'
 ])
 
+const isAdminRoute = createRouteMatcher([
+  '/team(.*)',
+  '/projects(.*)',
+  '/models(.*)',
+  '/github(.*)',
+  '/analytics(.*)',
+])
+
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
-    const { userId, redirectToSignIn } = await auth()
+    const { userId, sessionClaims, redirectToSignIn } = await auth()
     if (!userId) return redirectToSignIn()
+    
+    if (isAdminRoute(req)) {
+      const role = sessionClaims?.metadata?.role || 'viewer'
+      if (role !== 'admin' && role !== 'owner') {
+        const url = new URL('/chat', req.url)
+        return Response.redirect(url)
+      }
+    }
   }
 })
 

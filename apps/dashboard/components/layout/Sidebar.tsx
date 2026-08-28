@@ -69,12 +69,7 @@ export function Sidebar() {
               <nav className="space-y-1">
                 {NAV.map((item, i) => {
                   if (!item) return <div key={i} className="my-2 border-t border-[var(--border)]" />
-                  if (item.minRole === "admin") {
-                    if (isAdmin === undefined) {
-                      return <div key={`skeleton-${i}`} className="h-9 my-0.5 rounded-md bg-[var(--border)]/50 animate-pulse" />
-                    }
-                    if (!isAdmin) return null
-                  }
+                  if (item.minRole === "admin" && !isAdmin) return null
 
                   const active = pathname === item.href
                   return (
@@ -115,12 +110,7 @@ export function Sidebar() {
           <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
             {NAV.map((item, i) => {
               if (!item) return <div key={i} className="my-2 border-t border-[var(--border)]" />
-              if (item.minRole === "admin") {
-                if (isAdmin === undefined) {
-                  return <div key={`skeleton-${i}`} className="h-9 my-0.5 rounded-md bg-[var(--border)]/50 animate-pulse" />
-                }
-                if (!isAdmin) return null
-              }
+              if (item.minRole === "admin" && !isAdmin) return null
 
               const active = pathname === item.href
               return (

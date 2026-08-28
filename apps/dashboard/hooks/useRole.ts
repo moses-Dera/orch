@@ -1,6 +1,6 @@
 "use client"
 
-import { useUser } from "@clerk/nextjs"
+import { useSession, useUser } from "@clerk/nextjs"
 import { useQuery } from "@tanstack/react-query"
 import type { Role } from "@/types"
 
@@ -21,13 +21,15 @@ export function useMe() {
 }
 
 export function useRole(): Role {
-  const { data } = useMe()
-  return (data?.role as Role) ?? "member"
+  const { session } = useSession()
+  const role = session?.publicUserData?.publicMetadata?.role || 
+               // @ts-ignore fallback if custom claim template is used
+               session?.claims?.metadata?.role
+               
+  return (role as Role) ?? "member"
 }
 
-export function useHasAccess(minimum: Role): boolean | undefined {
-  const { data, isLoading } = useMe()
-  if (isLoading) return undefined
-  const role = (data?.role as Role) ?? "member"
+export function useHasAccess(minimum: Role): boolean {
+  const role = useRole()
   return HIERARCHY.indexOf(role) >= HIERARCHY.indexOf(minimum)
 }

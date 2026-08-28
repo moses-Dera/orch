@@ -1,6 +1,6 @@
 "use server"
 
-import { auth, currentUser } from "@clerk/nextjs/server"
+import { auth, currentUser, clerkClient } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 
@@ -96,6 +96,14 @@ export async function createAdditionalOrg(formData: {
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail?.message ?? "Failed to create org")
   await switchOrg(data.org_id, data.api_key)
+  
+  if (data.role) {
+    const client = await clerkClient()
+    await client.users.updateUserMetadata(userId, {
+      publicMetadata: { role: data.role }
+    })
+  }
+  
   return data
 }
 
@@ -125,6 +133,14 @@ export async function createOrg(formData: {
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail?.message ?? "Failed to create org")
   await setOrchKeyCookie(data.api_key)
+  
+  if (data.role) {
+    const client = await clerkClient()
+    await client.users.updateUserMetadata(userId, {
+      publicMetadata: { role: data.role }
+    })
+  }
+
   return data
 }
 
@@ -152,6 +168,14 @@ export async function createIndividual(formData: {
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail?.message ?? "Failed to create workspace")
   await setOrchKeyCookie(data.api_key)
+  
+  if (data.role) {
+    const client = await clerkClient()
+    await client.users.updateUserMetadata(userId, {
+      publicMetadata: { role: data.role }
+    })
+  }
+
   return data
 }
 
@@ -174,6 +198,14 @@ export async function acceptInvite(token: string) {
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail?.message ?? "Failed to accept invite")
   await setOrchKeyCookie(data.api_key)
+
+  if (data.role) {
+    const client = await clerkClient()
+    await client.users.updateUserMetadata(userId, {
+      publicMetadata: { role: data.role }
+    })
+  }
+
   return data
 }
 
