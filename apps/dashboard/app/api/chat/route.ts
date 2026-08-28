@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     apiKey,
   });
 
-  // Connect to the backend MCP Server via SSE
+  // Try to connect to the backend MCP Server — degrade gracefully if unavailable
   const mcpUrl = new URL('/v1/mcp/sse', process.env.ORCH_API_URL || 'http://127.0.0.1:3001');
   const transport = new SSEClientTransport(mcpUrl);
   const mcpClient = new Client(
@@ -28,16 +28,15 @@ export async function POST(req: Request) {
   );
 
   let mcpTools: any[] = [];
+  let mcpConnected = false;
   try {
     await mcpClient.connect(transport);
     const { tools } = await mcpClient.listTools();
     mcpTools = tools;
+    mcpConnected = true;
   } catch (error: any) {
-    console.error("MCP Connection failed for URL:", mcpUrl.toString(), "Error:", error?.message || error);
-    return new Response(
-      JSON.stringify({ error: `Failed to connect to the backend MCP server at ${mcpUrl.toString()}. Error: ${error?.message || 'Unknown'}` }),
-      { status: 502, headers: { 'Content-Type': 'application/json' } }
-    );
+    // MCP is optional — chat still works without it, just without tool access
+    console.warn("MCP Connection failed, continuing without tools:", error?.message || error);
   }
 
   // Convert MCP tools to Vercel AI SDK tools
@@ -61,16 +60,16 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: orchProxy.chat('anthropic/claude-3.5-sonnet'), // Using OpenRouter via our proxy
+    model: orchProxy.chat('anthropic/claude-3.5-sonnet'), // model name is overridden by backend proxy
     messages,
-    tools: aiTools,
+    ...(Object.keys(aiTools).length > 0 ? { tools: aiTools } : {}),
     system: `You are the Orchestrator CTO AI Assistant. 
 You help technical leaders design architectures, enforce constraints, and review rules.
-You have access to MCP tools to fetch the company's active constraints and draft new ones.
-Always use the tools provided when the user asks about constraints or wants to create new rules.`,
+${mcpConnected ? 'You have access to MCP tools to fetch the company\'s active constraints and draft new ones. Always use the tools provided when the user asks about constraints or wants to create new rules.' : ''}`,
     onFinish: async () => {
-      // Clean up the MCP connection when the generation finishes
-      await transport.close();
+      if (mcpConnected) {
+        try { await transport.close(); } catch {}
+      }
     }
   });
 
