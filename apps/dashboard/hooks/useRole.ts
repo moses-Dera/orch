@@ -25,7 +25,9 @@ export function useRole(): Role {
   return (data?.role as Role) ?? "member"
 }
 
-export function useHasAccess(minimum: Role): boolean {
-  const role = useRole()
+export function useHasAccess(minimum: Role): boolean | undefined {
+  const { data, isLoading } = useMe()
+  if (isLoading) return undefined
+  const role = (data?.role as Role) ?? "member"
   return HIERARCHY.indexOf(role) >= HIERARCHY.indexOf(minimum)
 }
