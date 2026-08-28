@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   '/docs(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/sso-callback(.*)',
   '/api/orch/github/webhook(.*)'
 ])
 

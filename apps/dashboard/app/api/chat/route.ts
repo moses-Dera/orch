@@ -74,5 +74,5 @@ Always use the tools provided when the user asks about constraints or wants to c
     }
   });
 
-  return result.toTextStreamResponse();
+  return result.toDataStreamResponse();
 }
