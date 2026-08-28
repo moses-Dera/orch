@@ -56,7 +56,7 @@ export async function POST(req: Request) {
           return { error: error.message };
         }
       },
-    });
+    } as any);
   }
 
   const result = streamText({
