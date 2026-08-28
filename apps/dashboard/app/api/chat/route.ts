@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, tool, jsonSchema } from 'ai';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { cookies } from 'next/headers';
@@ -39,12 +39,12 @@ export async function POST(req: Request) {
     console.warn("MCP Connection failed, continuing without tools:", error?.message || error);
   }
 
-  // Convert MCP tools to Vercel AI SDK tools
+  // Convert MCP tools to Vercel AI SDK tools using the `tool` wrapper
   const aiTools: Record<string, any> = {};
   for (const mcpTool of mcpTools) {
-    aiTools[mcpTool.name] = {
+    aiTools[mcpTool.name] = tool({
       description: mcpTool.description,
-      parameters: (mcpTool.inputSchema as any),
+      parameters: jsonSchema(mcpTool.inputSchema as any),
       execute: async (args: any) => {
         try {
           const result = await mcpClient.callTool({
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
           return { error: error.message };
         }
       },
-    };
+    });
   }
 
   const result = streamText({
