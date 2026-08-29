@@ -20,7 +20,6 @@ export default function AssistantPage() {
   }, [modelsData, selectedModel]);
 
   const { messages, sendMessage, status, error } = useChat({
-    body: { model: selectedModel },
     messages: [
       {
         id: 'welcome',
@@ -37,12 +36,12 @@ export default function AssistantPage() {
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (!input.trim()) return;
-    sendMessage({ text: input });
+    sendMessage({ text: input }, { body: { model: selectedModel } });
     setInput('');
   };
 
   const append = (msg: { text: string }) => {
-    sendMessage(msg);
+    sendMessage(msg, { body: { model: selectedModel } });
   };
 
   const isLoading = status === 'streaming' || status === 'submitted';
