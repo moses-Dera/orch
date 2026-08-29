@@ -59,8 +59,10 @@ export async function POST(req: Request) {
     } as any);
   }
 
+  const chatModel = process.env.ORCH_DEFAULT_MODEL || 'ollama/llama3';
+
   const result = streamText({
-    model: orchProxy.chat('anthropic/claude-3.5-sonnet'), // model name is overridden by backend proxy
+    model: orchProxy.chat(chatModel), // Allow environment to specify the backend AI model
     messages,
     ...(Object.keys(aiTools).length > 0 ? { tools: aiTools } : {}),
     system: `You are the Orchestrator CTO AI Assistant. 
