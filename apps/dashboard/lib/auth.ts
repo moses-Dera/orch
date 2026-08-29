@@ -8,8 +8,9 @@ export async function getRole(): Promise<Role> {
   const { userId, sessionClaims } = await auth()
   if (!userId) return "viewer"
   
-  if (sessionClaims?.metadata?.role) {
-    return sessionClaims.metadata.role as Role
+  const metadata = sessionClaims?.metadata as any
+  if (metadata?.role) {
+    return metadata.role as Role
   }
 
   const me = await getMe()
