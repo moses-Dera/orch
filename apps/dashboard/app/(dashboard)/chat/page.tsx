@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useChat } from '@ai-sdk/react';
 import Link from 'next/link';
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 export default function AssistantPage() {
+  const { data: modelsData } = useQuery({ queryKey: ["models"], queryFn: api.models });
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [input, setInput] = useState('');
   
+  useEffect(() => {
+    if (modelsData?.models && modelsData.models.length > 0 && !selectedModel) {
+      setSelectedModel(modelsData.models[0].id);
+    }
+  }, [modelsData, selectedModel]);
+
   const { messages, sendMessage, status, error } = useChat({
+    body: { model: selectedModel },
     messages: [
       {
         id: 'welcome',
@@ -49,6 +60,19 @@ export default function AssistantPage() {
           <div className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-full text-xs font-medium flex items-center">
             Active Context: Workspace Constraints
           </div>
+          {modelsData?.models && modelsData.models.length > 0 && (
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="bg-[var(--surface)] text-[var(--text-primary)] px-3 py-1 rounded-full text-xs font-medium border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer hover:bg-[var(--background)] transition-colors max-w-[150px] truncate"
+            >
+              {modelsData.models.map((m: any) => (
+                <option key={m.id} value={m.id}>
+                  {m.name || m.id}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 

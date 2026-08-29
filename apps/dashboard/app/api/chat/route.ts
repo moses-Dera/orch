@@ -10,7 +10,7 @@ global.EventSource = EventSource as any;
 export const maxDuration = 30; // Allow up to 30 seconds for SSE connection + generation
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, model } = await req.json();
   const jar = await cookies();
   const apiKey = jar.get("orch_key")?.value || process.env.ORCH_API_KEY || 'orch_dummy';
 
@@ -59,10 +59,10 @@ export async function POST(req: Request) {
     } as any);
   }
 
-  const chatModel = process.env.ORCH_DEFAULT_MODEL || 'ollama/llama3';
+  const chatModel = model || process.env.ORCH_DEFAULT_MODEL || 'ollama/llama3';
 
   const result = streamText({
-    model: orchProxy.chat(chatModel), // Allow environment to specify the backend AI model
+    model: orchProxy.chat(chatModel), // Allow environment or UI to specify the backend AI model
     messages,
     ...(Object.keys(aiTools).length > 0 ? { tools: aiTools } : {}),
     system: `You are the Orchestrator CTO AI Assistant. 
