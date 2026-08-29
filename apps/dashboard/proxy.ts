@@ -24,7 +24,8 @@ export default clerkMiddleware(async (auth, req) => {
     if (!userId) return redirectToSignIn()
     
     if (isAdminRoute(req)) {
-      const role = sessionClaims?.metadata?.role || 'viewer'
+      const metadata = sessionClaims?.metadata as any
+      const role = metadata?.role || 'viewer'
       if (role !== 'admin' && role !== 'owner') {
         const url = new URL('/chat', req.url)
         return Response.redirect(url)
