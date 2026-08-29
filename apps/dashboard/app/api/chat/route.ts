@@ -73,5 +73,5 @@ ${mcpConnected ? 'You have access to MCP tools to fetch the company\'s active co
     }
   });
 
-  return result.toTextStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
