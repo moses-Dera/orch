@@ -147,7 +147,8 @@ export default function AssistantPage() {
 
   const { messages, sendMessage, stop, regenerate, status, error, setMessages } = useChat({
     messages: [WELCOME as any],
-    onFinish: (msg, { usage }) => {
+    onFinish: (event: any) => {
+      const usage = event?.usage || event?.options?.usage || event?.message?.usage || (event as any)?.totalTokens ? { totalTokens: event.totalTokens } : null;
       if (usage?.totalTokens) setTokenCount((prev) => (prev ?? 0) + usage.totalTokens);
     },
   });
