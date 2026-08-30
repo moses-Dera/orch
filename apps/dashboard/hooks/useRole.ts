@@ -23,7 +23,9 @@ export function useMe() {
 export function useRole(): Role {
   const { session } = useSession()
   const { user } = useUser()
-  const role = user?.publicMetadata?.role || 
+  const { data: meData } = useMe()
+  
+  const role = meData?.role || user?.publicMetadata?.role || 
                // @ts-ignore fallback if custom claim template is used
                session?.claims?.metadata?.role
                
