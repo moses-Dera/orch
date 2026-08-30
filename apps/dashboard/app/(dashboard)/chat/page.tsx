@@ -239,7 +239,7 @@ export default function AssistantPage() {
               onChange={(e) => setSelectedModel(e.target.value)}
               className="bg-[var(--surface)] text-[var(--text-primary)] px-3 py-1 rounded-full text-xs font-medium border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer hover:bg-[var(--background)] transition-colors max-w-[180px] truncate"
             >
-              {modelsData.models.map((m: any) => (
+              {modelsData?.models?.map((m: any) => (
                 <option key={m.id} value={m.id}>{m.name || m.id}</option>
               ))}
             </select>
