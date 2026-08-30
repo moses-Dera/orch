@@ -77,12 +77,17 @@ export async function POST(req: Request) {
             { name: `orch-dashboard-${server.name}`, version: '1.0.0' },
             { capabilities: {} }
           );
-          await Promise.race([
-            client.connect(transport),
-            new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout: ${server.name}`)), 5000))
-          ]);
-          const { tools } = await client.listTools();
-          return { client, transport, tools, serverName: server.name };
+          try {
+            await Promise.race([
+              client.connect(transport),
+              new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout: ${server.name}`)), 5000))
+            ]);
+            const { tools } = await client.listTools();
+            return { client, transport, tools, serverName: server.name };
+          } catch (error) {
+            transport.close().catch(() => {});
+            throw error;
+          }
         })
       );
 

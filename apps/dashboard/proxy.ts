@@ -21,7 +21,12 @@ const isAdminRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     const { userId, sessionClaims, redirectToSignIn } = await auth()
-    if (!userId) return redirectToSignIn()
+    if (!userId) {
+      if (req.nextUrl.pathname.startsWith('/api/')) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      return redirectToSignIn()
+    }
     
     if (isAdminRoute(req)) {
       const metadata = sessionClaims?.metadata as any
