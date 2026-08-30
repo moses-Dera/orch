@@ -140,7 +140,7 @@ export default function AssistantPage() {
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    if (modelsData?.models?.length > 0 && !selectedModel) {
+    if ((modelsData?.models?.length ?? 0) > 0 && !selectedModel) {
       setSelectedModel(modelsData.models[0].id);
     }
   }, [modelsData, selectedModel]);
@@ -232,7 +232,7 @@ export default function AssistantPage() {
           <div className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-full text-xs font-medium">
             Active Context: Workspace Constraints
           </div>
-          {modelsData?.models?.length > 0 && (
+          {(modelsData?.models?.length ?? 0) > 0 && (
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
