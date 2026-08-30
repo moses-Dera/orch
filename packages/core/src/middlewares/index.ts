@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
 import crypto from 'node:crypto';
 import { db } from '../db';
-import { apiKeys } from '../db/schema';
+import { apiKeys, teams } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 // Re-export standard middlewares
@@ -22,6 +22,16 @@ export const apiAuthMiddleware = createMiddleware(async (c, next) => {
   // Trial mode: orch_dummy token bypasses DB lookup
   if (token === 'orch_dummy' && process.env.TRIAL_API_KEY) {
     c.set('isTrial', true);
+    
+    const clerkId = c.req.header('X-Clerk-User-Id');
+    if (clerkId) {
+      const userTeams = await db.select().from(teams).where(eq(teams.userId, clerkId));
+      if (userTeams.length > 0) {
+        c.set('teamId', userTeams[0].id);
+        return await next();
+      }
+    }
+    
     c.set('teamId', '');
     return await next();
   }

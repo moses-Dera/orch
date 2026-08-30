@@ -17,11 +17,11 @@ const ORCH_API_KEY = process.env.ORCH_API_KEY ?? '';
 export async function POST(req: Request) {
   const { messages, model } = await req.json();
   const jar = await cookies();
+  const { userId } = await auth();
   let apiKey = jar.get("orch_key")?.value ?? '';
 
   // Auto-restore: if no cookie, generate a fresh session key for the signed-in user
   if (!apiKey) {
-    const { userId } = await auth();
     if (userId) {
       try {
         const res = await fetch(`${BACKEND_URL}/api/v1/onboarding/session-key`, {
@@ -35,11 +35,11 @@ export async function POST(req: Request) {
           apiKey = data.api_key ?? '';
           if (apiKey) {
             jar.set('orch_key', apiKey, {
+              path: '/',
               httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
-              path: '/',
-              maxAge: 60 * 60 * 24 * 30,
+              maxAge: 60 * 60 * 24 * 7 // 1 week
             });
           }
         }
@@ -47,13 +47,17 @@ export async function POST(req: Request) {
         // Session restore failed — fall back to trial mode
       }
     }
+    // Final fallback: Use a dummy key so the user can still chat using the trial constraints
     if (!apiKey) apiKey = 'orch_dummy';
   }
 
   // Pure proxy — the backend handles RAG, constraints, model selection, trial/BYOK
   const orchProxy = createOpenAI({
     baseURL: `${BACKEND_URL}/v1`,
-    apiKey,
+    apiKey: apiKey,
+    headers: {
+      'X-Clerk-User-Id': userId || ''
+    }
   });
 
   // Fetch the team's configured external MCP servers from the backend
