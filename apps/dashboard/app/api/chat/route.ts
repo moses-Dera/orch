@@ -140,5 +140,5 @@ ${hasTools ? `You have access to ${Object.keys(aiTools).length} external tool(s)
     }
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toDataStreamResponse();
 }
