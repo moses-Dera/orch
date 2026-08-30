@@ -140,7 +140,7 @@ export default function AssistantPage() {
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    if ((modelsData?.models?.length ?? 0) > 0 && !selectedModel) {
+    if (modelsData?.models && modelsData.models.length > 0 && !selectedModel) {
       setSelectedModel(modelsData.models[0].id);
     }
   }, [modelsData, selectedModel]);
