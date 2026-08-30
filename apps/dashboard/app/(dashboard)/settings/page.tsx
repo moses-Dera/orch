@@ -16,7 +16,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { useMe } from "@/hooks/useRole"
-import { useQueryClient, useMutation } from "@tanstack/react-query"
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { renameOrg, renameTeam } from "@/app/actions/onboarding"
 import { api } from "@/lib/api"
@@ -63,6 +63,51 @@ export default function SettingsPage() {
   const { data: models } = useModels()
   const { data: audit } = useAuditLog()
   const queryClient = useQueryClient()
+
+  // MCP Servers state
+  const [mcpName, setMcpName] = useState("")
+  const [mcpUrl, setMcpUrl] = useState("")
+  const [addingMcp, setAddingMcp] = useState(false)
+
+  const { data: mcpData } = useQuery({
+    queryKey: ["mcp-servers"],
+    queryFn: async () => {
+      const res = await fetch("/api/orch/v1/mcp-servers")
+      if (!res.ok) return { servers: [] }
+      return res.json()
+    },
+  })
+
+  async function handleAddMcp() {
+    if (!mcpName.trim() || !mcpUrl.trim()) return
+    setAddingMcp(true)
+    try {
+      const res = await fetch("/api/orch/v1/mcp-servers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: mcpName.trim(), url: mcpUrl.trim() }),
+      })
+      if (!res.ok) throw new Error("Failed to add MCP server")
+      setMcpName("")
+      setMcpUrl("")
+      queryClient.invalidateQueries({ queryKey: ["mcp-servers"] })
+      toast.success("MCP server added")
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setAddingMcp(false)
+    }
+  }
+
+  async function handleDeleteMcp(id: string) {
+    try {
+      await fetch(`/api/orch/v1/mcp-servers/${id}`, { method: "DELETE" })
+      queryClient.invalidateQueries({ queryKey: ["mcp-servers"] })
+      toast.success("MCP server removed")
+    } catch {
+      toast.error("Failed to remove MCP server")
+    }
+  }
 
   // API key generation
   const [newKey, setNewKey] = useState<string | null>(null)
@@ -283,6 +328,59 @@ export default function SettingsPage() {
           )}
         </div>
 
+
+        {/* MCP Servers */}
+        {isAdmin && (
+          <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-3">
+            <div>
+              <h2 className="text-sm font-medium">External MCP Servers</h2>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                Connect external MCP servers so the CTO AI Assistant can call tools from your org's toolchain (GitHub, Linear, Jira, etc.).
+              </p>
+            </div>
+            {/* Existing servers */}
+            {(mcpData?.servers ?? []).length > 0 && (
+              <div className="space-y-2">
+                {mcpData.servers.map((s: { id: string; name: string; url: string }) => (
+                  <div key={s.id} className="flex items-center gap-2 rounded-md border px-3 py-2 bg-[var(--background)]">
+                    <span className="text-xs font-medium text-[var(--text-primary)] flex-1">{s.name}</span>
+                    <span className="text-xs text-[var(--text-secondary)] truncate max-w-[180px]">{s.url}</span>
+                    <button
+                      onClick={() => handleDeleteMcp(s.id)}
+                      className="text-xs text-red-500 hover:underline shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Add new server */}
+            <div className="space-y-2 pt-1">
+              <input
+                value={mcpName}
+                onChange={(e) => setMcpName(e.target.value)}
+                placeholder="Server name (e.g. GitHub)"
+                className="w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  value={mcpUrl}
+                  onChange={(e) => setMcpUrl(e.target.value)}
+                  placeholder="SSE URL (e.g. https://mcp.example.com/sse)"
+                  className="flex-1 rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                />
+                <Button
+                  size="sm"
+                  disabled={addingMcp || !mcpName.trim() || !mcpUrl.trim()}
+                  onClick={handleAddMcp}
+                >
+                  {addingMcp ? "Adding..." : "Add"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Integrations */}
         <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-3">

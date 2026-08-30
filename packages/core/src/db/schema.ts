@@ -23,6 +23,14 @@ export const teams = pgTable('teams', {
   githubInstallationId: text('github_installation_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+export const mcpServers = pgTable('mcp_servers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  url: text('url').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const teamGithubInstallations = pgTable('team_github_installations', {
   id: uuid('id').primaryKey().defaultRandom(),
   teamId: uuid('team_id').notNull().references(() => teams.id),

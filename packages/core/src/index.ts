@@ -9,6 +9,7 @@ import { onboardingRouter } from './routes/onboarding';
 import { githubRouter } from './routes/github';
 import { billingRouter } from './routes/billing';
 import { orchestrateRouter } from './routes/orchestrate';
+import { mcpServersRouter } from './routes/mcp-servers';
 
 const app = new Hono();
 
@@ -68,6 +69,7 @@ const routes = app
   .route('/v1/billing', billingRouter)
   .route('/api/v1/onboarding', onboardingRouter)
   .route('/v1', orchestrateRouter)
+  .route('/v1', mcpServersRouter)
   .route('/v1/mcp', mcpRouter);
 
 // Export the AppType so the Dashboard and CLI can consume Hono RPC
