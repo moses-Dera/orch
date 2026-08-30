@@ -90,7 +90,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: orchProxy.chat(chatModel),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     ...(hasTools ? { tools: aiTools } : {}),
     system: `You are the Orchestrator CTO AI Assistant.
 You help technical leaders design architectures, enforce constraints, and review rules.
