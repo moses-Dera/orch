@@ -103,6 +103,32 @@ onboardingRouter.post('/switch-org', async (c) => {
   return c.json({ api_key: rawKey });
 });
 
+// POST /api/v1/onboarding/session-key
+// Generates a fresh orch_ key for a signed-in user (used to restore lost cookies)
+onboardingRouter.post('/session-key', async (c) => {
+  const auth = c.req.header('Authorization');
+  if (auth !== `Bearer ${process.env.ORCH_API_KEY || 'orch_your_server_key_here'}`) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const { clerk_id, org_id } = await c.req.json();
+  if (!clerk_id) return c.json({ error: 'Missing clerk_id' }, 400);
+
+  // Find the user's team (prefer org_id if provided, fallback to first team)
+  const userTeams = await db.select().from(teams).where(eq(teams.userId, clerk_id));
+  if (userTeams.length === 0) return c.json({ error: 'No team found' }, 404);
+
+  const team = org_id
+    ? (userTeams.find((t) => t.orgId === org_id) ?? userTeams[0])
+    : userTeams[0];
+
+  const rawKey = `orch_${crypto.randomBytes(16).toString('hex')}`;
+  const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+  await db.insert(apiKeys).values({ teamId: team.id, keyHash });
+
+  return c.json({ api_key: rawKey, team_id: team.id, org_id: team.orgId });
+});
+
 // POST /api/v1/onboarding/create-org
 onboardingRouter.post('/create-org', async (c) => {
   const auth = c.req.header('Authorization');

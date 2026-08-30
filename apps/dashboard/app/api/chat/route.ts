@@ -3,6 +3,7 @@ import { streamText, tool, jsonSchema, convertToModelMessages } from 'ai';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { cookies } from 'next/headers';
+import { auth } from '@clerk/nextjs/server';
 import { EventSource } from 'eventsource';
 
 // @ts-ignore - Polyfill EventSource for Node.js runtime so the MCP SDK doesn't crash
@@ -10,11 +11,43 @@ global.EventSource = EventSource as any;
 export const maxDuration = 30;
 
 const BACKEND_URL = process.env.ORCH_API_URL || 'http://127.0.0.1:3001';
+const ORCH_API_KEY = process.env.ORCH_API_KEY ?? '';
 
 export async function POST(req: Request) {
   const { messages, model } = await req.json();
   const jar = await cookies();
-  const apiKey = jar.get("orch_key")?.value || 'orch_dummy';
+  let apiKey = jar.get("orch_key")?.value ?? '';
+
+  // Auto-restore: if no cookie, generate a fresh session key for the signed-in user
+  if (!apiKey) {
+    const { userId } = await auth();
+    if (userId) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/onboarding/session-key`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${ORCH_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clerk_id: userId }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          apiKey = data.api_key ?? '';
+          if (apiKey) {
+            jar.set('orch_key', apiKey, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              path: '/',
+              maxAge: 60 * 60 * 24 * 30,
+            });
+          }
+        }
+      } catch {
+        // Session restore failed — fall back to trial mode
+      }
+    }
+    if (!apiKey) apiKey = 'orch_dummy';
+  }
 
   // Pure proxy — the backend handles RAG, constraints, model selection, trial/BYOK
   const orchProxy = createOpenAI({

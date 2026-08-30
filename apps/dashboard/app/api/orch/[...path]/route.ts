@@ -56,17 +56,15 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
     if (pendingMeRequests.has(cacheKey)) {
       apiKey = await pendingMeRequests.get(cacheKey)!;
     } else {
-      const mePromise = (async () => {
-        const meUrl = new URL(`${ORCH_API_URL}/api/v1/onboarding/me`)
-        meUrl.searchParams.set("clerk_id", userId)
-        if (activeOrgId) meUrl.searchParams.set("org_id", activeOrgId)
-
-        const meRes = await fetch(meUrl.toString(), {
+      const sessionKeyPromise = (async () => {
+        const res = await fetch(`${ORCH_API_URL}/api/v1/onboarding/session-key`, {
+          method: "POST",
           headers: { "Authorization": `Bearer ${ORCH_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ clerk_id: userId, org_id: activeOrgId || undefined }),
         })
-        if (meRes.ok) {
-          const me = await meRes.json()
-          const key = me.api_key ?? ""
+        if (res.ok) {
+          const data = await res.json()
+          const key = data.api_key ?? ""
           if (key) {
             jar.set("orch_key", key, {
               httpOnly: true,
@@ -78,14 +76,12 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
           }
           return key;
         }
-        // 404 = user needs onboarding — let the request proceed with empty key
-        // the dashboard middleware will redirect them
         return "";
       })();
-      
-      pendingMeRequests.set(cacheKey, mePromise);
+
+      pendingMeRequests.set(cacheKey, sessionKeyPromise);
       try {
-        apiKey = await mePromise;
+        apiKey = await sessionKeyPromise;
       } finally {
         pendingMeRequests.delete(cacheKey);
       }
