@@ -145,7 +145,7 @@ export default function AssistantPage() {
     }
   }, [modelsData, selectedModel]);
 
-  const { messages, sendMessage, stop, reload, status, error, setMessages } = useChat({
+  const { messages, sendMessage, stop, regenerate, status, error, setMessages } = useChat({
     messages: [WELCOME as any],
     onFinish: (msg, { usage }) => {
       if (usage?.totalTokens) setTokenCount((prev) => (prev ?? 0) + usage.totalTokens);
@@ -204,7 +204,7 @@ export default function AssistantPage() {
   const handleExport = () => exportAsMarkdown(messages);
 
   const handleRegenerate = () => {
-    reload();
+    regenerate();
   };
 
   const startEdit = (id: string, text: string) => {
