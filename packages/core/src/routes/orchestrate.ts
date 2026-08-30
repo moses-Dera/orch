@@ -54,7 +54,7 @@ orchestrateRouter.post('/orchestrate', apiAuthMiddleware, async (c) => {
       try {
         const chunks = await retrieveChunks(user_prompt, constraintIds);
         if (chunks.length > 0) {
-          systemConstraints = chunks.map((chunk) => `- ${chunk}`).join('\n');
+          systemConstraints = chunks.map((chunk) => `- ${chunk.chunkText}`).join('\n');
         }
       } catch (ragErr) {
         console.warn('[RAG] Retrieval failed, falling back to full dump:', ragErr);
@@ -116,7 +116,7 @@ orchestrateRouter.post('/orchestrate', apiAuthMiddleware, async (c) => {
     });
   } catch (err: any) {
     console.error('Orchestrate ERROR:', err);
-    return c.json({ error: err.message, stack: err.stack }, 500);
+    return c.json({ error: 'Internal server error. Please try again.' }, 500);
   }
 });
 
@@ -158,7 +158,7 @@ orchestrateRouter.post('/orchestrate/stream', apiAuthMiddleware, async (c) => {
     try {
       const chunks = await retrieveChunks(user_prompt, constraintIds);
       if (chunks.length > 0) {
-        systemConstraints = chunks.map((chunk) => `- ${chunk}`).join('\n');
+        systemConstraints = chunks.map((chunk) => `- ${chunk.chunkText}`).join('\n');
       }
     } catch (ragErr) {
       console.warn('[RAG] Retrieval failed:', ragErr);

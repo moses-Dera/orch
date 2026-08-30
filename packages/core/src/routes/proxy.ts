@@ -96,7 +96,7 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
         try {
           const chunks = await retrieveChunks(lastUserMessage, constraintIds);
           if (chunks.length > 0) {
-            systemConstraints = chunks.map((chunk) => `- ${chunk}`).join('\n');
+            systemConstraints = chunks.map((chunk) => `- ${chunk.chunkText}`).join('\n');
           } else {
             const fullConstraints = projectIds.length > 0
               ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds))
@@ -116,14 +116,15 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
           : [];
         systemConstraints = fullConstraints.map((c) => `- ${c.content}`).join('\n');
       }
+
     } catch (dbErr) {
       console.warn('[Proxy] Could not fetch constraints:', dbErr);
     }
   }
 
-  // 7. Inject relevant constraints into the system message
+  // 7. Inject relevant constraints into the system message (only if non-empty)
   const messages = [
-    { role: 'system', content: systemConstraints },
+    ...(systemConstraints.trim().length > 0 ? [{ role: 'system', content: systemConstraints }] : []),
     ...trimmedMessages,
   ];
 
@@ -155,14 +156,15 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     }
   }
 
-  // 8. Forward to provider
+  // 8. Forward to provider (55s timeout — stays under Vercel's 60s hard limit)
   const openRouterRes = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
     },
-    body: JSON.stringify({ ...body, messages })
+    body: JSON.stringify({ ...body, messages }),
+    signal: AbortSignal.timeout(55000),
   });
 
   // 9. Handle trial exhaustion — intercept provider errors and show a friendly message

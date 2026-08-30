@@ -42,6 +42,7 @@ async function embedQuery(text: string): Promise<number[]> {
  * scoped to a specific list of constraint IDs (belonging to the team).
  *
  * Uses pgvector cosine distance (<=>).
+ * IDs are passed as parameterized values — no sql.raw() interpolation (prevents SQL injection).
  */
 export async function retrieveChunks(
   query: string,
@@ -51,19 +52,24 @@ export async function retrieveChunks(
   const queryEmbedding = await embedQuery(query);
   const vectorLiteral = `[${queryEmbedding.join(',')}]`;
 
-  let whereClause = sql``;
+  // Use Drizzle's parameterized sql tag for the ID array — safe from SQL injection
+  let result: Array<{ chunk_text: string; constraint_id: string }>;
   if (constraintIds && constraintIds.length > 0) {
-    const idsArray = constraintIds.map((id) => `'${id}'`).join(',');
-    whereClause = sql`WHERE constraint_id = ANY(ARRAY[${sql.raw(idsArray)}]::text[])`;
+    result = await db.execute<{ chunk_text: string; constraint_id: string }>(sql`
+      SELECT chunk_text, constraint_id
+      FROM constraint_chunks
+      WHERE constraint_id = ANY(${constraintIds}::text[])
+      ORDER BY embedding <=> ${vectorLiteral}::vector
+      LIMIT ${topK}
+    `);
+  } else {
+    result = await db.execute<{ chunk_text: string; constraint_id: string }>(sql`
+      SELECT chunk_text, constraint_id
+      FROM constraint_chunks
+      ORDER BY embedding <=> ${vectorLiteral}::vector
+      LIMIT ${topK}
+    `);
   }
-
-  const result = await db.execute<{ chunk_text: string; constraint_id: string }>(sql`
-    SELECT chunk_text, constraint_id
-    FROM constraint_chunks
-    ${whereClause}
-    ORDER BY embedding <=> ${vectorLiteral}::vector
-    LIMIT ${topK}
-  `);
 
   // db.execute() with postgres.js returns a RowList which extends Array directly
   return (result as unknown as Array<{ chunk_text: string; constraint_id: string }>).map((r) => ({

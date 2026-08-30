@@ -79,7 +79,7 @@ export async function evaluateDiff(
     try {
       const chunks = await retrieveChunks(safeDiff, constraintIds);
       if (chunks.length > 0) {
-        rules = chunks.map((chunk) => `- ${chunk}`).join('\n');
+        rules = chunks.map((chunk) => `- ${chunk.chunkText}`).join('\n');
       } else {
         rules = fallbackRules ?? '';
       }
@@ -204,7 +204,19 @@ If there are absolutely no potential violations, return an empty array for poten
     return { reasoning: "Critic phase execution error.", status: 'VIOLATION', explanation: 'AI Review failed during Critic phase.', violations: [] };
   }
 
-  const criticResult = JSON.parse(criticData.choices[0].message.content);
+  // Strip markdown code fences if the model wrapped its response
+  function extractJson(raw: string): string {
+    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    return fenced ? fenced[1].trim() : raw.trim();
+  }
+
+  let criticResult: any;
+  try {
+    criticResult = JSON.parse(extractJson(criticData.choices[0].message.content));
+  } catch (e) {
+    console.error('Critic JSON parse failed:', criticData.choices?.[0]?.message?.content);
+    return { reasoning: "Critic returned non-JSON.", status: 'CLEAN', explanation: 'Could not parse AI review. Assuming clean.', violations: [] };
+  }
 
   // EARLY EXIT: If the critic found nothing, we are done!
   if (!criticResult.potential_violations || criticResult.potential_violations.length === 0) {
@@ -279,7 +291,15 @@ If you dismiss all of the Critic's claims, return status CLEAN and an empty viol
     totalInputTokens += judgeData.usage?.prompt_tokens || 0;
     totalOutputTokens += judgeData.usage?.completion_tokens || 0;
 
-    const resultJson: EvaluationResult = JSON.parse(judgeData.choices[0].message.content);
+    let resultJson: EvaluationResult;
+    try {
+      const fenced = judgeData.choices[0].message.content.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const raw = fenced ? fenced[1].trim() : judgeData.choices[0].message.content.trim();
+      resultJson = JSON.parse(raw);
+    } catch (e) {
+      console.error('Judge JSON parse failed:', judgeData.choices?.[0]?.message?.content);
+      return { reasoning: "Judge returned non-JSON.", status: 'VIOLATION', explanation: 'AI review parsing failed during Judge phase.', violations: [] };
+    }
 
     // Track Input and Output tokens accurately for both phases combined
     // Tracking tokens skipped (BYOK model)

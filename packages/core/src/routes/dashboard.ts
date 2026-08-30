@@ -306,8 +306,20 @@ dashboardRouter.put('/constraints/:id', async (c) => {
 
 // DELETE /v1/constraints/:id
 dashboardRouter.delete('/constraints/:id', async (c) => {
+  const teamId = c.get('teamId');
   const id = c.req.param('id');
-  await db.delete(constraints).where(eq(constraints.id, id));
+  
+  // Verify ownership through the project chain before deleting
+  const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+  const projectIds = teamProjects.map((p) => p.id);
+  
+  if (projectIds.length === 0) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+  
+  await db.delete(constraints).where(
+    and(eq(constraints.id, id), inArray(constraints.projectId, projectIds))
+  );
   return c.json({ success: true });
 });
 

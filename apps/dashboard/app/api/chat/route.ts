@@ -136,10 +136,9 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
     ...(hasTools ? { tools: aiTools } : {}),
     experimental_transform: smoothStream(),
-    system: `You are the Orchestrator CTO AI Assistant.
-You help technical leaders design architectures, enforce constraints, and review rules.
-Your context (projects, constraints, team rules) is automatically provided by the Orch backend.
-${hasTools ? `You have access to ${Object.keys(aiTools).length} external tool(s) from your team's MCP servers. Use them when relevant.` : ''}`,
+    // NOTE: No system prompt here — the backend proxy (packages/core/src/routes/proxy.ts)
+    // already prepends the team's real workspace constraints as the system message.
+    // Sending a second system prompt here would waste tokens and confuse the model.
     onFinish: async () => {
       // Close all MCP connections
       await Promise.allSettled(mcpClients.map(({ transport }) => transport.close()));

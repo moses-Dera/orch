@@ -227,6 +227,7 @@ onboardingRouter.post('/create-individual', async (c) => {
   const [team] = await db.insert(teams).values({
     orgId: org.id,
     name: (team_name || 'Personal').trim(),
+    userId: user.id, // Required so session-key restoration can find this team
   }).returning();
 
   // 4. Create default project
