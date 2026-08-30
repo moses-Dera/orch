@@ -20,6 +20,7 @@ export async function POST(req: Request) {
   });
 
   // Try to connect to the backend MCP Server — degrade gracefully if unavailable
+  // Use a 5-second timeout so a slow MCP server doesn't block chat entirely
   const mcpUrl = new URL('/v1/mcp/sse', process.env.ORCH_API_URL || 'http://127.0.0.1:3001');
   const transport = new SSEClientTransport(mcpUrl);
   const mcpClient = new Client(
@@ -30,7 +31,10 @@ export async function POST(req: Request) {
   let mcpTools: any[] = [];
   let mcpConnected = false;
   try {
-    await mcpClient.connect(transport);
+    await Promise.race([
+      mcpClient.connect(transport),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('MCP connect timeout')), 5000))
+    ]);
     const { tools } = await mcpClient.listTools();
     mcpTools = tools;
     mcpConnected = true;
@@ -59,10 +63,12 @@ export async function POST(req: Request) {
     } as any);
   }
 
-  const chatModel = model || process.env.ORCH_DEFAULT_MODEL || 'ollama/llama3';
+  // The backend overrides the model for trial mode, but we still need a valid model string
+  // to send as the initial request. The backend will substitute the TRIAL_MODEL on its end.
+  const chatModel = model || process.env.ORCH_DEFAULT_MODEL || 'gpt-4o-mini';
 
   const result = streamText({
-    model: orchProxy.chat(chatModel), // Allow environment or UI to specify the backend AI model
+    model: orchProxy.chat(chatModel),
     messages,
     ...(Object.keys(aiTools).length > 0 ? { tools: aiTools } : {}),
     system: `You are the Orchestrator CTO AI Assistant. 
