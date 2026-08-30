@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, tool, jsonSchema, convertToModelMessages } from 'ai';
+import { streamText, tool, jsonSchema, convertToModelMessages, smoothStream } from 'ai';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { cookies } from 'next/headers';
@@ -135,6 +135,7 @@ export async function POST(req: Request) {
     model: orchProxy.chat(chatModel),
     messages: await convertToModelMessages(messages),
     ...(hasTools ? { tools: aiTools } : {}),
+    experimental_transform: smoothStream(),
     system: `You are the Orchestrator CTO AI Assistant.
 You help technical leaders design architectures, enforce constraints, and review rules.
 Your context (projects, constraints, team rules) is automatically provided by the Orch backend.
