@@ -8,7 +8,7 @@ import { EventSource } from 'eventsource';
 
 // @ts-ignore - Polyfill EventSource for Node.js runtime so the MCP SDK doesn't crash
 global.EventSource = EventSource as any;
-export const maxDuration = 30;
+export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 const BACKEND_URL = process.env.ORCH_API_URL || 'http://127.0.0.1:3001';
