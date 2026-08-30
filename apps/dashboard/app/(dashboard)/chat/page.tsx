@@ -303,13 +303,11 @@ export default function AssistantPage() {
 
               <div className={`flex flex-col gap-1.5 max-w-[85%] sm:max-w-[75%] ${isUser ? "items-end" : "items-start"}`}>
                 {/* Tool calls */}
-                {(m as any).parts?.map((part: any, i: number) => {
-                  const toolName = part.type === "dynamic-tool" ? part.toolName
-                    : part.type.startsWith("tool-") ? part.type.replace("tool-", "") : null;
-                  if (!toolName) return null;
-                  const isComplete = part.state === "output-available" || part.state === "result";
+                {m.toolInvocations?.map((toolInvocation: any, i: number) => {
+                  const toolName = toolInvocation.toolName;
+                  const isComplete = "result" in toolInvocation;
                   return (
-                    <div key={i} className="text-[11px] text-[var(--text-secondary)] bg-[var(--background)] border border-[var(--border)] px-3 py-1.5 rounded-full flex items-center gap-2 font-mono">
+                    <div key={toolInvocation.toolCallId || i} className="text-[11px] text-[var(--text-secondary)] bg-[var(--background)] border border-[var(--border)] px-3 py-1.5 rounded-full flex items-center gap-2 font-mono w-fit mb-2">
                       {isComplete ? <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent)]" /> : <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent)]" />}
                       {isComplete ? `Used: ${toolName}` : `Running: ${toolName}...`}
                     </div>
