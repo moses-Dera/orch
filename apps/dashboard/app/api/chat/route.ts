@@ -12,7 +12,7 @@ export const maxDuration = 30; // Allow up to 30 seconds for SSE connection + ge
 export async function POST(req: Request) {
   const { messages, model } = await req.json();
   const jar = await cookies();
-  const apiKey = jar.get("orch_key")?.value || process.env.ORCH_API_KEY || 'orch_dummy';
+  const apiKey = jar.get("orch_key")?.value || 'orch_dummy';
 
   const orchProxy = createOpenAI({
     baseURL: `${process.env.ORCH_API_URL || 'http://127.0.0.1:3001'}/v1`,
