@@ -60,6 +60,12 @@ export const api = {
   session: (sessionId: string) =>
     req<SessionDetail>(`/v1/audit/${sessionId}`),
 
+  chatSessions: () =>
+    req<{ sessions: any[] }>(`/v1/chat/sessions`),
+
+  chatMessages: (sessionId: string) =>
+    req<{ messages: any[] }>(`/v1/chat/sessions/${sessionId}/messages`),
+
   coverage: () =>
     req<{
       repos_covered: number

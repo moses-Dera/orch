@@ -10,12 +10,15 @@ import { githubRouter } from './routes/github';
 import { billingRouter } from './routes/billing';
 import { orchestrateRouter } from './routes/orchestrate';
 import { mcpServersRouter } from './routes/mcp-servers';
+import { chatRouter } from './routes/chat';
 
 const app = new Hono();
 
 // Global Middleware
 app.use('*', globalLogger);
 app.use('*', globalCors);
+
+
 
 // Health Check
 app.get('/', (c) => {
@@ -70,6 +73,7 @@ const routes = app
   .route('/api/v1/onboarding', onboardingRouter)
   .route('/v1', orchestrateRouter)
   .route('/v1', mcpServersRouter)
+  .route('/v1/chat', chatRouter)
   .route('/v1/mcp', mcpRouter);
 
 // Export the AppType so the Dashboard and CLI can consume Hono RPC

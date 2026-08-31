@@ -5,7 +5,8 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { cookies } from 'next/headers';
 import { auth } from '@clerk/nextjs/server';
 import { EventSource } from 'eventsource';
-
+import { getInternalTools } from './internalTools';
+import { retrieveTools } from './toolRetriever';
 // @ts-ignore - Polyfill EventSource for Node.js runtime so the MCP SDK doesn't crash
 global.EventSource = EventSource as any;
 // 300s = Vercel Pro max for streaming functions. Hobby plan is capped at 60s.
@@ -17,7 +18,7 @@ const BACKEND_URL = process.env.ORCH_API_URL || 'http://127.0.0.1:3001';
 const ORCH_API_KEY = process.env.ORCH_API_KEY ?? '';
 
 export async function POST(req: Request) {
-  const { messages, model } = await req.json();
+  const { messages, model, id, project_id } = await req.json();
   const jar = await cookies();
   const { userId } = await auth();
   let apiKey = jar.get("orch_key")?.value ?? '';
@@ -58,7 +59,8 @@ export async function POST(req: Request) {
     baseURL: `${BACKEND_URL}/v1`,
     apiKey: apiKey,
     headers: {
-      'X-Clerk-User-Id': userId || ''
+      'X-Clerk-User-Id': userId || '',
+      'X-Orch-Project-Id': project_id || ''
     }
   });
 
@@ -129,21 +131,50 @@ export async function POST(req: Request) {
     } as any);
   }
 
+  // Retrieve and inject relevant internal tools
+  const lastUserMessage = messages[messages.length - 1];
+  const userQuery = lastUserMessage?.role === 'user' ? lastUserMessage.content : '';
+  
+  if (userQuery) {
+    const relevantToolNames = await retrieveTools(userQuery, 4);
+    const allInternalTools = getInternalTools(apiKey);
+    
+    for (const name of relevantToolNames) {
+      if (allInternalTools[name as keyof typeof allInternalTools]) {
+        aiTools[name] = allInternalTools[name as keyof typeof allInternalTools];
+      }
+    }
+  }
+
   // The backend overrides model in trial mode — just pass a sensible default
   const chatModel = model || process.env.ORCH_DEFAULT_MODEL || 'gpt-4o-mini';
   const hasTools = Object.keys(aiTools).length > 0;
-
+  
   const result = streamText({
     model: orchProxy.chat(chatModel),
     messages: await convertToModelMessages(messages),
     ...(hasTools ? { tools: aiTools } : {}),
     experimental_transform: smoothStream(),
-    // NOTE: No system prompt here — the backend proxy (packages/core/src/routes/proxy.ts)
-    // already prepends the team's real workspace constraints as the system message.
-    // Sending a second system prompt here would waste tokens and confuse the model.
-    onFinish: async () => {
+    onFinish: async (event) => {
       // Close all MCP connections
       await Promise.allSettled(mcpClients.map(({ transport }) => transport.close()));
+
+      // Save user message (the last message in the input)
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.role === 'user') {
+        fetch(`${BACKEND_URL}/v1/chat/sessions/${id}/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'user', content: lastMessage.content })
+        }).catch(err => console.error('[DB] Failed to save user message:', err));
+      }
+
+      // Save Assistant Message
+      fetch(`${BACKEND_URL}/v1/chat/sessions/${id}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'assistant', content: event.text })
+      }).catch(err => console.error('[DB] Failed to save assistant message:', err));
     }
   });
 

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { apiAuthMiddleware } from '../middlewares';
 import { db } from '../db';
 import { constraints, projects, models, tokenBudgets } from '../db/schema';
-import { desc, eq, inArray, sql } from 'drizzle-orm';
+import { desc, eq, inArray, sql, and } from 'drizzle-orm';
 import { retrieveChunks } from '../ai/retriever';
 import { decrypt } from '../utils/encryption';
 import type { AppVariables } from '../types';
@@ -54,11 +54,22 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   let budgetPromise = null;
   let teamProjectsPromise = null;
   
+  const reqProjectId = c.req.header('X-Orch-Project-Id');
+
   if (teamId) {
     if (isTrial) {
       budgetPromise = db.select().from(tokenBudgets).where(eq(tokenBudgets.teamId, teamId));
     }
-    teamProjectsPromise = db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+    
+    if (reqProjectId) {
+      teamProjectsPromise = db.select({ id: projects.id })
+        .from(projects)
+        .where(and(eq(projects.teamId, teamId), eq(projects.id, reqProjectId)));
+    } else {
+      teamProjectsPromise = db.select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.teamId, teamId));
+    }
   }
 
   // Override model if trial model is set

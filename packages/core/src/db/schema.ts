@@ -139,3 +139,12 @@ export const constraintChunks = pgTable('constraint_chunks', {
   embedding: text('embedding'), // Cast to vector(3072) via raw SQL
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const chatMessages = pgTable('chat_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(), // 'user', 'assistant', 'system', 'tool'
+  content: text('content').notNull(),
+  toolCalls: jsonb('tool_calls'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

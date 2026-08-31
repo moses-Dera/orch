@@ -5,14 +5,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { PageShell } from "@/components/layout/PageShell"
 import { PageSkeleton } from "@/components/shared/LoadingSkeleton"
 import { HealthBadge } from "@/components/shared/HealthBadge"
-import { EmptyState } from "@/components/shared/EmptyState"
 import { Button } from "@/components/ui/button"
 import { useHealth } from "@/hooks/useOrchStatus"
 import { useHasAccess } from "@/hooks/useRole"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { scoreColor } from "@/lib/utils"
-import { NodeCanvas } from "@/components/constraints/NodeCanvas"
 
 const BLANK = {
   id: "", projectId: "", description: "", constraints: "",
@@ -33,9 +31,6 @@ export default function ConstraintsPage() {
   })
 
   const [editing, setEditing] = useState<typeof BLANK | null>(null)
-  const [sandboxPrompt, setSandboxPrompt] = useState("")
-  const [sandboxResult, setSandboxResult] = useState("")
-  const [sandboxLoading, setSandboxLoading] = useState(false)
 
   const upsert = useMutation({
     mutationFn: () => api.upsertConstraint(editing!.id, {
@@ -62,20 +57,6 @@ export default function ConstraintsPage() {
     onError: (e: any) => toast.error(e.message),
   })
 
-  async function runSandbox() {
-    if (!sandboxPrompt.trim()) return
-    setSandboxLoading(true)
-    setSandboxResult("")
-    try {
-      const res = await api.ask({ user_prompt: sandboxPrompt, domain: "auto", model: "auto", session_id: null })
-      setSandboxResult(res.structured_output)
-    } catch (e: any) {
-      toast.error(e.message)
-    } finally {
-      setSandboxLoading(false)
-    }
-  }
-
   if (healthLoading || constraintsLoading) return <PageSkeleton />
 
   const constraints = constraintsData?.constraints ?? []
@@ -84,198 +65,210 @@ export default function ConstraintsPage() {
   return (
     <PageShell
       title="Constraints"
-      description="Manage constraint profiles and test them in the sandbox."
+      description="Manage semantic rules and code standards."
       action={isAdmin ? (
-        <Button size="sm" onClick={() => setEditing({ ...BLANK })}>
+        <Button size="sm" onClick={() => setEditing({ ...BLANK, projectId: projects[0]?.id ?? "" })}>
           + New Constraint
         </Button>
       ) : undefined}
     >
-      <div className="space-y-6">
-
-        {/* Editor */}
-        {editing && (
-          <div className="rounded-lg border bg-[var(--surface)] p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium">{editing.id ? `Edit: ${editing.id}` : "New Constraint"}</h2>
-              <Button size="sm" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                placeholder="ID (e.g. backend, my-custom)"
-                value={editing.id}
-                onChange={e => setEditing(f => ({ ...f!, id: e.target.value }))}
-                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              />
-              <select
-                value={editing.projectId}
-                onChange={e => setEditing(f => ({ ...f!, projectId: e.target.value }))}
-                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              >
-                <option value="">Select Project</option>
-                {projects.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-              <input
-                placeholder="Description"
-                value={editing.description}
-                onChange={e => setEditing(f => ({ ...f!, description: e.target.value }))}
-                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              />
-              <input
-                placeholder="Version (e.g. 1.0)"
-                value={editing.version}
-                onChange={e => setEditing(f => ({ ...f!, version: e.target.value }))}
-                className="rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-[var(--text-secondary)]">Visual Constraint Flow</label>
-              </div>
-              <NodeCanvas onSave={(markdown) => setEditing(f => ({ ...f!, constraints: markdown }))} />
-            </div>
-            <details className="space-y-2">
-              <summary className="text-xs text-[var(--text-secondary)] cursor-pointer">Per-model variants (optional)</summary>
-              <div className="space-y-2 pt-2">
-                {(["gpt_variant", "claude_variant", "gemini_variant"] as const).map(key => (
-                  <div key={key}>
-                    <label className="text-xs text-[var(--text-secondary)] capitalize">{key.replace("_", " ")}</label>
-                    <textarea
-                      rows={3}
-                      value={(editing as any)[key]}
-                      onChange={e => setEditing(f => ({ ...f!, [key]: e.target.value }))}
-                      placeholder={`Override for ${key.split("_")[0]} models...`}
-                      className="w-full mt-1 resize-none rounded-md border bg-[var(--background)] px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                    />
-                  </div>
-                ))}
-              </div>
-            </details>
-            <Button
-              disabled={!editing.id || !editing.constraints || upsert.isPending}
-              onClick={() => upsert.mutate()}
-            >
-              {upsert.isPending ? "Saving..." : "Save Constraint"}
-            </Button>
-          </div>
-        )}
-
-        {/* Health scores */}
-        {health && health.scores.length > 0 && (
-          <div className="rounded-lg border bg-[var(--surface)]">
-            <div className="px-5 py-4 border-b">
-              <h2 className="text-sm font-medium">Constraint Health</h2>
-            </div>
-            <div className="divide-y">
-              {health.scores.map((s) => (
-                <div key={s.constraint_id} className="px-5 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-medium">{s.constraint_id}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Column: Constraints List & Health */}
+        <div className={`lg:col-span-${editing ? '5' : '12'} space-y-6 transition-all duration-300`}>
+          
+          {/* Health Summary (if available) */}
+          {health && health.scores.length > 0 && !editing && (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+              <h2 className="text-sm font-medium mb-4">Workspace Health</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {health.scores.map((s) => (
+                  <div key={s.constraint_id} className="p-4 rounded-md bg-[var(--background)] border border-[var(--border)]">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-medium truncate pr-2">{s.constraint_id}</p>
                       <HealthBadge status={s.status} />
                     </div>
-                    <span className={`text-lg font-semibold font-mono ${scoreColor(s.health_score)}`}>
+                    <span className={`text-xl font-bold font-mono ${scoreColor(s.health_score)}`}>
                       {s.health_score.toFixed(0)}
                     </span>
-                  </div>
-                  <div className="mt-2 flex gap-4 text-xs text-[var(--text-secondary)]">
-                    <span>{s.total_requests} requests</span>
-                    <span>{s.total_overrides} overrides</span>
-                    <span>{(s.override_rate * 100).toFixed(1)}% override rate</span>
-                  </div>
-                  {s.recommendation && (
-                    <p className="mt-2 text-xs text-amber-500">{s.recommendation}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Constraint list */}
-        <div className="rounded-lg border bg-[var(--surface)]">
-          <div className="px-5 py-4 border-b">
-            <h2 className="text-sm font-medium">Constraint Profiles</h2>
-          </div>
-          {constraints.length === 0 ? (
-            <div className="p-8 text-center space-y-3">
-              <p className="text-sm font-medium">No active constraints</p>
-              <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
-                Your workspace starts clean. You can create custom rules or load a starter example to test.
-              </p>
-              {isAdmin && (
-                <div className="flex justify-center gap-3 pt-2">
-                  <Button size="sm" variant="outline" onClick={() => setEditing({
-                    id: "backend",
-                    projectId: projects[0]?.id ?? "",
-                    description: "Backend SQL Security",
-                    constraints: "Do not use raw SQL strings. Use ORM or query builder with parameterized bindings.",
-                    gpt_variant: "", claude_variant: "", gemini_variant: "", version: "1.0",
-                  })}>
-                    Load Starter Example
-                  </Button>
-                  <Button size="sm" onClick={() => setEditing({ ...BLANK, projectId: projects[0]?.id ?? "" })}>
-                    + Custom Constraint
-                  </Button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="divide-y">
-              {constraints.map((c: any) => (
-                <div key={c.id} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-sm font-medium">{c.id}</p>
-                    <p className="text-xs text-[var(--text-secondary)]">{c.description} · v{c.version}</p>
-                  </div>
-                  {isAdmin && (
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setEditing({
-                        id: c.id, projectId: c.projectId, description: c.description, constraints: c.constraints,
-                        gpt_variant: c.gpt_variant ?? "", claude_variant: c.claude_variant ?? "",
-                        gemini_variant: c.gemini_variant ?? "", version: c.version,
-                      })}>
-                        Edit
-                      </Button>
-                      {!["backend", "cyber", "blockchain", "general"].includes(c.id) && (
-                        <Button size="sm" variant="outline" onClick={() => del.mutate(c.id)}>
-                          Delete
-                        </Button>
-                      )}
+                    <div className="mt-1 text-[10px] text-[var(--text-secondary)]">
+                      {s.total_requests} requests · {(s.override_rate * 100).toFixed(0)}% overrides
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Sandbox */}
-        <div className="rounded-lg border bg-[var(--surface)]">
-          <div className="px-5 py-4 border-b">
-            <h2 className="text-sm font-medium">Constraint Sandbox</h2>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">Test a prompt against your active constraints.</p>
-          </div>
-          <div className="p-5 space-y-3">
-            <textarea
-              value={sandboxPrompt}
-              onChange={(e) => setSandboxPrompt(e.target.value)}
-              placeholder="Enter a test prompt..."
-              rows={3}
-              className="w-full resize-none rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-            />
-            <Button onClick={runSandbox} disabled={sandboxLoading || !sandboxPrompt.trim()}>
-              {sandboxLoading ? "Running..." : "Test Prompt"}
-            </Button>
-            {sandboxResult && (
-              <pre className="mt-3 rounded-md bg-[var(--background)] border p-4 text-xs whitespace-pre-wrap overflow-x-auto">
-                {sandboxResult}
-              </pre>
+          {/* Constraint List */}
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col h-full min-h-[400px]">
+            <div className="px-5 py-4 border-b border-[var(--border)]">
+              <h2 className="text-sm font-medium">Active Profiles</h2>
+            </div>
+            
+            {constraints.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <p className="text-sm font-medium mb-2">No active constraints</p>
+                <p className="text-xs text-[var(--text-secondary)] max-w-sm">
+                  Define markdown rules to enforce architecture and security standards.
+                </p>
+                {isAdmin && (
+                  <Button className="mt-4" size="sm" onClick={() => setEditing({ ...BLANK, projectId: projects[0]?.id ?? "" })}>
+                    Create First Constraint
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-[var(--border)]">
+                {constraints.map((c: any) => (
+                  <div 
+                    key={c.id} 
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 transition-colors cursor-pointer hover:bg-[var(--background)] ${editing?.id === c.id ? 'bg-[var(--background)] border-l-2 border-l-[var(--accent)]' : 'border-l-2 border-l-transparent'}`}
+                    onClick={() => setEditing({
+                      id: c.id, projectId: c.projectId, description: c.description, constraints: c.constraints,
+                      gpt_variant: c.gpt_variant ?? "", claude_variant: c.claude_variant ?? "",
+                      gemini_variant: c.gemini_variant ?? "", version: c.version,
+                    })}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{c.id}</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">{c.description} · v{c.version}</p>
+                    </div>
+                    {isAdmin && (
+                      <div className="flex gap-2 mt-3 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100">
+                        <Button size="sm" variant="outline" onClick={(e) => {
+                          e.stopPropagation();
+                          setEditing({
+                            id: c.id, projectId: c.projectId, description: c.description, constraints: c.constraints,
+                            gpt_variant: c.gpt_variant ?? "", claude_variant: c.claude_variant ?? "",
+                            gemini_variant: c.gemini_variant ?? "", version: c.version,
+                          });
+                        }}>
+                          Edit
+                        </Button>
+                        {!["backend", "cyber", "blockchain", "general"].includes(c.id) && (
+                          <Button size="sm" variant="outline" onClick={(e) => {
+                            e.stopPropagation();
+                            del.mutate(c.id);
+                          }}>
+                            Delete
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
+
+        {/* Right Column: Editor Side Panel */}
+        {editing && (
+          <div className="lg:col-span-7 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col h-[calc(100vh-140px)] sticky top-[80px]">
+            <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--background)]/50">
+              <h2 className="text-sm font-medium">{editing.id ? `Edit Constraint: ${editing.id}` : "New Constraint"}</h2>
+              <button onClick={() => setEditing(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs">
+                Close
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {/* Metadata Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[var(--text-secondary)]">Identifier ID</label>
+                  <input
+                    placeholder="e.g. backend-auth"
+                    value={editing.id}
+                    onChange={e => setEditing(f => ({ ...f!, id: e.target.value }))}
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[var(--text-secondary)]">Target Project</label>
+                  <select
+                    value={editing.projectId}
+                    onChange={e => setEditing(f => ({ ...f!, projectId: e.target.value }))}
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  >
+                    <option value="">Select Project</option>
+                    {projects.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-xs font-medium text-[var(--text-secondary)]">Description</label>
+                  <input
+                    placeholder="What does this constraint enforce?"
+                    value={editing.description}
+                    onChange={e => setEditing(f => ({ ...f!, description: e.target.value }))}
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[var(--text-secondary)]">Version</label>
+                  <input
+                    placeholder="e.g. 1.0"
+                    value={editing.version}
+                    onChange={e => setEditing(f => ({ ...f!, version: e.target.value }))}
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  />
+                </div>
+              </div>
+
+              {/* Main Markdown Editor */}
+              <div className="space-y-1.5 flex-1 flex flex-col">
+                <label className="text-xs font-medium text-[var(--text-secondary)] flex justify-between">
+                  <span>Rules & Standards (Markdown)</span>
+                </label>
+                <textarea
+                  value={editing.constraints}
+                  onChange={e => setEditing(f => ({ ...f!, constraints: e.target.value }))}
+                  placeholder="Define your rules using markdown... \n\n1. Do not use raw SQL.\n2. Always type-check API inputs."
+                  className="w-full flex-1 min-h-[250px] resize-none rounded-md border border-[var(--border)] bg-[var(--background)] p-4 text-sm font-mono leading-relaxed outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                />
+              </div>
+
+              {/* Advanced Model Overrides */}
+              <details className="space-y-3 group border border-[var(--border)] rounded-md p-4 bg-[var(--background)]/30">
+                <summary className="text-xs font-medium text-[var(--text-secondary)] cursor-pointer select-none">
+                  Model-Specific Overrides (Optional)
+                </summary>
+                <div className="space-y-4 pt-3">
+                  {(["gpt_variant", "claude_variant", "gemini_variant"] as const).map(key => (
+                    <div key={key}>
+                      <label className="text-[10px] uppercase font-bold text-[var(--text-secondary)] tracking-wider mb-1 block">
+                        {key.split("_")[0]}
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={(editing as any)[key]}
+                        onChange={e => setEditing(f => ({ ...f!, [key]: e.target.value }))}
+                        placeholder={`Specific prompt tweaking for ${key.split("_")[0]}...`}
+                        className="w-full resize-none rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-mono outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+            
+            <div className="px-5 py-4 border-t border-[var(--border)] bg-[var(--background)]/50 flex justify-end gap-3">
+              <Button size="sm" variant="outline" onClick={() => setEditing(null)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!editing.id || !editing.constraints || upsert.isPending}
+                onClick={() => upsert.mutate()}
+              >
+                {upsert.isPending ? "Saving..." : "Save Constraint"}
+              </Button>
+            </div>
+          </div>
+        )}
 
       </div>
     </PageShell>

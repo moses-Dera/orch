@@ -13,6 +13,9 @@ import { useChat } from "@ai-sdk/react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { ChatSidebar } from "@/components/layout/ChatSidebar";
+import { v4 as uuidv4 } from "uuid";
+import { Menu } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Feedback = "up" | "down" | null;
@@ -48,7 +51,7 @@ function CodeBlock({ language, children }: { language: string; children: string 
   };
   return (
     <div className="relative group my-3 rounded-xl overflow-hidden border border-[var(--border)]">
-      <div className="flex items-center justify-between px-4 py-1.5 bg-[#1a1a2e] text-[10px] text-zinc-400 font-mono">
+      <div className="flex items-center justify-between px-4 py-1.5 bg-[var(--surface)] text-[10px] text-[var(--text-secondary)] font-mono border-b border-[var(--border)]">
         <span>{language || "code"}</span>
         <button onClick={copy} className="flex items-center gap-1 hover:text-white transition-colors">
           {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -58,7 +61,7 @@ function CodeBlock({ language, children }: { language: string; children: string 
       <SyntaxHighlighter
         language={language || "text"}
         style={oneDark}
-        customStyle={{ margin: 0, borderRadius: 0, fontSize: "0.8rem" }}
+        customStyle={{ margin: 0, borderRadius: 0, fontSize: "0.8rem", backgroundColor: 'var(--background)' }}
         PreTag="div"
       >
         {children}
@@ -113,11 +116,11 @@ function CopyButton({ text }: { text: string }) {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-const WELCOME = {
+const getWelcomeMessage = (teamName?: string) => ({
   id: "welcome",
   role: "assistant" as const,
-  parts: [{ type: "text", text: "Hello! I am the Orchestrator CTO AI Assistant. How can I help you design architectures or review constraints today?" }],
-};
+  parts: [{ type: "text", text: `Hello! I am the Orchestrator CTO AI Assistant${teamName ? ` for **${teamName}**` : ''}. How can I help you design architectures or review constraints today?` }],
+});
 
 const SUGGESTIONS = [
   "Draft a new security constraint",
@@ -135,9 +138,25 @@ export default function AssistantPage() {
   const [editText, setEditText] = useState("");
   const [tokenCount, setTokenCount] = useState<number | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => uuidv4());
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  const { data: statusData } = useQuery({ queryKey: ["status"], queryFn: api.status });
+  const { data: projectsData } = useQuery({ queryKey: ["projects"], queryFn: api.listProjects });
+  const { data: sessionsData, refetch: refetchSessions } = useQuery({ queryKey: ["chat-sessions"], queryFn: api.chatSessions });
+
+  const currentWelcome = getWelcomeMessage(statusData?.team);
+  
+  // Whenever activeSessionId changes, refetch messages for that session
+  const { data: sessionMessages, isLoading: isMessagesLoading } = useQuery({
+    queryKey: ["chat-messages", activeSessionId],
+    queryFn: () => api.chatMessages(activeSessionId),
+    enabled: !!activeSessionId
+  });
 
   useEffect(() => {
     if (modelsData?.models && modelsData.models.length > 0 && !selectedModel) {
@@ -146,18 +165,40 @@ export default function AssistantPage() {
   }, [modelsData, selectedModel]);
 
   const { messages, sendMessage, stop, regenerate, status, error, setMessages } = useChat({
-    messages: [WELCOME as any],
-    onFinish: (event: any) => {
-      const usage = event?.usage || event?.options?.usage || event?.message?.usage || (event as any)?.totalTokens ? { totalTokens: event.totalTokens } : null;
+    id: activeSessionId,
+    initialMessages: [currentWelcome as any] as any,
+    onFinish: (message: any, options?: any) => {
+      const usage = options?.usage || message?.usage;
       if (usage?.totalTokens) setTokenCount((prev) => (prev ?? 0) + usage.totalTokens);
+      refetchSessions(); // Refresh sidebar to show newly created session
     },
   });
+
+  // When sessionMessages loads, set the messages in the chat
+  useEffect(() => {
+    if (sessionMessages?.messages && sessionMessages.messages.length > 0) {
+      // Map DB messages to Vercel AI SDK format
+      const formatted = sessionMessages.messages.map(m => ({
+        id: m.id.toString(),
+        role: m.role,
+        content: m.content || "",
+        toolInvocations: m.toolCalls ? m.toolCalls : undefined,
+      }));
+      // Only set if we haven't already locally optimistically appended them
+      if (messages.length <= 1 || (messages[0]?.id === "welcome" && messages.length === 1)) {
+        setMessages(formatted as any);
+      }
+    } else if (!isMessagesLoading && activeSessionId) {
+      // It's a new chat, reset to welcome
+      setMessages([currentWelcome as any]);
+    }
+  }, [sessionMessages, activeSessionId, isMessagesLoading, statusData]);
 
   const isLoading = status === "streaming" || status === "submitted";
 
   // Auto-scroll
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: isLoading ? "auto" : "smooth" });
   }, [messages, isLoading]);
 
   // Auto-resize textarea
@@ -191,13 +232,15 @@ export default function AssistantPage() {
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
-    sendMessage({ text: input }, { body: { model: selectedModel } });
+    sendMessage({ text: input }, { body: { model: selectedModel, project_id: selectedProjectId } });
     setInput("");
     setTokenCount(null);
   };
 
   const handleClear = () => {
-    setMessages([WELCOME as any]);
+    const newId = uuidv4();
+    setActiveSessionId(newId);
+    setMessages([currentWelcome as any]);
     setFeedback({});
     setTokenCount(null);
   };
@@ -218,7 +261,7 @@ export default function AssistantPage() {
     if (idx === -1) return;
     // Trim history to just before this message, then re-send
     setMessages(messages.slice(0, idx) as any);
-    sendMessage({ text: editText }, { body: { model: selectedModel } });
+    sendMessage({ text: editText }, { body: { model: selectedModel, project_id: selectedProjectId } });
     setEditingId(null);
   };
 
@@ -226,14 +269,43 @@ export default function AssistantPage() {
   const lastAssistantId = lastAssistantIdx >= 0 ? messages[messages.length - 1 - lastAssistantIdx]?.id : null;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] w-full max-w-4xl mx-auto p-4 md:p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)]">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-full text-xs font-medium">
-            Active Context: Workspace Constraints
+    <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden">
+      <ChatSidebar 
+        sessions={sessionsData?.sessions || []}
+        activeSessionId={activeSessionId}
+        onSelectSession={(id) => setActiveSessionId(id)}
+        onNewChat={handleClear}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+      />
+
+      <div className="flex flex-col flex-1 h-full w-full max-w-4xl mx-auto p-4 md:p-6 relative">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button 
+              className="md:hidden p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu size={16} />
+            </button>
+            <div className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-full text-xs font-medium">
+              Active Context:
+            </div>
+            
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="bg-[var(--surface)] text-[var(--text-primary)] px-3 py-1 rounded-full text-xs font-medium border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer hover:bg-[var(--background)] transition-colors max-w-[180px] truncate"
+            >
+              <option value="">All Workspace Constraints</option>
+              {projectsData?.projects?.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.name || p.githubRepoFullName || p.id}</option>
+              ))}
+            </select>
           </div>
-          {(modelsData?.models?.length ?? 0) > 0 && (
+
+          {(modelsData?.models?.length ?? 0) > 0 ? (
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
@@ -243,6 +315,13 @@ export default function AssistantPage() {
                 <option key={m.id} value={m.id}>{m.name || m.id}</option>
               ))}
             </select>
+          ) : (
+            <a
+              href="/models"
+              className="bg-amber-500/10 text-amber-600 px-3 py-1 rounded-full text-xs font-medium border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+            >
+              Add API Key
+            </a>
           )}
           {tokenCount !== null && (
             <div className="text-[10px] text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 rounded-full font-mono">
@@ -303,7 +382,7 @@ export default function AssistantPage() {
 
               <div className={`flex flex-col gap-1.5 max-w-[85%] sm:max-w-[75%] ${isUser ? "items-end" : "items-start"}`}>
                 {/* Tool calls */}
-                {m.toolInvocations?.map((toolInvocation: any, i: number) => {
+                {(m as any).toolInvocations?.map((toolInvocation: any, i: number) => {
                   const toolName = toolInvocation.toolName;
                   const isComplete = "result" in toolInvocation;
                   return (

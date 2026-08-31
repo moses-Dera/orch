@@ -29,7 +29,13 @@ export function useRole(): Role {
                // @ts-ignore fallback if custom claim template is used
                session?.claims?.metadata?.role
                
-  return (role as Role) ?? "member"
+  return (role as Role) ?? "admin"
+}
+
+export function useIsRoleLoading(): boolean {
+  const { isLoaded } = useUser()
+  const { isLoading } = useMe()
+  return !isLoaded || isLoading
 }
 
 export function useHasAccess(minimum: Role): boolean {

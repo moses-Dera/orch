@@ -12,7 +12,6 @@ export function Header() {
   const { theme, toggle } = useTheme()
 
   const hasConfiguredModels = models && models.models && models.models.length > 0;
-  const isTrial = models !== undefined && !hasConfiguredModels;
 
   return (
     <header className="hidden md:flex fixed top-0 left-[220px] right-0 h-14 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md items-center justify-between px-4 lg:px-6 z-10">
@@ -29,11 +28,6 @@ export function Header() {
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {isTrial && (
-          <a href="/models" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors mr-2">
-            Trial Mode - Add API Key
-          </a>
-        )}
         <button
           onClick={toggle}
           className="w-8 h-8 flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
