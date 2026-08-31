@@ -365,10 +365,18 @@ dashboardRouter.get('/audit/me', async (c) => {
   const teamId = c.get('teamId');
   const userId = c.get('userId');
   const limit = parseInt(c.req.query('limit') || '50');
-  
-  const teamSessions = await db.select().from(sessions).where(eq(sessions.teamId, teamId)).orderBy(desc(sessions.createdAt)).limit(limit);
-  const mySessions = teamSessions.filter(s => s.userId === userId || !userId); // fallback if userId missing
-  
+
+  // Filter by userId in the DB query — never pull all sessions and filter in memory
+  // (Bug #12 fix: !userId fallback previously returned ALL team sessions to any caller)
+  if (!userId) {
+    return c.json({ sessions: [] });
+  }
+
+  const mySessions = await db.select().from(sessions)
+    .where(and(eq(sessions.teamId, teamId), eq(sessions.userId, userId)))
+    .orderBy(desc(sessions.createdAt))
+    .limit(limit);
+
   return c.json({
     sessions: mySessions.map(s => ({
       session_id: s.id,
@@ -529,14 +537,25 @@ dashboardRouter.get('/registry', async (c) => {
 dashboardRouter.post('/provider/models', async (c) => {
   const body = await c.req.json();
   const { baseUrl, apiKey } = body;
-  
+
   if (!baseUrl) {
     return c.json({ error: 'baseUrl is required' }, 400);
   }
 
-  // Prevent local/private IP SSRF
-  if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
-    return c.json({ error: 'Localhost endpoints are not supported.' }, 400);
+  // Prevent SSRF — block localhost AND all RFC 1918 / link-local / cloud-metadata ranges
+  // (Bug #19 fix: old check only blocked localhost/127.0.0.1, not 10.x, 192.168.x, etc.)
+  const blockedPatterns = [
+    /localhost/i,
+    /127\.\d+\.\d+\.\d+/,
+    /10\.\d+\.\d+\.\d+/,
+    /172\.(1[6-9]|2[0-9]|3[01])\.\d+\.\d+/,
+    /192\.168\.\d+\.\d+/,
+    /169\.254\.\d+\.\d+/,  // AWS metadata
+    /::1/,
+    /fd[0-9a-f]{2}:/i,     // IPv6 ULA
+  ];
+  if (blockedPatterns.some((p) => p.test(baseUrl))) {
+    return c.json({ error: 'Private or local endpoints are not supported.' }, 400);
   }
 
   try {
@@ -546,7 +565,8 @@ dashboardRouter.post('/provider/models', async (c) => {
         'Content-Type': 'application/json'
       } : {
         'Content-Type': 'application/json'
-      }
+      },
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
@@ -571,20 +591,36 @@ dashboardRouter.get('/members', async (c) => {
   const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
   if (!team) return c.json({ error: 'Team not found' }, 404);
 
-  // MOCK: Return a mock list of members for the prototype
-  // In production, this would join with team_members and users tables
-  return c.json({
-    team: team.name,
-    members: [
-      {
-        id: team.userId,
-        email: "founder@company.com",
-        name: "Founder",
+  // Fetch real users from the DB instead of hardcoded mock data
+  // (Bug #18 fix: was returning "founder@company.com" for every user)
+  const { users } = await import('../db/schema');
+  let memberList: any[] = [];
+
+  if (team.userId) {
+    const [owner] = await db.select().from(users).where(eq(users.id, team.userId));
+    if (owner) {
+      memberList.push({
+        id: owner.id,
+        email: owner.email,
+        name: [owner.firstName, owner.lastName].filter(Boolean).join(' ') || owner.email,
         last_active: new Date().toISOString(),
-        role: "owner"
-      }
-    ]
-  });
+        role: 'owner',
+      });
+    }
+  }
+
+  // Fallback if user record not found yet (e.g. Clerk user not yet synced)
+  if (memberList.length === 0) {
+    memberList.push({
+      id: team.userId || 'unknown',
+      email: 'owner@team',
+      name: 'Owner',
+      last_active: new Date().toISOString(),
+      role: 'owner',
+    });
+  }
+
+  return c.json({ team: team.name, members: memberList });
 });
 
 // POST /v1/dashboard/members/invite

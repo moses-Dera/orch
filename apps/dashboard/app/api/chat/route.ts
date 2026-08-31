@@ -8,7 +8,9 @@ import { EventSource } from 'eventsource';
 
 // @ts-ignore - Polyfill EventSource for Node.js runtime so the MCP SDK doesn't crash
 global.EventSource = EventSource as any;
-export const maxDuration = 60;
+// 300s = Vercel Pro max for streaming functions. Hobby plan is capped at 60s.
+// If on Hobby, responses >60s will still timeout — upgrade plan or optimize provider latency.
+export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 const BACKEND_URL = process.env.ORCH_API_URL || 'http://127.0.0.1:3001';

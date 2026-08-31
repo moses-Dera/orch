@@ -8,7 +8,24 @@ import { eq } from 'drizzle-orm';
 
 // Re-export standard middlewares
 export const globalLogger = logger();
-export const globalCors = cors();
+
+// Restrict CORS to known origins only (Bug #7 fix: was cors() with no options = allow all)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim());
+
+export const globalCors = cors({
+  origin: (origin) => {
+    if (!origin) return null; // non-browser / server-to-server requests
+    if (allowedOrigins.some((allowed) => origin === allowed || origin.endsWith(`.${allowed.replace('https://', '')}`))) {
+      return origin;
+    }
+    return null; // reject unknown origins
+  },
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Clerk-User-Id'],
+  credentials: true,
+});
 
 // Custom Middleware: Verifies API Keys for the AI Gateway
 export const apiAuthMiddleware = createMiddleware(async (c, next) => {

@@ -95,8 +95,58 @@ githubApp.webhooks.on('pull_request.opened', async ({ octokit, payload }) => {
 });
 
 githubApp.webhooks.on('pull_request.synchronize', async ({ octokit, payload }) => {
-  // Re-evaluate when new commits are pushed
-  console.log(`Re-evaluating PR ${payload.pull_request.number}`);
+  console.log(`Re-evaluating PR ${payload.pull_request.number} after new commits`);
+
+  const { data: diff } = await octokit.rest.pulls.get({
+    owner: payload.repository.owner.login,
+    repo: payload.repository.name,
+    pull_number: payload.pull_request.number,
+    mediaType: { format: 'diff' },
+  });
+
+  const installationId = String(payload.installation?.id);
+  const repoFullName = payload.repository.full_name;
+
+  const [installation] = await db.select().from(teamGithubInstallations).where(eq(teamGithubInstallations.installationId, installationId));
+  if (!installation) return;
+
+  const [project] = await db.select().from(projects).where(
+    and(eq(projects.teamId, installation.teamId), eq(projects.githubRepoFullName, repoFullName))
+  );
+  if (!project) return;
+
+  const teamConstraints = await db.select().from(constraints).where(eq(constraints.projectId, project.id));
+  const constraintIds = teamConstraints.map((c) => c.id);
+  const fallbackRules = teamConstraints.map((c) => `[${c.id}] ${c.description}\n${c.content}`).join('\n\n');
+
+  const context = {
+    title: payload.pull_request.title,
+    description: payload.pull_request.body || '',
+    repoName: payload.repository.full_name,
+  };
+
+  const result = await evaluateDiff(String(diff), constraintIds, installation.teamId, context, fallbackRules);
+
+  await db.insert(githubEvaluations).values({
+    projectId: project.id,
+    pullRequestNumber: payload.pull_request.number,
+    status: result.status,
+  });
+
+  const reviewComments = result.violations?.map(v => ({
+    path: v.file,
+    line: v.line,
+    body: `**Violates Constraint:** ${v.rule}\n\n${v.explanation}`,
+  })) || [];
+
+  await octokit.rest.pulls.createReview({
+    owner: payload.repository.owner.login,
+    repo: payload.repository.name,
+    pull_number: payload.pull_request.number,
+    body: `### Orch Re-evaluation 🛡️\n\n**Status:** ${result.status === 'CLEAN' ? '✅ Pass' : '❌ Violations Detected'}\n\n${result.explanation}`,
+    event: result.status === 'CLEAN' ? 'APPROVE' : 'REQUEST_CHANGES',
+    comments: reviewComments.length > 0 ? reviewComments : undefined,
+  });
 });
 
 // The Hono route that receives the webhook payload from GitHub

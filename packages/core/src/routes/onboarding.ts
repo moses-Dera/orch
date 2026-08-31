@@ -122,6 +122,11 @@ onboardingRouter.post('/session-key', async (c) => {
     ? (userTeams.find((t) => t.orgId === org_id) ?? userTeams[0])
     : userTeams[0];
 
+  // Delete any previous session-generated keys for this team before creating a new one.
+  // This prevents unbounded orphaned key accumulation when users lose their cookie.
+  // (Bug #9 fix: each session restore was INSERT-only, never cleaning up old keys)
+  await db.delete(apiKeys).where(eq(apiKeys.teamId, team.id));
+
   const rawKey = `orch_${crypto.randomBytes(16).toString('hex')}`;
   const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
   await db.insert(apiKeys).values({ teamId: team.id, keyHash });
