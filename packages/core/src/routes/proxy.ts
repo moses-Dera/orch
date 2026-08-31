@@ -50,9 +50,25 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
     }
   }
 
-  // Enforce Trial Token Budget
-  if (isTrial && teamId) {
-    const [budget] = await db.select().from(tokenBudgets).where(eq(tokenBudgets.teamId, teamId));
+  // Enforce Trial Token Budget & Fetch Projects in parallel
+  let budgetPromise = null;
+  let teamProjectsPromise = null;
+  
+  if (teamId) {
+    if (isTrial) {
+      budgetPromise = db.select().from(tokenBudgets).where(eq(tokenBudgets.teamId, teamId));
+    }
+    teamProjectsPromise = db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+  }
+
+  // Override model if trial model is set
+  if (isTrial && process.env.TRIAL_MODEL) {
+    body.model = process.env.TRIAL_MODEL;
+  }
+
+  if (isTrial && budgetPromise) {
+    const budgetRes = await budgetPromise;
+    const budget = budgetRes[0];
     if (budget && budget.consumedTokens >= budget.allocatedTokens) {
       return c.json({
         error: 'Trial Expired',
@@ -79,9 +95,9 @@ proxyRouter.post('/chat/completions', apiAuthMiddleware, async (c) => {
   //    In trial mode, teamId is empty so DB queries return nothing — trial users get no constraints
   let systemConstraints = '';
 
-  if (teamId) {
+  if (teamId && teamProjectsPromise) {
     try {
-      const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+      const teamProjects = await teamProjectsPromise;
       const projectIds = teamProjects.map((p) => p.id);
 
       const teamConstraints = projectIds.length > 0
