@@ -172,7 +172,7 @@ export default function AssistantPage() {
       if (usage?.totalTokens) setTokenCount((prev) => (prev ?? 0) + usage.totalTokens);
       refetchSessions(); // Refresh sidebar to show newly created session
     },
-  });
+  } as any);
 
   // When sessionMessages loads, set the messages in the chat
   useEffect(() => {
