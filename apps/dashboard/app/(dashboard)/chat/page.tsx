@@ -15,7 +15,9 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { ChatSidebar } from "@/components/layout/ChatSidebar";
 import { v4 as uuidv4 } from "uuid";
-import { Menu } from "lucide-react";
+import { History, MessageSquare, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { formatDistanceToNow } from "date-fns";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Feedback = "up" | "down" | null;
@@ -270,25 +272,66 @@ export default function AssistantPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden">
-      <ChatSidebar 
-        sessions={sessionsData?.sessions || []}
-        activeSessionId={activeSessionId}
-        onSelectSession={(id) => setActiveSessionId(id)}
-        onNewChat={handleClear}
-        isOpen={isSidebarOpen}
-        setIsOpen={setIsSidebarOpen}
-      />
-
       <div className="flex flex-col flex-1 h-full w-full max-w-4xl mx-auto p-4 md:p-6 relative">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)]">
           <div className="flex items-center gap-2 flex-wrap">
-            <button 
-              className="md:hidden p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all"
-              onClick={() => setIsSidebarOpen(true)}
-            >
-              <Menu size={16} />
-            </button>
+            <Dialog open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+              <DialogTrigger asChild>
+                <button 
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-xs font-medium"
+                >
+                  <History size={14} />
+                  History
+                </button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md max-h-[85vh] flex flex-col bg-[var(--background)] border-[var(--border)] p-0 gap-0">
+                <DialogHeader className="p-4 border-b border-[var(--border)]">
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="text-base text-[var(--text-primary)]">Chat History</DialogTitle>
+                    <button
+                      onClick={() => { handleClear(); setIsSidebarOpen(false); }}
+                      className="flex items-center gap-1.5 bg-[var(--surface)] hover:bg-[var(--border)] text-[var(--text-primary)] px-3 py-1.5 rounded-lg transition-colors font-medium text-xs border border-[var(--border)]"
+                    >
+                      <Plus size={14} />
+                      New Chat
+                    </button>
+                  </div>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto p-2 min-h-[300px]">
+                  {(!sessionsData?.sessions || sessionsData.sessions.length === 0) ? (
+                    <div className="text-xs text-[var(--text-secondary)] text-center mt-8">
+                      No chat history yet.
+                    </div>
+                  ) : (
+                    sessionsData.sessions.map((session: any) => (
+                      <button
+                        key={session.id}
+                        onClick={() => {
+                          setActiveSessionId(session.id);
+                          setIsSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left text-sm transition-colors group ${
+                          activeSessionId === session.id
+                            ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                            : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
+                        }`}
+                      >
+                        <MessageSquare size={16} className="shrink-0" />
+                        <div className="flex-1 truncate">
+                          <div className="truncate font-medium text-[var(--text-primary)]">
+                            {session.id.slice(0, 8)}...
+                          </div>
+                          <div className="text-[10px] opacity-70">
+                            {formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
             <div className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-full text-xs font-medium">
               Active Context:
             </div>

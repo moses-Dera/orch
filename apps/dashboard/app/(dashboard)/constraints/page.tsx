@@ -75,7 +75,7 @@ export default function ConstraintsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Column: Constraints List & Health */}
-        <div className={`lg:col-span-${editing ? '5' : '12'} space-y-6 transition-all duration-300`}>
+        <div className={`${editing ? 'lg:col-span-5' : 'lg:col-span-12'} space-y-6 transition-all duration-300`}>
           
           {/* Health Summary (if available) */}
           {health && health.scores.length > 0 && !editing && (
