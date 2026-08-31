@@ -39,7 +39,7 @@ export default function SignInPage() {
           await clerk.authenticateWithRedirect({
             strategy,
             redirectUrl: '/sso-callback',
-            redirectUrlComplete: '/',
+            redirectUrlComplete: '/constraints',
           });
           return;
         }
@@ -49,7 +49,7 @@ export default function SignInPage() {
           await clerk.client.signIn.authenticateWithRedirect({
             strategy,
             redirectUrl: '/sso-callback',
-            redirectUrlComplete: '/',
+            redirectUrlComplete: '/constraints',
           });
           return;
         }
