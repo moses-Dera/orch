@@ -69,7 +69,7 @@ export default function OnboardingContent() {
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
           clearInterval(t)
-          window.location.href = "/"
+          window.location.href = "/constraints"
           return 0
         }
         return prev - 1
@@ -90,7 +90,7 @@ export default function OnboardingContent() {
     try {
       await acceptInvite(token)
       toast.success("Invite accepted. Welcome to Orch.")
-      window.location.href = "/"
+      window.location.href = "/constraints"
     } catch (e: any) {
       toast.error(e.message)
       setFlow("choose")
@@ -163,7 +163,7 @@ export default function OnboardingContent() {
           </div>
           <p className="text-xs text-amber-500">This is the only time this key will be shown in full.</p>
         </div>
-        <Button className="w-full" onClick={() => window.location.href = "/"}>
+        <Button className="w-full" onClick={() => window.location.href = "/constraints"}>
           Go to Dashboard {countdown !== null && countdown > 0 ? `(${countdown})` : ""}
         </Button>
       </div>
