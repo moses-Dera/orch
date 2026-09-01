@@ -142,13 +142,11 @@ export default function AssistantPage() {
   const [isListening, setIsListening] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string>(() => uuidv4());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
 
   const { data: statusData } = useQuery({ queryKey: ["status"], queryFn: api.status });
-  const { data: projectsData } = useQuery({ queryKey: ["projects"], queryFn: api.listProjects });
   const { data: sessionsData, refetch: refetchSessions } = useQuery({ queryKey: ["chat-sessions"], queryFn: api.chatSessions });
 
   const currentWelcome = getWelcomeMessage(statusData?.team);
@@ -234,7 +232,7 @@ export default function AssistantPage() {
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
-    sendMessage({ text: input }, { body: { model: selectedModel, project_id: selectedProjectId } });
+    sendMessage({ text: input }, { body: { model: selectedModel } });
     setInput("");
     setTokenCount(null);
   };
@@ -263,7 +261,7 @@ export default function AssistantPage() {
     if (idx === -1) return;
     // Trim history to just before this message, then re-send
     setMessages(messages.slice(0, idx) as any);
-    sendMessage({ text: editText }, { body: { model: selectedModel, project_id: selectedProjectId } });
+    sendMessage({ text: editText }, { body: { model: selectedModel } });
     setEditingId(null);
   };
 
@@ -328,20 +326,7 @@ export default function AssistantPage() {
                 </div>
               </DialogContent>
             </Dialog>
-            <div className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-full text-xs font-medium">
-              Active Context:
-            </div>
-            
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="bg-[var(--surface)] text-[var(--text-primary)] px-3 py-1 rounded-full text-xs font-medium border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer hover:bg-[var(--background)] transition-colors max-w-[180px] truncate"
-            >
-              <option value="">All Workspace Constraints</option>
-              {projectsData?.projects?.map((p: any) => (
-                <option key={p.id} value={p.id}>{p.name || p.githubRepoFullName || p.id}</option>
-              ))}
-            </select>
+
           </div>
 
           {/* Right side of header */}
