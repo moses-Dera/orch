@@ -102,9 +102,12 @@ export async function askStream(
                 if (data === '[DONE]') { onDone(); return; }
                 try {
                     const event = JSON.parse(data);
-                    if (event.type === 'meta') { onMeta(event); }
-                    else if (event.type === 'chunk') { onChunk(event.content); }
-                    else if (event.type === 'error') { onError(event.message); }
+                    if (event.choices?.[0]?.delta?.content) {
+                        onChunk(event.choices[0].delta.content);
+                    }
+                    if (event.error) {
+                        onError(event.error.message || 'Upstream Error');
+                    }
                 } catch {}
             }
         });

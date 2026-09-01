@@ -6,4 +6,7 @@ export type AppVariables = {
   teamId: string;
   userId?: string;
   isTrial: boolean;
+  llmApiKey: string | null;
+  llmEndpoint: string;
+  llmModel: string;
 };

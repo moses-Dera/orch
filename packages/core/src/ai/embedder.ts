@@ -27,38 +27,28 @@ function chunkText(text: string): string[] {
   return chunks;
 }
 
+import { pipeline } from '@xenova/transformers';
+
+class Embedder {
+  static instance: any = null;
+  static async getInstance() {
+    if (!this.instance) {
+      this.instance = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+        quantized: true, // Use int8 for speed
+      });
+    }
+    return this.instance;
+  }
+}
+
 /**
- * Embed a single string using the Google Gemini Embeddings API.
- * Free tier: 1,500 requests/day — no credit card required.
- * Model: text-embedding-004, 768 dimensions.
+ * Embed a single string using local HuggingFace transformers.
+ * Model: all-MiniLM-L6-v2, 384 dimensions.
  */
 async function embedText(text: string): Promise<number[]> {
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not set. Required for RAG embeddings. Get a free key at https://aistudio.google.com/apikey');
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/${GEMINI_EMBEDDING_MODEL}:embedContent?key=${apiKey}`;
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: GEMINI_EMBEDDING_MODEL,
-      content: {
-        parts: [{ text }],
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini Embedding API error ${res.status}: ${err}`);
-  }
-
-  const data = await res.json() as any;
-  return data.embedding.values as number[];
+  const embedder = await Embedder.getInstance();
+  const output = await embedder(text, { pooling: 'mean', normalize: true });
+  return Array.from(output.data);
 }
 
 /**

@@ -27,6 +27,22 @@ chatRouter.get('/sessions', async (c) => {
   return c.json({ sessions: teamSessions });
 });
 
+// GET /v1/chat/sessions/:id
+chatRouter.get('/sessions/:id', async (c) => {
+  const teamId = c.get('teamId');
+  const sessionId = c.req.param('id');
+
+  const [session] = await db.select()
+    .from(sessions)
+    .where(and(eq(sessions.id, sessionId), eq(sessions.teamId, teamId)));
+
+  if (!session) {
+    return c.json({ error: 'Session not found' }, 404);
+  }
+
+  return c.json({ session });
+});
+
 // GET /v1/chat/sessions/:id/messages
 chatRouter.get('/sessions/:id/messages', async (c) => {
   const teamId = c.get('teamId');

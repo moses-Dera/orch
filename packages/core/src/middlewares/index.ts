@@ -3,7 +3,8 @@ import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
 import crypto from 'node:crypto';
 import { db } from '../db';
-import { apiKeys, teams } from '../db/schema';
+import { apiKeys, teams, models } from '../db/schema';
+import { decrypt } from '../utils/encryption';
 import { eq } from 'drizzle-orm';
 
 // Re-export standard middlewares
@@ -83,5 +84,77 @@ export const cliAuthMiddleware = createMiddleware(async (c, next) => {
   }
   
   c.set('teamId', apiKeyRecord.teamId);
+  await next();
+});
+
+// Custom Middleware: Resolves BYOK configuration and handles Custom Endpoints
+
+
+export const llmProviderMiddleware = createMiddleware(async (c, next) => {
+  const teamId = c.get('teamId');
+  if (!teamId) {
+    return c.json({ error: 'Team context required' }, 400);
+  }
+
+  // Parse body for requested model overrides (if any)
+  let requestedModel = 'openai/gpt-4o-mini';
+  try {
+    const bodyClone = await c.req.raw.clone().json() as any;
+    if (bodyClone?.model) {
+      requestedModel = bodyClone.model;
+    }
+  } catch (e) {
+    // Ignore JSON parse errors (might be a GET request)
+  }
+
+  const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
+  const modelObj = teamModels[0];
+  const encryptedApiKey = modelObj?.apiKey;
+  let apiKey = encryptedApiKey ? decrypt(encryptedApiKey) : null;
+  let isTrial = c.get('isTrial');
+  let defaultModel = modelObj?.modelId || requestedModel;
+  let endpoint = modelObj?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+
+  if (!apiKey && !isTrial) {
+    apiKey = process.env.TRIAL_API_KEY || null;
+    isTrial = true;
+    if (!apiKey) {
+      return c.json({
+        error: 'Payment Required',
+        message: 'No API key provided and no TRIAL_API_KEY configured. Please add your API key in the Orch dashboard.'
+      }, 402);
+    }
+  }
+
+  if (isTrial && process.env.TRIAL_MODEL) {
+    defaultModel = process.env.TRIAL_MODEL;
+  }
+
+  // Auto-format standard endpoints based on provider rules
+  if (isTrial) {
+    if (process.env.TRIAL_API_URL) {
+      endpoint = process.env.TRIAL_API_URL;
+      if (!endpoint.endsWith('/chat/completions')) {
+        endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+      }
+    } else {
+      const provider = (process.env.TRIAL_PROVIDER || 'openrouter').toLowerCase();
+      if (provider === 'groq') endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+      else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+      else if (provider === 'fireworks') endpoint = 'https://api.fireworks.ai/inference/v1/chat/completions';
+      else if (provider === 'ollama') endpoint = 'http://127.0.0.1:11434/v1/chat/completions';
+      else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+    }
+  } else {
+    // Make sure custom endpoints append /chat/completions if they are OpenAI compatible
+    if (!endpoint.endsWith('/chat/completions')) {
+      endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+    }
+  }
+
+  c.set('llmApiKey', apiKey);
+  c.set('llmModel', defaultModel);
+  c.set('llmEndpoint', endpoint);
+  
   await next();
 });
