@@ -4,6 +4,7 @@ import { UserButton } from "@clerk/nextjs"
 import { useOrchStatus, useModels } from "@/hooks/useOrchStatus"
 import { useTheme } from "@/components/layout/ThemeProvider"
 import { OrgSwitcher } from "@/components/layout/OrgSwitcher"
+import { ProjectSwitcher } from "@/components/layout/ProjectSwitcher"
 import { Sun, Moon } from "lucide-react"
 
 export function Header() {
@@ -17,6 +18,8 @@ export function Header() {
     <header className="hidden md:flex fixed top-0 left-[220px] right-0 h-14 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md items-center justify-between px-4 lg:px-6 z-10">
       <div className="flex items-center gap-3 min-w-0">
         <OrgSwitcher />
+        <span className="text-[var(--border)] shrink-0">/</span>
+        <ProjectSwitcher />
         {status && (
           <>
             <span className="text-[var(--border)] shrink-0">/</span>

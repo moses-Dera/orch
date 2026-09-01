@@ -13,6 +13,7 @@ import { useChat } from "@ai-sdk/react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useProjectStore } from "@/stores/projectStore";
 
 import { v4 as uuidv4 } from "uuid";
 import { History, MessageSquare, Plus } from "lucide-react";
@@ -140,16 +141,14 @@ export default function AssistantPage() {
   const [editText, setEditText] = useState("");
   const [tokenCount, setTokenCount] = useState<number | null>(null);
   const [isListening, setIsListening] = useState(false);
-  const [activeSessionId, setActiveSessionId] = useState<string>(() => uuidv4());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => uuidv4());
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
+  const { selectedProjectId } = useProjectStore();
 
   const { data: statusData } = useQuery({ queryKey: ["status"], queryFn: api.status });
-  const { data: projectsData } = useQuery({ queryKey: ["projects"], queryFn: api.listProjects });
   const { data: sessionsData, refetch: refetchSessions } = useQuery({ queryKey: ["chat-sessions"], queryFn: api.chatSessions });
 
   const currentWelcome = getWelcomeMessage(statusData?.team);
@@ -329,60 +328,6 @@ export default function AssistantPage() {
                 </div>
               </DialogContent>
             </Dialog>
-
-            {/* Custom Project Selector */}
-            <div 
-              className="relative" 
-              onBlur={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget)) {
-                  setIsProjectDropdownOpen(false);
-                }
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-                className="flex items-center gap-2 bg-[var(--surface)] text-[var(--text-primary)] px-3 py-1.5 rounded-full text-xs font-medium border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] hover:bg-[var(--background)] transition-colors max-w-[200px]"
-              >
-                <span className="truncate">
-                  {selectedProjectId 
-                    ? (projectsData?.projects?.find((p: any) => p.id === selectedProjectId)?.name || projectsData?.projects?.find((p: any) => p.id === selectedProjectId)?.githubRepoFullName || selectedProjectId)
-                    : "All Workspace Constraints"}
-                </span>
-                <ChevronDown size={14} className="text-[var(--text-secondary)] flex-shrink-0" />
-              </button>
-
-              {isProjectDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 w-64 rounded-lg border bg-[var(--surface)] shadow-lg z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedProjectId("");
-                      setIsProjectDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--border)] transition-colors flex items-center justify-between"
-                  >
-                    <span>All Workspace Constraints</span>
-                    {selectedProjectId === "" && <Check size={14} className="text-[var(--accent)]" />}
-                  </button>
-                  {projectsData?.projects?.map((p: any) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedProjectId(p.id);
-                        setIsProjectDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--border)] transition-colors flex items-center justify-between"
-                    >
-                      <span className="truncate pr-2">{p.name || p.githubRepoFullName || p.id}</span>
-                      {selectedProjectId === p.id && <Check size={14} className="text-[var(--accent)] flex-shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
           </div>
 
           {/* Right side of header */}
