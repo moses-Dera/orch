@@ -595,6 +595,7 @@ export default function AssistantPage() {
           Orch Assistant can make mistakes. Always review the constraints before applying them.
         </div>
       </div>
+      </div>
     </div>
   );
 }
