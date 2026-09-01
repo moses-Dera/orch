@@ -3,28 +3,26 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useHasAccess } from "@/hooks/useRole"
 import { cn } from "@/lib/utils"
 import { UserButton } from "@clerk/nextjs"
 import { Menu, X, Sun, Moon } from "lucide-react"
 import { useTheme } from "@/components/layout/ThemeProvider"
 
 const NAV = [
-  { href: "/chat", label: "Chat", minRole: "member" as const },
-  { href: "/constraints", label: "Constraints", minRole: "member" as const },
-  { href: "/team", label: "Team", minRole: "admin" as const },
-  { href: "/projects", label: "Projects", minRole: "admin" as const },
-  { href: "/models", label: "Models", minRole: "admin" as const },
-  { href: "/github", label: "GitHub", minRole: "admin" as const },
-  { href: "/analytics", label: "Analytics", minRole: "admin" as const },
+  { href: "/chat", label: "Chat" },
+  { href: "/constraints", label: "Constraints" },
+  { href: "/team", label: "Team" },
+  { href: "/projects", label: "Projects" },
+  { href: "/models", label: "Models" },
+  { href: "/github", label: "GitHub" },
+  { href: "/analytics", label: "Analytics" },
   null,
-  { href: "/docs", label: "Docs & MCP", minRole: "member" as const },
-  { href: "/settings", label: "Settings", minRole: "member" as const },
+  { href: "/docs", label: "Docs & MCP" },
+  { href: "/settings", label: "Settings" },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
-  const isAdmin = useHasAccess("admin")
   const { theme, toggle } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -69,7 +67,6 @@ export function Sidebar() {
               <nav className="space-y-1">
                 {NAV.map((item, i) => {
                   if (!item) return <div key={i} className="my-2 border-t border-[var(--border)]" />
-                  if (item.minRole === "admin" && !isAdmin) return null
 
                   const active = pathname === item.href
                   return (
@@ -110,7 +107,6 @@ export function Sidebar() {
           <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
             {NAV.map((item, i) => {
               if (!item) return <div key={i} className="my-2 border-t border-[var(--border)]" />
-              if (item.minRole === "admin" && !isAdmin) return null
 
               const active = pathname === item.href
               return (
