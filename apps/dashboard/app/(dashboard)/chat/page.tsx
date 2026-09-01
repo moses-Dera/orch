@@ -527,8 +527,6 @@ export default function AssistantPage() {
         )}
 
         <div ref={bottomRef} />
-      </div>
-
       {/* Input area */}
       <div className="pt-2 sticky bottom-0 bg-[var(--background)]">
         <form
@@ -588,6 +586,7 @@ export default function AssistantPage() {
         <div className="text-center mt-2 text-xs text-[var(--text-secondary)]">
           Orch Assistant can make mistakes. Always review the constraints before applying them.
         </div>
+      </div>
       </div>
     </div>
   );
