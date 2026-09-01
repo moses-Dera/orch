@@ -13,7 +13,7 @@ import { useChat } from "@ai-sdk/react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { ChatSidebar } from "@/components/layout/ChatSidebar";
+
 import { v4 as uuidv4 } from "uuid";
 import { History, MessageSquare, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
