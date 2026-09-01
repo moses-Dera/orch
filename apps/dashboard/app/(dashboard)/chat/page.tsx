@@ -277,13 +277,9 @@ export default function AssistantPage() {
         <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)]">
           <div className="flex items-center gap-2 flex-wrap">
             <Dialog open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-              <DialogTrigger asChild>
-                <button 
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-xs font-medium"
-                >
-                  <History size={14} />
-                  History
-                </button>
+              <DialogTrigger className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-xs font-medium">
+                <History size={14} />
+                History
               </DialogTrigger>
               <DialogContent className="max-w-md max-h-[85vh] flex flex-col bg-[var(--background)] border-[var(--border)] p-0 gap-0">
                 <DialogHeader className="p-4 border-b border-[var(--border)]">

@@ -3,19 +3,22 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useHasAccess, useIsRoleLoading } from "@/hooks/useRole"
 import { cn } from "@/lib/utils"
 import { UserButton } from "@clerk/nextjs"
 import { Menu, X, Sun, Moon } from "lucide-react"
 import { useTheme } from "@/components/layout/ThemeProvider"
 
-const NAV = [
+type NavItem = { href: string; label: string; adminOnly?: boolean } | null
+
+const NAV: NavItem[] = [
   { href: "/chat", label: "Chat" },
   { href: "/constraints", label: "Constraints" },
-  { href: "/team", label: "Team" },
-  { href: "/projects", label: "Projects" },
-  { href: "/models", label: "Models" },
-  { href: "/github", label: "GitHub" },
-  { href: "/analytics", label: "Analytics" },
+  { href: "/team", label: "Team", adminOnly: true },
+  { href: "/projects", label: "Projects", adminOnly: true },
+  { href: "/models", label: "Models", adminOnly: true },
+  { href: "/github", label: "GitHub", adminOnly: true },
+  { href: "/analytics", label: "Analytics", adminOnly: true },
   null,
   { href: "/docs", label: "Docs & MCP" },
   { href: "/settings", label: "Settings" },
@@ -23,8 +26,18 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const isAdmin = useHasAccess("admin")
+  const isRoleLoading = useIsRoleLoading()
   const { theme, toggle } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  // While the role is loading, show ALL links to avoid a flash of missing items.
+  // Once the role resolves, hide admin-only links for non-admins.
+  const shouldShowItem = (item: NonNullable<NavItem>) => {
+    if (!item.adminOnly) return true
+    if (isRoleLoading) return true // show while loading to prevent flicker
+    return isAdmin
+  }
 
   return (
     <>
@@ -67,6 +80,7 @@ export function Sidebar() {
               <nav className="space-y-1">
                 {NAV.map((item, i) => {
                   if (!item) return <div key={i} className="my-2 border-t border-[var(--border)]" />
+                  if (!shouldShowItem(item)) return null
 
                   const active = pathname === item.href
                   return (
@@ -107,6 +121,7 @@ export function Sidebar() {
           <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
             {NAV.map((item, i) => {
               if (!item) return <div key={i} className="my-2 border-t border-[var(--border)]" />
+              if (!shouldShowItem(item)) return null
 
               const active = pathname === item.href
               return (
