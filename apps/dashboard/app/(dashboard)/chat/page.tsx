@@ -272,9 +272,9 @@ export default function AssistantPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden">
-      <div className="flex flex-col flex-1 h-full w-full max-w-4xl mx-auto p-4 md:p-6 relative">
+      <div className="flex flex-col flex-1 h-full w-full max-w-4xl mx-auto relative">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)]">
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 md:px-6 py-4 bg-[var(--background)]/80 backdrop-blur-md border-b border-[var(--border)]">
           <div className="flex items-center gap-2 flex-wrap">
             <Dialog open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
               <DialogTrigger className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all text-xs font-medium">
@@ -379,7 +379,7 @@ export default function AssistantPage() {
 
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-6 pb-6 scroll-smooth">
+      <div className="flex-1 overflow-y-auto space-y-6 pt-[80px] pb-6 px-4 md:px-6 scroll-smooth">
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
@@ -521,8 +521,8 @@ export default function AssistantPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
-      <div className="pt-2 sticky bottom-0 bg-[var(--background)]">
+      {/* Input Form */}
+      <div className="sticky bottom-0 bg-[var(--background)] p-4 md:px-6 pb-4 md:pb-6">
         <form
           onSubmit={handleSubmit}
           className="flex items-end gap-2 p-3 bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)] transition-shadow focus-within:ring-2 focus-within:ring-[var(--ring)]"
