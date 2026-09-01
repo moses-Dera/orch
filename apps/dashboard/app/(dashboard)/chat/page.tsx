@@ -344,47 +344,53 @@ export default function AssistantPage() {
             </select>
           </div>
 
-          {(modelsData?.models?.length ?? 0) > 0 ? (
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="bg-[var(--surface)] text-[var(--text-primary)] px-3 py-1 rounded-full text-xs font-medium border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer hover:bg-[var(--background)] transition-colors max-w-[180px] truncate"
-            >
-              {modelsData?.models?.map((m: any) => (
-                <option key={m.id} value={m.id}>{m.name || m.id}</option>
-              ))}
-            </select>
-          ) : (
-            <a
-              href="/models"
-              className="bg-amber-500/10 text-amber-600 px-3 py-1 rounded-full text-xs font-medium border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
-            >
-              Add API Key
-            </a>
-          )}
-          {tokenCount !== null && (
-            <div className="text-[10px] text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 rounded-full font-mono">
-              ~{tokenCount.toLocaleString()} tokens
+          {/* Right side of header */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              {(modelsData?.models?.length ?? 0) > 0 ? (
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="bg-[var(--surface)] text-[var(--text-primary)] px-3 py-1 rounded-full text-xs font-medium border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer hover:bg-[var(--background)] transition-colors max-w-[180px] truncate"
+                >
+                  {modelsData?.models?.map((m: any) => (
+                    <option key={m.id} value={m.id}>{m.name || m.id}</option>
+                  ))}
+                </select>
+              ) : (
+                <a
+                  href="/models"
+                  className="bg-amber-500/10 text-amber-600 px-3 py-1 rounded-full text-xs font-medium border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                >
+                  Add API Key
+                </a>
+              )}
+              {tokenCount !== null && (
+                <div className="text-[10px] text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 rounded-full font-mono">
+                  ~{tokenCount.toLocaleString()} tokens
+                </div>
+              )}
             </div>
-          )}
+
+            <div className="flex items-center gap-1 border-l border-[var(--border)] pl-3">
+              <button
+                onClick={handleExport}
+                title="Export chat as Markdown"
+                className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all"
+              >
+                <Download size={14} />
+              </button>
+              <button
+                onClick={handleClear}
+                title="Clear conversation"
+                className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 transition-all"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={handleExport}
-            title="Export chat as Markdown"
-            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all"
-          >
-            <Download size={14} />
-          </button>
-          <button
-            onClick={handleClear}
-            title="Clear conversation"
-            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 transition-all"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      </div>
+
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-6 pb-6 scroll-smooth">
@@ -527,6 +533,8 @@ export default function AssistantPage() {
         )}
 
         <div ref={bottomRef} />
+      </div>
+
       {/* Input area */}
       <div className="pt-2 sticky bottom-0 bg-[var(--background)]">
         <form
@@ -586,7 +594,6 @@ export default function AssistantPage() {
         <div className="text-center mt-2 text-xs text-[var(--text-secondary)]">
           Orch Assistant can make mistakes. Always review the constraints before applying them.
         </div>
-      </div>
       </div>
     </div>
   );
