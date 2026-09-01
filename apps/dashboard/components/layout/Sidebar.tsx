@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils"
 import { UserButton } from "@clerk/nextjs"
 import { Menu, X, Sun, Moon } from "lucide-react"
 import { useTheme } from "@/components/layout/ThemeProvider"
+import { OrgSwitcher } from "./OrgSwitcher"
+import { ProjectSwitcher } from "./ProjectSwitcher"
 
 type NavItem = { href: string; label: string; adminOnly?: boolean } | null
 
@@ -70,11 +72,15 @@ export function Sidebar() {
         <div className="md:hidden fixed inset-0 bg-black/60 z-50 flex flex-col" onClick={() => setMobileOpen(false)}>
           <div className="w-[260px] h-full bg-[var(--surface)] border-r p-5 flex flex-col justify-between shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b">
+              <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
                 <Link href="/" className="text-lg font-bold text-[var(--text-primary)]">Orch</Link>
                 <button onClick={() => setMobileOpen(false)} className="text-[var(--text-secondary)]">
                   <X className="w-5 h-5" />
                 </button>
+              </div>
+              <div className="flex flex-col gap-2 pb-4 border-b border-[var(--border)]">
+                <OrgSwitcher />
+                <ProjectSwitcher />
               </div>
 
               <nav className="space-y-1">
