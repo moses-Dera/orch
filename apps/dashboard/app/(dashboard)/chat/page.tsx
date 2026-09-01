@@ -277,7 +277,7 @@ export default function AssistantPage() {
         <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)]">
           <div className="flex items-center gap-2 flex-wrap">
             <Dialog open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-              <DialogTrigger className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-xs font-medium">
+              <DialogTrigger className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all text-xs font-medium">
                 <History size={14} />
                 History
               </DialogTrigger>
@@ -337,7 +337,7 @@ export default function AssistantPage() {
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
-                  className="bg-[var(--surface)] text-[var(--text-primary)] px-3 py-1 rounded-full text-xs font-medium border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer hover:bg-[var(--background)] transition-colors max-w-[180px] truncate"
+                  className="bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] px-2.5 py-1.5 rounded-md text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer transition-colors max-w-[180px] truncate"
                 >
                   {modelsData?.models?.map((m: any) => (
                     <option key={m.id} value={m.id}>{m.name || m.id}</option>
@@ -346,13 +346,13 @@ export default function AssistantPage() {
               ) : (
                 <a
                   href="/models"
-                  className="bg-amber-500/10 text-amber-600 px-3 py-1 rounded-full text-xs font-medium border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                  className="bg-amber-500/10 text-amber-600 px-2.5 py-1.5 rounded-md text-xs font-medium hover:bg-amber-500/20 transition-colors"
                 >
                   Add API Key
                 </a>
               )}
               {tokenCount !== null && (
-                <div className="text-[10px] text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 rounded-full font-mono">
+                <div className="text-[10px] text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 rounded-md font-mono">
                   ~{tokenCount.toLocaleString()} tokens
                 </div>
               )}
