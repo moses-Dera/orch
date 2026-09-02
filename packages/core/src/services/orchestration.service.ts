@@ -5,6 +5,7 @@ import { retrieveChunks } from '../ai/retriever';
 
 interface OrchestrationOptions {
   teamId: string;
+  projectId?: string;
   userPrompt?: string;
   inboundMessages?: any[];
   apiKey: string | null;
@@ -19,7 +20,7 @@ export class OrchestrationService {
    * Returns a standard Response object (useful for proxying streams).
    */
   static async generate(options: OrchestrationOptions): Promise<Response> {
-    const { teamId, apiKey, endpoint, model, stream = false } = options;
+    const { teamId, projectId, apiKey, endpoint, model, stream = false } = options;
     
     let userPrompt = options.userPrompt;
     let inboundMessages = options.inboundMessages || [];
@@ -32,8 +33,14 @@ export class OrchestrationService {
     }
 
     // 1. Fetch Constraints
-    const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
-    const projectIds = teamProjects.map((p) => p.id);
+    let projectIds: string[] = [];
+    if (projectId) {
+      projectIds = [projectId];
+    } else {
+      const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+      projectIds = teamProjects.map((p) => p.id);
+    }
+    
     const teamConstraints = projectIds.length > 0
       ? await db.select({ id: constraints.id, content: constraints.content }).from(constraints).where(inArray(constraints.projectId, projectIds)).orderBy(desc(constraints.createdAt))
       : [];

@@ -52,9 +52,22 @@ function processOrder(data: OrderPayload): OrderSummary {
 const PIPELINE_LAYERS = [
   {
     step: "01",
+    tag: "THE LONG-TERM BRAIN",
+    title: "Permanent Vector Memory",
+    description: "Your local AI IDE has short-term memory. Orch acts as a permanent, searchable vector database. Define architectural constraints once, and Orch remembers them forever.",
+    codeSnippet: `POST /api/v1/constraints
+{
+  "rule": "Never use console.log, always use Pino.",
+  "scope": ["backend/*"]
+}
+→ Stored securely with pgvector`,
+    status: "ACTIVE",
+  },
+  {
+    step: "02",
     tag: "IDE INTEGRATION",
-    title: "Native MCP stdio Server",
-    description: "Connect Cursor, Claude Desktop, or Windsurf in 30 seconds. Rules are injected directly into your AI context before prompt execution.",
+    title: "AI Writes Compliant Code",
+    description: "Connect Cursor or Claude Desktop via the Model Context Protocol (MCP). Your IDE automatically reads rules from Orch's memory and stops mistakes before a commit.",
     codeSnippet: `{
   "mcpServers": {
     "orch": {
@@ -66,10 +79,10 @@ const PIPELINE_LAYERS = [
     status: "READY",
   },
   {
-    step: "02",
+    step: "03",
     tag: "CI/CD BOUNDARY",
-    title: "Automated PR Sentinel",
-    description: "The Orch GitHub App acts as an automated Staff Engineer, semantically evaluating pull request diffs and blocking policy violations before merge.",
+    title: "Automated Inline PR Reviews",
+    description: "The Orch GitHub App acts as an automated Staff Engineer, evaluating pull requests and dropping inline comments exactly where your rules were violated.",
     codeSnippet: `name: Orch Policy Review
 on: [pull_request]
 jobs:
@@ -77,17 +90,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: orch-dev/action@latest`,
-    status: "ACTIVE",
+    status: "LIVE",
   },
   {
-    step: "03",
-    tag: "CONTROL PLANE",
-    title: "Centralized Telemetry & Policy",
-    description: "Full enterprise dashboard for model policy management, token budget caps, per-developer audit trails, and constraint health metrics.",
+    step: "04",
+    tag: "PERFORMANCE",
+    title: "Lightning Fast, Diff-Only",
+    description: "Orch never wastes API tokens scanning your entire repository. It exclusively evaluates the exact lines of code that changed (.diff) for lightning-fast and cheap governance.",
     codeSnippet: `GET /api/v1/analytics
-→ 98.4% Policy Compliance Rate
-→ 12 Active Constraint Profiles
-→ 0 Blocked Hard Violations`,
+→ Avg Eval Latency: 4.2s
+→ Tokens Saved: 2.1M
+→ Cost/PR: $0.002`,
     status: "LIVE",
   },
 ]
@@ -189,19 +202,10 @@ export default function LandingPage() {
       <main className="relative z-10 pt-20 sm:pt-24 pb-16 sm:pb-24 px-4 sm:px-8 max-w-[1440px] mx-auto space-y-24 sm:space-y-32">
 
         {/* HERO SECTION - Viewport Optimized Asymmetric Layout */}
-        <section className="relative flex items-center lg:min-h-[calc(100vh-8rem)] w-full py-12 lg:py-0">
+        <section className="flex flex-col lg:flex-row items-center justify-between lg:min-h-[calc(100vh-12rem)] w-full py-12 lg:py-0 gap-12 sm:gap-16">
           
-          {/* Fused Background Image (Absolute, right-aligned) */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-full lg:w-[65%] h-full pointer-events-none opacity-20 lg:opacity-100 flex items-center justify-end z-0 overflow-hidden">
-             <img 
-               src="/orch_bg.png" 
-               alt="Orch Platform Interface" 
-               className="w-full h-auto max-h-[120%] object-cover object-right"
-             />
-          </div>
-
           {/* Text Content */}
-          <div className="relative z-10 w-full lg:w-[55%] space-y-6 sm:space-y-8 text-left">
+          <div className="w-full lg:w-1/2 space-y-6 sm:space-y-8 text-left order-1">
             <div className="space-y-3 sm:space-y-4">
               <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold tracking-tighter leading-[1.1] sm:leading-[1.05] text-[var(--text-primary)]">
                 AI Writes The Code <br />
@@ -211,10 +215,6 @@ export default function LandingPage() {
               </h1>
             </div>
 
-            <p className="text-sm sm:text-base lg:text-lg text-[var(--text-secondary)] leading-relaxed font-sans max-w-lg">
-              The AI Staff Engineer that never sleeps. Orch is the central control plane for software governance. Define Policy-as-Code once, and Orch enforces it across any language—injecting constraints into any AI Agent or IDE and auditing PRs at the GitHub boundary.
-            </p>
-            
             <div className="flex items-center gap-2 pt-2">
               <span className="text-xs text-[var(--text-secondary)] font-medium">Start for $0 using free models from any AI provider.</span>
             </div>
@@ -228,6 +228,22 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
+          
+          {/* Image Content (At the bottom on mobile) */}
+          <div className="w-full lg:w-1/2 flex justify-center lg:justify-end order-2">
+             <img 
+               src="/orch_bg.png" 
+               alt="Orch Platform Interface" 
+               className="w-full h-auto max-w-full lg:max-w-[120%] object-contain"
+             />
+          </div>
+        </section>
+
+        {/* NEW SECTION: MISSION STATEMENT (Moved down from Hero) */}
+        <section className="max-w-4xl mx-auto text-center space-y-6 pt-12 sm:pt-16">
+          <p className="text-lg sm:text-xl lg:text-2xl text-[var(--text-primary)] leading-relaxed font-medium">
+            The AI Staff Engineer that never sleeps. Orch is the central control plane for software governance. Define Policy-as-Code once, and Orch enforces it across any language—injecting constraints into any AI Agent or IDE and auditing PRs at the GitHub boundary.
+          </p>
         </section>
 
         {/* NEW SECTION: INTERACTIVE POLICY ENGINE */}
@@ -305,12 +321,12 @@ export default function LandingPage() {
           <div className="space-y-2 text-left">
             <span className="text-xs font-mono text-[var(--accent)] font-semibold uppercase tracking-wider">PIPELINE ARCHITECTURE</span>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] font-mono">
-              Three Layers of Code Governance
+              Four Layers of Code Governance
             </h2>
           </div>
 
-          {/* 3 Step Interactive Selector */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          {/* 4 Step Interactive Selector */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {PIPELINE_LAYERS.map((layer, i) => (
               <button
                 key={layer.step}

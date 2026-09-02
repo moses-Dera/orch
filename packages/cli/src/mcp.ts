@@ -57,6 +57,18 @@ export async function runMcpServer() {
             required: ['filename', 'diff'],
           },
         },
+        {
+          name: 'evaluate_plan',
+          description: 'Evaluates an architectural plan against the organizational constraints before generating code.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              plan_description: { type: 'string', description: 'The architectural plan or specification to evaluate' },
+              project_id: { type: 'string', description: 'Optional project ID to filter constraints' },
+            },
+            required: ['plan_description'],
+          },
+        },
       ],
     };
   });
@@ -121,6 +133,25 @@ export async function runMcpServer() {
             {
               type: 'text',
               text: `Review Result: ${response.clean ? 'CLEAN' : 'VIOLATIONS FOUND'}\n\nSummary: ${response.summary}\n\nIssues:\n${JSON.stringify(response.issues, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      if (request.params.name === 'evaluate_plan') {
+        const { plan_description, project_id } = request.params.arguments as any;
+
+        const response = await ofetch(`${apiUrl}/v1/evaluate-plan`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${config.apiKey}` },
+          body: { plan_description, project_id },
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Plan Evaluation Result: ${response.clean ? 'CLEAN' : 'VIOLATIONS FOUND'}\n\nSummary: ${response.summary}\n\nViolations:\n${JSON.stringify(response.violations, null, 2)}`,
             },
           ],
         };

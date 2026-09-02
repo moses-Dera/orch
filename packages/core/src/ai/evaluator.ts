@@ -8,6 +8,7 @@ import { decrypt } from '../utils/encryption';
 export interface EvaluationViolation {
   file: string;
   line: number;
+  snippet: string;
   rule: string;
   explanation: string;
 }
@@ -48,7 +49,7 @@ export async function evaluateDiff(
         reasoning: "No custom API key was found for this workspace.",
         status: 'VIOLATION',
         violations: [{ 
-          file: "N/A", line: 1, rule: "Billing / Missing API Key", 
+          file: "N/A", line: 1, snippet: "", rule: "Billing / Missing API Key", 
           explanation: "No API key provided and no TRIAL_API_KEY configured. Please add your API key in the Orch dashboard to review code." 
         }],
         explanation: 'API Key required. Please configure a Model in Settings.'
@@ -66,7 +67,7 @@ export async function evaluateDiff(
       reasoning: "The Pull Request diff is too large (>50k chars).",
       status: 'VIOLATION',
       violations: [{ 
-        file: "N/A", line: 1, rule: "PR Size Limit", 
+        file: "N/A", line: 1, snippet: "", rule: "PR Size Limit", 
         explanation: "This PR is too massive to safely evaluate using AI. Please break it into smaller PRs." 
       }],
       explanation: 'PR exceeds token limits and was blocked.'
@@ -170,6 +171,7 @@ Return ONLY valid JSON matching this exact schema:
     {
       "file": "path/to/file.ts",
       "line": 42,
+      "snippet": "const password = 'plain-text';",
       "rule": "Name of the constraint",
       "reason": "Why this might be a violation."
     }
@@ -262,6 +264,7 @@ Return ONLY valid JSON matching this exact schema:
     {
       "file": "path/to/file.ts",
       "line": 42,
+      "snippet": "const password = 'plain-text';",
       "rule": "Name of the violated rule",
       "explanation": "Why this specific line violates the rule."
     }

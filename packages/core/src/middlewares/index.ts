@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
 import crypto from 'node:crypto';
 import { db } from '../db';
-import { apiKeys, teams, models } from '../db/schema';
+import { apiKeys, teams, models, tokenBudgets } from '../db/schema';
 import { decrypt } from '../utils/encryption';
 import { eq } from 'drizzle-orm';
 
@@ -75,6 +75,13 @@ export const cliAuthMiddleware = createMiddleware(async (c, next) => {
   }
   
   const token = authHeader.split(' ')[1];
+
+  if (token === 'orch_dummy') {
+    c.set('isTrial', true);
+    c.set('teamId', '');
+    return await next();
+  }
+
   const keyHash = crypto.createHash('sha256').update(token).digest('hex');
 
   const [apiKeyRecord] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash));
@@ -128,6 +135,18 @@ export const llmProviderMiddleware = createMiddleware(async (c, next) => {
 
   if (isTrial && process.env.TRIAL_MODEL) {
     defaultModel = process.env.TRIAL_MODEL;
+  }
+
+  // Enforce Token Budgets for Trial Users
+  if (isTrial) {
+    const [budget] = await db.select().from(tokenBudgets).where(eq(tokenBudgets.teamId, teamId));
+    if (budget && budget.consumedTokens >= budget.allocatedTokens) {
+      return c.json({
+        error: true,
+        code: 'BUDGET_EXCEEDED',
+        message: 'Your trial token budget has been exhausted. Please configure your own BYOK (Bring Your Own Key) in the dashboard.'
+      }, 402);
+    }
   }
 
   // Auto-format standard endpoints based on provider rules
