@@ -37,22 +37,7 @@ export const apiAuthMiddleware = createMiddleware(async (c, next) => {
   
   const token = authHeader.split(' ')[1];
   
-  // Trial mode: orch_dummy token bypasses DB lookup
-  if (token === 'orch_dummy' && process.env.TRIAL_API_KEY) {
-    c.set('isTrial', true);
-    
-    const clerkId = c.req.header('X-Clerk-User-Id');
-    if (clerkId) {
-      const userTeams = await db.select().from(teams).where(eq(teams.userId, clerkId));
-      if (userTeams.length > 0) {
-        c.set('teamId', userTeams[0].id);
-        return await next();
-      }
-    }
-    
-    c.set('teamId', '');
-    return await next();
-  }
+
 
   c.set('isTrial', false);
   const keyHash = crypto.createHash('sha256').update(token).digest('hex');
@@ -76,11 +61,7 @@ export const cliAuthMiddleware = createMiddleware(async (c, next) => {
   
   const token = authHeader.split(' ')[1];
 
-  if (token === 'orch_dummy') {
-    c.set('isTrial', true);
-    c.set('teamId', '');
-    return await next();
-  }
+
 
   const keyHash = crypto.createHash('sha256').update(token).digest('hex');
 

@@ -33,18 +33,16 @@ reviewRouter.post('/review', cliAuthMiddleware, async (c) => {
   let projectIds: string[] = [];
   let teamConstraints: any[] = [];
   
-  if (teamId !== '') {
-    if (project_id) {
-      projectIds = [project_id];
-    } else {
-      const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
-      projectIds = teamProjects.map((p) => p.id);
-    }
-
-    teamConstraints = projectIds.length > 0
-      ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds)).orderBy(desc(constraints.createdAt))
-      : [];
+  if (project_id) {
+    projectIds = [project_id];
+  } else {
+    const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+    projectIds = teamProjects.map((p) => p.id);
   }
+
+  teamConstraints = projectIds.length > 0
+    ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds)).orderBy(desc(constraints.createdAt))
+    : [];
 
   const constraintIds = teamConstraints.map((c) => c.id);
   const fallbackRules = teamConstraints.map((c) => `- ${c.content}`).join('\n');
@@ -106,18 +104,16 @@ reviewRouter.post('/evaluate-plan', cliAuthMiddleware, async (c) => {
   let projectIds: string[] = [];
   let teamConstraints: any[] = [];
   
-  if (teamId !== '') {
-    if (project_id) {
-      projectIds = [project_id];
-    } else {
-      const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
-      projectIds = teamProjects.map((p) => p.id);
-    }
-
-    teamConstraints = projectIds.length > 0
-      ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds)).orderBy(desc(constraints.createdAt))
-      : [];
+  if (project_id) {
+    projectIds = [project_id];
+  } else {
+    const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
+    projectIds = teamProjects.map((p) => p.id);
   }
+
+  teamConstraints = projectIds.length > 0
+    ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds)).orderBy(desc(constraints.createdAt))
+    : [];
 
   const constraintIds = teamConstraints.map((c) => c.id);
   const fallbackRules = teamConstraints.map((c) => `- ${c.content}`).join('\n');

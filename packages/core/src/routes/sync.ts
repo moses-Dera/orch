@@ -9,31 +9,12 @@ export const syncRouter = new Hono<{ Variables: { teamId: string } }>();
 syncRouter.get('/sync', cliAuthMiddleware, async (c) => {
   const teamId = c.get('teamId');
 
-  if (teamId === '') {
-    return c.json({
-      version: 1,
-      constraints: [
-        {
-          id: 'test_constraint',
-          type: 'test',
-          content: 'This is a test constraint.',
-          description: 'A constraint used for testing.',
-        }
-      ],
-      updatedAt: new Date().toISOString(),
-    });
-  }
-
   const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
   const projectIds = teamProjects.map(p => p.id);
 
-  let teamConstraints: any[] = [];
-  if (projectIds.length > 0) {
-    teamConstraints = await db.select()
-      .from(constraints)
-      .where(inArray(constraints.projectId, projectIds))
-      .orderBy(desc(constraints.createdAt));
-  }
+  const teamConstraints = projectIds.length > 0
+    ? await db.select().from(constraints).where(inArray(constraints.projectId, projectIds)).orderBy(desc(constraints.createdAt))
+    : [];
 
   if (teamConstraints.length === 0) {
     return c.json({
@@ -63,10 +44,6 @@ import { embedConstraint } from '../ai/embedder';
 // MCP Server uses this to add/update constraints from Cursor/Claude
 syncRouter.put('/constraints/:id', cliAuthMiddleware, async (c) => {
   const teamId = c.get('teamId');
-  if (teamId === '') {
-    return c.json({ success: true });
-  }
-
   const id = c.req.param('id');
   const body = await c.req.json();
   
