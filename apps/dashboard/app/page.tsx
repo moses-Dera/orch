@@ -105,6 +105,30 @@ jobs:
   },
 ]
 
+const MARKETPLACE_SKILLS = [
+  {
+    id: "@community/react-server-components",
+    title: "React Server Components Strict",
+    author: "Community",
+    downloads: "124k",
+    description: "Strict rules for modern React and App Router patterns to prevent data leaks to the client.",
+  },
+  {
+    id: "@security/postgres-rls",
+    title: "Postgres RLS Security Guard",
+    author: "Security",
+    downloads: "89k",
+    description: "Row Level Security enforcement patterns ensuring the AI never writes an insecure database query.",
+  },
+  {
+    id: "@owasp/payment-webhooks",
+    title: "Secure Payment Webhooks",
+    author: "OWASP",
+    downloads: "42k",
+    description: "Standardized secure handling of third-party payment APIs, idempotency, and signature verification.",
+  }
+]
+
 export default function LandingPage() {
   const { data: me } = useMe()
   const { theme, toggle } = useTheme()
@@ -386,6 +410,70 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* MARKETPLACE SECTION */}
+        <section className="space-y-8 sm:space-y-10 border-t border-[var(--border)] pt-12 sm:pt-16">
+          <div className="space-y-2 text-center max-w-2xl mx-auto">
+            <span className="text-xs font-mono text-[var(--accent)] font-semibold uppercase tracking-wider">THE ECOSYSTEM</span>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] font-mono">
+              Marketplace for AI Skills
+            </h2>
+            <p className="text-sm text-[var(--text-secondary)] font-mono mt-4 leading-relaxed">
+              Don't write rules from scratch. Subscribe to community-verified policies. When a framework updates, the community updates the skill, and your IDE gets the new rules instantly.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {MARKETPLACE_SKILLS.map((skill, i) => (
+              <motion.div
+                key={skill.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 }}
+                className="group p-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]/50 transition-all shadow-sm hover:shadow-xl relative overflow-hidden flex flex-col h-full"
+              >
+                {/* Header: Publisher & Badge */}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-[var(--background)] border border-[var(--border)] flex items-center justify-center">
+                      <Layers className="w-4 h-4 text-[var(--text-secondary)]" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-mono text-[var(--text-secondary)]">{skill.author}</span>
+                      <span className="text-xs font-bold font-mono flex items-center gap-1">
+                        {skill.id.split('/')[1]}
+                        <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 space-y-2">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] font-sans">{skill.title}</h3>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-sans line-clamp-3">
+                    {skill.description}
+                  </p>
+                </div>
+
+                {/* Footer: Downloads & CTA */}
+                <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-[var(--text-secondary)]">{skill.downloads} installs</span>
+                  <button className="text-[10px] font-bold font-mono px-3 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] group-hover:bg-[var(--accent)] group-hover:text-[var(--primary-foreground)] group-hover:border-[var(--accent)] transition-colors">
+                    Subscribe
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          
+          <div className="flex justify-center mt-8">
+             <Link href={ctaHref} className="text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 border-b border-dashed border-[var(--text-secondary)] pb-1 hover:border-[var(--text-primary)] transition-colors cursor-pointer">
+               Explore all 500+ Verified Skills <ArrowRight className="w-3.5 h-3.5" />
+             </Link>
           </div>
         </section>
 
