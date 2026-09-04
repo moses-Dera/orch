@@ -38,26 +38,44 @@ export async function retrieveChunks(
   query: string,
   constraintIds?: string[],
   topK: number = DEFAULT_TOP_K,
+  publicRuleIds?: string[],
 ): Promise<{ constraintId: string; chunkText: string }[]> {
+  const cIds = constraintIds || [];
+  const pIds = publicRuleIds || [];
+  const hasSpecificIds = cIds.length > 0 || pIds.length > 0;
+
   try {
     const queryEmbedding = await embedQuery(query);
     const vectorLiteral = `[${queryEmbedding.join(',')}]`;
 
-    // Use Drizzle's parameterized sql tag for the ID array — safe from SQL injection
+    // Use Drizzle's parameterized sql tag for the ID arrays — safe from SQL injection
     let result: Array<{ chunk_text: string; constraint_id: string }>;
-    if (constraintIds && constraintIds.length > 0) {
+    if (hasSpecificIds) {
       result = await db.execute<{ chunk_text: string; constraint_id: string }>(sql`
         SELECT chunk_text, constraint_id
-        FROM constraint_chunks
-        WHERE constraint_id = ANY(${constraintIds}::text[])
-        ORDER BY embedding <=> ${vectorLiteral}::vector
+        FROM (
+          SELECT chunk_text, constraint_id, (embedding <=> ${vectorLiteral}::vector) as distance
+          FROM constraint_chunks
+          WHERE constraint_id = ANY(${cIds}::text[])
+          UNION ALL
+          SELECT chunk_text, rule_id as constraint_id, (embedding <=> ${vectorLiteral}::vector) as distance
+          FROM public_skill_chunks
+          WHERE rule_id = ANY(${pIds}::text[])
+        ) sub
+        ORDER BY distance
         LIMIT ${topK}
       `);
     } else {
       result = await db.execute<{ chunk_text: string; constraint_id: string }>(sql`
         SELECT chunk_text, constraint_id
-        FROM constraint_chunks
-        ORDER BY embedding <=> ${vectorLiteral}::vector
+        FROM (
+          SELECT chunk_text, constraint_id, (embedding <=> ${vectorLiteral}::vector) as distance
+          FROM constraint_chunks
+          UNION ALL
+          SELECT chunk_text, rule_id as constraint_id, (embedding <=> ${vectorLiteral}::vector) as distance
+          FROM public_skill_chunks
+        ) sub
+        ORDER BY distance
         LIMIT ${topK}
       `);
     }
@@ -70,11 +88,18 @@ export async function retrieveChunks(
     console.error('[RAG] Retrieval failed, falling back to basic Top-K:', error);
     
     let fallbackResult: Array<{ chunk_text: string; constraint_id: string }>;
-    if (constraintIds && constraintIds.length > 0) {
+    if (hasSpecificIds) {
       fallbackResult = await db.execute<{ chunk_text: string; constraint_id: string }>(sql`
         SELECT chunk_text, constraint_id
-        FROM constraint_chunks
-        WHERE constraint_id = ANY(${constraintIds}::text[])
+        FROM (
+          SELECT chunk_text, constraint_id, created_at
+          FROM constraint_chunks
+          WHERE constraint_id = ANY(${cIds}::text[])
+          UNION ALL
+          SELECT chunk_text, rule_id as constraint_id, created_at
+          FROM public_skill_chunks
+          WHERE rule_id = ANY(${pIds}::text[])
+        ) sub
         ORDER BY created_at DESC
         LIMIT ${topK}
       `);

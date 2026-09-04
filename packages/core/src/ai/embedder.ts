@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { constraintChunks } from '../db/schema';
+import { constraintChunks, publicSkillChunks } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 
 const CHUNK_SIZE = 300;   // ~300 tokens per chunk
@@ -91,3 +91,34 @@ export async function embedConstraint(constraintId: string, content: string): Pr
 
   console.log(`[RAG] Embedded ${chunks.length} chunk(s) for constraint "${constraintId}"`);
 }
+
+/**
+ * Embed all chunks of a public skill rule and upsert them into the DB.
+ */
+export async function embedPublicSkillRule(ruleId: string, content: string): Promise<void> {
+  const chunks = chunkText(content);
+  if (chunks.length === 0) return;
+
+  await db.delete(publicSkillChunks).where(eq(publicSkillChunks.ruleId, ruleId));
+
+  for (let i = 0; i < chunks.length; i++) {
+    const text = chunks[i];
+    const embedding = await embedText(text);
+    const vectorLiteral = toVectorLiteral(embedding);
+
+    await db.execute(sql`
+      INSERT INTO public_skill_chunks (id, rule_id, chunk_index, chunk_text, embedding, created_at)
+      VALUES (
+        gen_random_uuid(),
+        ${ruleId},
+        ${i},
+        ${text},
+        ${vectorLiteral}::vector,
+        NOW()
+      )
+    `);
+  }
+
+  console.log(`[RAG] Embedded ${chunks.length} chunk(s) for public skill rule "${ruleId}"`);
+}
+

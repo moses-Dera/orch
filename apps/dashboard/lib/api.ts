@@ -150,4 +150,48 @@ export const api = {
   deleteProject: (id: string) => req(`/v1/dashboard/projects/${id}`, { method: "DELETE" }),
   
   deleteOrg: (orgId: string) => req("/v1/onboarding/org", { method: "DELETE", body: JSON.stringify({ org_id: orgId }) }),
+
+  // Marketplace
+  listMarketplaceSkills: (params?: { search?: string; tag?: string; verified?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.set("search", params.search);
+    if (params?.tag) qs.set("tag", params.tag);
+    if (params?.verified) qs.set("verified", "true");
+    return req<{ skills: any[] }>(`/v1/marketplace/skills?${qs}`);
+  },
+
+  getMarketplaceSkill: (idOrSlug: string) =>
+    req<{ skill: any; rules: any[] }>(`/v1/marketplace/skills/${idOrSlug}`),
+
+  publishMarketplaceSkill: (body: {
+    name: string;
+    slug?: string;
+    description: string;
+    authorName?: string;
+    tags?: string[];
+    version?: string;
+    rules?: any[];
+  }) => req<{ skill: any; rules: any[] }>("/v1/marketplace/skills", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
+
+  subscribeProjectSkill: (skillId: string, body: {
+    projectId: string;
+    pinnedVersion?: string;
+    precedenceMode?: string;
+    excludedRuleIds?: string[];
+  }) => req<{ subscription: any }>(`/v1/marketplace/skills/${skillId}/subscribe`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
+
+  unsubscribeProjectSkill: (projectId: string, skillId: string) =>
+    req(`/v1/marketplace/projects/${projectId}/subscriptions/${skillId}`, {
+      method: "DELETE",
+    }),
+
+  getProjectSubscriptions: (projectId: string) =>
+    req<{ subscriptions: any[] }>(`/v1/marketplace/projects/${projectId}/subscriptions`),
 }
+

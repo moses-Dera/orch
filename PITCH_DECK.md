@@ -33,3 +33,6 @@ Orch doesn't just govern prompts; it evaluates the output.
 ## The Moat
 Current solutions are either heavy static analysis tools (which happen *after* the code is written) or generic AI wrappers. 
 Orch is **Policy-as-Code for the Prompt Generation Phase**. We stop bad code, security vulnerabilities, and rogue AI usage *before* the code is even generated, creating a highly sticky, indispensable enterprise platform.
+Constraint Versioning: While the schema includes a version string for constraints, full historical diffing or rollback of constraints isn't highly visible.
+Secret Management: The DB schema mentions apiKey in plaintext or encrypted; robust key rotation and KMS integration should be validated for enterprise readiness.
+Test Coverage: There are placeholder test files (test-mcp.ts, test.ts), but expanding unit/integration testing on the Critic/Judge logic would be highly beneficial to measure precision and recall over time.

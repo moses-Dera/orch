@@ -157,3 +157,68 @@ export const chatMessages = pgTable('chat_messages', {
   toolCalls: jsonb('tool_calls'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// Marketplace: Community and Verified AI Skills
+export const publicSkills = pgTable('public_skills', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  slug: text('slug').notNull().unique(), // e.g. 'vercel-nextjs-15-strict'
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  authorId: text('author_id').references(() => users.id),
+  authorName: text('author_name').notNull(),
+  isVerified: boolean('is_verified').default(false).notNull(),
+  tags: jsonb('tags').$type<string[]>().default([]),
+  version: text('version').default('1.0.0').notNull(),
+  downloadsCount: integer('downloads_count').default(0).notNull(),
+  isPaid: boolean('is_paid').default(false).notNull(),
+  priceCents: integer('price_cents').default(0),
+  lemonSqueezyVariantId: text('lemon_squeezy_variant_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const publicSkillRules = pgTable('public_skill_rules', {
+  id: text('id').primaryKey(), // e.g. 'nextjs_use_server_actions'
+  skillId: uuid('skill_id').notNull().references(() => publicSkills.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // 'security', 'style', 'performance', 'tech_stack'
+  description: text('description').notNull(),
+  content: text('content').notNull(),
+  goodExamples: jsonb('good_examples').$type<string[]>(),
+  badExamples: jsonb('bad_examples').$type<string[]>(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const publicSkillChunks = pgTable('public_skill_chunks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ruleId: text('rule_id').notNull().references(() => publicSkillRules.id, { onDelete: 'cascade' }),
+  chunkIndex: integer('chunk_index').notNull(),
+  chunkText: text('chunk_text').notNull(),
+  embedding: text('embedding'), // Cast to vector via raw SQL
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const projectSkillSubscriptions = pgTable('project_skill_subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  skillId: uuid('skill_id').notNull().references(() => publicSkills.id, { onDelete: 'cascade' }),
+  pinnedVersion: text('pinned_version').default('latest').notNull(),
+  precedenceMode: text('precedence_mode').default('private_overrules').notNull(), // 'private_overrules' | 'strict_union' | 'public_overrules'
+  excludedRuleIds: jsonb('excluded_rule_ids').$type<string[]>().default([]),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Spec-Compliant Job Queue: zero-new-infra async queue for deep research & MCP burst throttling
+export const jobQueue = pgTable('job_queue', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  type: text('type').notNull(), // 'chat_research' | 'mcp_evaluate' | 'policy_sync'
+  teamId: uuid('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('queued'), // 'queued' | 'processing' | 'completed' | 'failed'
+  payload: jsonb('payload').notNull(),
+  result: jsonb('result'),
+  error: text('error'),
+  attempts: integer('attempts').default(0).notNull(),
+  maxAttempts: integer('max_attempts').default(3).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+

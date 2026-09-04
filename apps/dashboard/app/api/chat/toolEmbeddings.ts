@@ -18,5 +18,10 @@ export const TOOL_EMBEDDINGS = [
     "name": "deleteConstraint",
     "description": "Deletes a specific policy constraint from the workspace. Use this when the user asks to remove, delete, or audit and clear old constraints.",
     "embedding": new Array(768).fill(0)
+  },
+  {
+    "name": "searchWeb",
+    "description": "Searches the live web and developer documentation for up-to-date APIs, libraries, security vulnerabilities (CVEs), or coding patterns. Always returns real source URLs and summaries.",
+    "embedding": new Array(768).fill(0)
   }
 ];

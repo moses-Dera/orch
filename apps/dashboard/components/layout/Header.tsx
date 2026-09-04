@@ -5,7 +5,8 @@ import { useOrchStatus, useModels } from "@/hooks/useOrchStatus"
 import { useTheme } from "@/components/layout/ThemeProvider"
 import { OrgSwitcher } from "@/components/layout/OrgSwitcher"
 import { ProjectSwitcher } from "@/components/layout/ProjectSwitcher"
-import { Sun, Moon } from "lucide-react"
+import Link from "next/link"
+import { Sun, Moon, Sparkles } from "lucide-react"
 
 export function Header() {
   const { data: status } = useOrchStatus()
@@ -15,7 +16,7 @@ export function Header() {
   const hasConfiguredModels = models && models.models && models.models.length > 0;
 
   return (
-    <header className="hidden md:flex fixed top-0 left-[220px] right-0 h-14 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md items-center justify-between px-4 lg:px-6 z-10">
+    <header className="hidden md:flex fixed top-0 left-[220px] right-0 h-14 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md items-center justify-between px-4 lg:px-6 z-40">
       <div className="flex items-center gap-3 min-w-0">
         <OrgSwitcher />
         <span className="text-[var(--border)] shrink-0">/</span>
@@ -30,7 +31,15 @@ export function Header() {
           </>
         )}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2.5 shrink-0">
+        <Link
+          href="/marketplace"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition-all cursor-pointer shadow-xs"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="hidden sm:inline">Discover Skills</span>
+          <span className="sm:hidden">Skills</span>
+        </Link>
         <button
           onClick={toggle}
           className="w-8 h-8 flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"

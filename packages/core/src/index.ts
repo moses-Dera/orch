@@ -61,6 +61,8 @@ import { clerkMiddleware } from '@hono/clerk-auth';
 
 import { mcpRouter } from './routes/mcp';
 
+import { marketplaceRouter } from './routes/marketplace';
+
 // Register Routers
 const routes = app
   .route('/api/auth', authRouter)
@@ -74,7 +76,8 @@ const routes = app
   .route('/v1', orchestrateRouter)
   .route('/v1', mcpServersRouter)
   .route('/v1/chat', chatRouter)
-  .route('/v1/mcp', mcpRouter);
+  .route('/v1/mcp', mcpRouter)
+  .route('/v1/marketplace', marketplaceRouter);
 
 // Export the AppType so the Dashboard and CLI can consume Hono RPC
 export type AppType = typeof routes;

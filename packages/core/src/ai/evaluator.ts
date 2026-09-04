@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { constraints, models, tokenBudgets } from '../db/schema';
+import { constraints, models, tokenBudgets, publicSkillRules } from '../db/schema';
 import { eq, sql, inArray } from 'drizzle-orm';
 import { redactSecrets } from './dlp';
 import { retrieveChunks } from './retriever';
@@ -29,6 +29,10 @@ export async function evaluateDiff(
   teamId: string,
   context: { title: string; description: string; repoName: string },
   fallbackRules?: string,  // Pre-joined rules string used if RAG is unavailable
+  options?: {
+    publicRuleIds?: string[];
+    precedenceMode?: 'private_overrules' | 'strict_union' | 'public_overrules';
+  }
 ): Promise<EvaluationResult> {
   // Fetch configured models and budget for the team
   const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
@@ -74,32 +78,69 @@ export async function evaluateDiff(
     };
   }
 
-  // RAG: Retrieve only the constraint chunks relevant to this diff
+  const publicRuleIds = options?.publicRuleIds || [];
+  const precedence = options?.precedenceMode || 'private_overrules';
+  let hierarchyInstruction = '';
+  if (precedence === 'private_overrules') {
+    hierarchyInstruction = '# CONFLICT RESOLUTION POLICY: [PRIVATE_OVERRULES]\n' +
+      'Private project constraints take absolute precedence over subscribed public skill rules. ' +
+      'If a private constraint conflicts with or permits an exception to a public rule, the private constraint WINS and the public rule must be ignored.\n\n';
+  } else if (precedence === 'strict_union') {
+    hierarchyInstruction = '# CONFLICT RESOLUTION POLICY: [STRICT_UNION]\n' +
+      'All private constraints and public skill rules are strictly and equally enforced. ' +
+      'If code violates EITHER a private constraint OR a public rule, you MUST flag a violation.\n\n';
+  } else if (precedence === 'public_overrules') {
+    hierarchyInstruction = '# CONFLICT RESOLUTION POLICY: [PUBLIC_OVERRULES]\n' +
+      'Subscribed public baseline standards are authoritative. If a private rule conflicts, the public rule takes precedence.\n\n';
+  }
+
+  // RAG: Retrieve only the constraint and skill chunks relevant to this diff
   let rules: string;
-  if (constraintIds.length > 0) {
+  const hasRulesToQuery = constraintIds.length > 0 || publicRuleIds.length > 0;
+
+  if (hasRulesToQuery) {
     try {
-      const chunks = await retrieveChunks(safeDiff, constraintIds);
+      const chunks = await retrieveChunks(safeDiff, constraintIds, undefined, publicRuleIds);
       if (chunks.length > 0) {
         rules = chunks.map((chunk) => `- ${chunk.chunkText}`).join('\n');
       } else {
         rules = fallbackRules ?? '';
       }
       
-      // Inject Few-Shot Examples from active constraints
-      const activeConstraints = await db.select({
-        goodExamples: constraints.goodExamples,
-        badExamples: constraints.badExamples
-      }).from(constraints).where(inArray(constraints.id, constraintIds));
-
+      // Inject Few-Shot Examples from active private constraints
       let goodExamplesList: string[] = [];
       let badExamplesList: string[] = [];
 
-      for (const c of activeConstraints) {
-        if (c.goodExamples && Array.isArray(c.goodExamples)) {
-          goodExamplesList.push(...c.goodExamples);
+      if (constraintIds.length > 0) {
+        const activeConstraints = await db.select({
+          goodExamples: constraints.goodExamples,
+          badExamples: constraints.badExamples
+        }).from(constraints).where(inArray(constraints.id, constraintIds));
+
+        for (const c of activeConstraints) {
+          if (c.goodExamples && Array.isArray(c.goodExamples)) {
+            goodExamplesList.push(...c.goodExamples);
+          }
+          if (c.badExamples && Array.isArray(c.badExamples)) {
+            badExamplesList.push(...c.badExamples);
+          }
         }
-        if (c.badExamples && Array.isArray(c.badExamples)) {
-          badExamplesList.push(...c.badExamples);
+      }
+
+      // Inject Few-Shot Examples from active public skill rules
+      if (publicRuleIds.length > 0) {
+        const activePublicRules = await db.select({
+          goodExamples: publicSkillRules.goodExamples,
+          badExamples: publicSkillRules.badExamples
+        }).from(publicSkillRules).where(inArray(publicSkillRules.id, publicRuleIds));
+
+        for (const r of activePublicRules) {
+          if (r.goodExamples && Array.isArray(r.goodExamples)) {
+            goodExamplesList.push(...r.goodExamples);
+          }
+          if (r.badExamples && Array.isArray(r.badExamples)) {
+            badExamplesList.push(...r.badExamples);
+          }
         }
       }
 
@@ -118,6 +159,8 @@ export async function evaluateDiff(
   } else {
     rules = fallbackRules ?? '';
   }
+
+  rules = hierarchyInstruction + rules;
 
   let cheapModelToUse = criticModel?.modelId || DEFAULT_CHEAP_MODEL;
   let strongModelToUse = judgeModel?.modelId || DEFAULT_STRONG_MODEL;

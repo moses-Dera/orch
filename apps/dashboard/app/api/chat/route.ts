@@ -135,9 +135,12 @@ export async function POST(req: Request) {
   const lastUserMessage = messages[messages.length - 1];
   const userQuery = lastUserMessage?.role === 'user' ? lastUserMessage.content : '';
   
+  const allInternalTools = getInternalTools(apiKey);
+  // Always include web search capability so assistant can research documentation & solutions
+  aiTools['searchWeb'] = allInternalTools.searchWeb;
+
   if (userQuery) {
     const relevantToolNames = await retrieveTools(userQuery, 4);
-    const allInternalTools = getInternalTools(apiKey);
     
     for (const name of relevantToolNames) {
       if (allInternalTools[name as keyof typeof allInternalTools]) {
