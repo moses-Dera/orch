@@ -66,6 +66,15 @@ export const constraints = pgTable('constraints', {
   badExamples: jsonb('bad_examples'),   // Array of strings representing bad code
   status: text('status').notNull().default('active'), // 'active' or 'draft'
   version: text('version').notNull().default('1.0'),
+  currentVersionNumber: integer('current_version_number').notNull().default(1),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const constraintVersions = pgTable('constraint_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  constraintId: text('constraint_id').notNull().references(() => constraints.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  versionNumber: integer('version_number').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

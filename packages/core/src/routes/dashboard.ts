@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../db';
-import { apiKeys, constraints, models, sessions, teams, organizations, tokenBudgets, projects, githubEvaluations, teamGithubInstallations } from '../db/schema';
+import { apiKeys, constraints, constraintVersions, models, sessions, teams, organizations, tokenBudgets, projects, githubEvaluations, teamGithubInstallations } from '../db/schema';
 import { eq, desc, inArray, sql, and } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { embedConstraint } from '../ai/embedder';
@@ -271,15 +271,19 @@ dashboardRouter.put('/constraints/:id', async (c) => {
 
   // Upsert
   const existing = await db.select().from(constraints).where(eq(constraints.id, id));
+  let newVersionNumber = 1;
+  const contentToSave = body.constraints || body.content || '';
   if (existing.length > 0) {
+    newVersionNumber = existing[0].currentVersionNumber + 1;
     await db.update(constraints).set({
       projectId: body.projectId,
       description: body.description,
-      content: body.constraints,
+      content: contentToSave,
       gptVariant: body.gpt_variant,
       claudeVariant: body.claude_variant,
       geminiVariant: body.gemini_variant,
       version: body.version,
+      currentVersionNumber: newVersionNumber,
     }).where(eq(constraints.id, id));
   } else {
     await db.insert(constraints).values({
@@ -287,13 +291,20 @@ dashboardRouter.put('/constraints/:id', async (c) => {
       projectId: body.projectId,
       type: id,
       description: body.description,
-      content: body.constraints,
+      content: contentToSave,
       gptVariant: body.gpt_variant,
       claudeVariant: body.claude_variant,
       geminiVariant: body.gemini_variant,
       version: body.version,
+      currentVersionNumber: newVersionNumber,
     });
   }
+
+  await db.insert(constraintVersions).values({
+    constraintId: id,
+    content: contentToSave,
+    versionNumber: newVersionNumber,
+  });
   
   // Fire-and-forget: re-embed the constraint in the background
   // (does not block the HTTP response)

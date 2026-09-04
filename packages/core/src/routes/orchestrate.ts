@@ -129,7 +129,7 @@ orchestrateRouter.post('/orchestrate/stream', apiAuthMiddleware, llmProviderMidd
   return stream(c, async (streamWriter) => {
     const parser = createParser({
       onEvent: (event) => {
-        if (event.type === 'event') {
+        if (event.data) {
           streamWriter.write(`data: ${event.data}\n\n`);
           
           if (event.data !== '[DONE]') {

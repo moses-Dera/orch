@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { cliAuthMiddleware } from '../middlewares';
 import { db } from '../db';
-import { constraints, projects } from '../db/schema';
+import { constraints, constraintVersions, projects } from '../db/schema';
 import { desc, eq, inArray } from 'drizzle-orm';
 
 export const syncRouter = new Hono<{ Variables: { teamId: string } }>();
@@ -59,11 +59,14 @@ syncRouter.put('/constraints/:id', cliAuthMiddleware, async (c) => {
 
   // Upsert
   const existing = await db.select().from(constraints).where(eq(constraints.id, id));
+  let newVersionNumber = 1;
   if (existing.length > 0) {
+    newVersionNumber = existing[0].currentVersionNumber + 1;
     await db.update(constraints).set({
       projectId,
       description,
       content,
+      currentVersionNumber: newVersionNumber,
     }).where(eq(constraints.id, id));
   } else {
     await db.insert(constraints).values({
@@ -73,8 +76,15 @@ syncRouter.put('/constraints/:id', cliAuthMiddleware, async (c) => {
       description,
       content,
       version: '1.0',
+      currentVersionNumber: newVersionNumber,
     });
   }
+
+  await db.insert(constraintVersions).values({
+    constraintId: id,
+    content,
+    versionNumber: newVersionNumber,
+  });
   
   // Re-embed
   embedConstraint(id, content).catch((err) =>

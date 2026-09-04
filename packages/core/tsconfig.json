@@ -5,9 +5,9 @@
     "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": ["node", "bun-types"],
     "lib": ["ESNext"],
     "noEmit": true
   },
-  "include": ["src/**/*", "drizzle.config.ts"]
+  "include": ["src/**/*", "drizzle.config.ts", "test/**/*"]
 }
