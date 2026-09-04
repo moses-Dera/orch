@@ -158,6 +158,7 @@ export const llmProviderMiddleware = createMiddleware(async (c, next) => {
       else if (provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
       else if (provider === 'fireworks') endpoint = 'https://api.fireworks.ai/inference/v1/chat/completions';
       else if (provider === 'ollama') endpoint = 'http://127.0.0.1:11434/v1/chat/completions';
+      else if (provider === 'nvidia') endpoint = 'https://integrate.api.nvidia.com/v1/chat/completions';
       else endpoint = 'https://openrouter.ai/api/v1/chat/completions';
     }
   } else {
