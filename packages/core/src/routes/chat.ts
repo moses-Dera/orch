@@ -48,10 +48,15 @@ chatRouter.get('/sessions/:id/messages', async (c) => {
   const teamId = c.get('teamId');
   const sessionId = c.req.param('id');
 
+  if (!teamId) {
+    return c.json({ messages: [] });
+  }
+
   // Verify ownership
   const [session] = await db.select().from(sessions).where(and(eq(sessions.id, sessionId), eq(sessions.teamId, teamId)));
   if (!session) {
-    return c.json({ error: 'Session not found' }, 404);
+    // New/unpersisted session: return empty array cleanly instead of 404
+    return c.json({ messages: [] });
   }
 
   const messages = await db.select()
