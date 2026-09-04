@@ -290,9 +290,10 @@ export default function AssistantPage() {
   const lastAssistantId = lastAssistantIdx >= 0 ? messages[messages.length - 1 - lastAssistantIdx]?.id : null;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] w-full max-w-4xl mx-auto border border-[var(--border)] rounded-2xl bg-[var(--surface)]/30 backdrop-blur-xs overflow-hidden shadow-xs relative">
-      {/* Chat Toolbar Header */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-2.5 bg-[var(--surface)]/80 backdrop-blur-md border-b border-[var(--border)] shrink-0 z-10">
+    <div className="fixed top-14 bottom-0 left-0 md:left-[220px] right-0 h-[calc(100dvh-3.5rem)] flex flex-col items-center overflow-hidden bg-[var(--background)] p-0 sm:p-3 md:p-4 z-20">
+      <div className="flex flex-col h-full w-full max-w-4xl border-0 sm:border border-[var(--border)] sm:rounded-2xl bg-[var(--surface)]/30 backdrop-blur-xs overflow-hidden shadow-xs relative">
+        {/* Chat Toolbar Header */}
+        <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-2.5 bg-[var(--surface)]/80 backdrop-blur-md border-b border-[var(--border)] shrink-0 z-10">
         <div className="flex items-center gap-2 flex-wrap">
           <Dialog open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
             <DialogTrigger className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all text-xs font-medium cursor-pointer">
@@ -405,7 +406,7 @@ export default function AssistantPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-6 p-4 md:p-6 scroll-smooth">
+      <div className="flex-1 overflow-y-auto space-y-6 p-3 sm:p-4 md:p-6 scroll-smooth overscroll-contain">
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
@@ -654,7 +655,7 @@ export default function AssistantPage() {
       </div>
 
       {/* Input Form */}
-      <div className="bg-[var(--surface)]/60 backdrop-blur-md border-t border-[var(--border)] p-3 md:px-6 md:py-3.5 shrink-0">
+      <div className="bg-[var(--surface)]/60 backdrop-blur-md border-t border-[var(--border)] p-2.5 sm:p-3 md:px-6 md:py-3.5 shrink-0">
         <form
           onSubmit={handleSubmit}
           className="flex items-end gap-2 p-2.5 bg-[var(--surface)] rounded-2xl shadow-xs border border-[var(--border)] transition-shadow focus-within:ring-2 focus-within:ring-[var(--ring)]"
@@ -806,6 +807,7 @@ export default function AssistantPage() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
