@@ -109,7 +109,7 @@ export function getInternalTools(apiKey: string) {
     } as any),
 
     searchWeb: tool({
-      description: "Searches the live web and developer documentation for up-to-date APIs, libraries, security vulnerabilities (CVEs), or coding patterns. Always returns real source URLs and summaries.",
+      description: "Searches the live web and developer documentation for up-to-date APIs, libraries, security vulnerabilities (CVEs), or coding patterns. Only invoke when external technical lookup or documentation is needed. Do not invoke for greetings or casual conversation.",
       parameters: z.object({
         query: z.string().describe("The search query to look up (e.g. 'Next.js 15 proxy rewrite', 'Bun sqlite transactions', 'ERC-4337 paymaster')."),
         maxResults: z.number().optional().default(4).describe("Maximum number of authoritative results to return."),

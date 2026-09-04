@@ -25,14 +25,26 @@ import { formatDistanceToNow } from "date-fns";
 type Feedback = "up" | "down" | null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function getTextContent(parts: any[]): string {
-  return parts?.filter((p) => p.type === "text").map((p) => p.text).join("") ?? "";
+function getMessageText(message: any): string {
+  if (!message) return "";
+  if (typeof message === "string") return message;
+  if (Array.isArray(message.parts) && message.parts.length > 0) {
+    const text = message.parts
+      .filter((p: any) => p && (p.type === "text" || !p.type))
+      .map((p: any) => p.text || "")
+      .join("");
+    if (text.trim().length > 0) return text;
+  }
+  if (typeof message.content === "string") {
+    return message.content;
+  }
+  return "";
 }
 
 function exportAsMarkdown(messages: any[]) {
   const md = messages
     .map((m) => {
-      const text = getTextContent(m.parts ?? []);
+      const text = getMessageText(m);
       return m.role === "user" ? `**You:** ${text}` : `**Orch:** ${text}`;
     })
     .join("\n\n---\n\n");
@@ -120,11 +132,15 @@ function CopyButton({ text }: { text: string }) {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-const getWelcomeMessage = (teamName?: string) => ({
-  id: "welcome",
-  role: "assistant" as const,
-  parts: [{ type: "text", text: `Hello! I am the Orchestrator CTO AI Assistant${teamName ? ` for **${teamName}**` : ''}. How can I help you design architectures or review constraints today?` }],
-});
+const getWelcomeMessage = (teamName?: string) => {
+  const text = `Hello! I am the Orchestrator CTO AI Assistant${teamName ? ` for **${teamName}**` : ''}. How can I help you design architectures or review constraints today?`;
+  return {
+    id: "welcome",
+    role: "assistant" as const,
+    content: text,
+    parts: [{ type: "text", text }],
+  };
+};
 
 const SUGGESTIONS = [
   "Draft a new security constraint",
@@ -186,6 +202,7 @@ export default function AssistantPage() {
         id: m.id.toString(),
         role: m.role,
         content: m.content || "",
+        parts: [{ type: "text", text: m.content || "" }],
         toolInvocations: m.toolCalls ? m.toolCalls : undefined,
       }));
       // Only set if we haven't already locally optimistically appended them
@@ -407,7 +424,7 @@ export default function AssistantPage() {
         )}
 
         {messages.map((m, index) => {
-          const text = getTextContent((m as any).parts ?? []);
+          const text = getMessageText(m);
           const isUser = m.role === "user";
           const isLastAssistant = m.id === lastAssistantId;
           const isEditing = editingId === m.id;
@@ -496,7 +513,15 @@ export default function AssistantPage() {
                       <div className="whitespace-pre-wrap">{text}</div>
                     ) : (
                       <>
-                        <ReactMarkdown components={markdownComponents}>{text}</ReactMarkdown>
+                        {text ? (
+                          <ReactMarkdown components={markdownComponents}>{text}</ReactMarkdown>
+                        ) : isLoading && isLastAssistant ? (
+                          <div className="flex items-center gap-1.5 py-1 text-[var(--text-secondary)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:0ms]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:150ms]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:300ms]" />
+                          </div>
+                        ) : null}
 
                         {/* Inline Citations / Sources if web search was performed */}
                         {(() => {

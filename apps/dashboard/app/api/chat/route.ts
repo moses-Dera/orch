@@ -131,9 +131,22 @@ export async function POST(req: Request) {
     } as any);
   }
 
+  // Helper to extract plain text from either string content or parts array
+  function extractText(msg: any): string {
+    if (!msg) return '';
+    if (typeof msg.content === 'string' && msg.content.trim()) return msg.content;
+    if (Array.isArray(msg.parts)) {
+      return msg.parts
+        .filter((p: any) => p && (p.type === 'text' || !p.type))
+        .map((p: any) => p.text || '')
+        .join('');
+    }
+    return '';
+  }
+
   // Retrieve and inject relevant internal tools
   const lastUserMessage = messages[messages.length - 1];
-  const userQuery = lastUserMessage?.role === 'user' ? lastUserMessage.content : '';
+  const userQuery = lastUserMessage?.role === 'user' ? extractText(lastUserMessage) : '';
   
   const allInternalTools = getInternalTools(apiKey);
   // Always include web search capability so assistant can research documentation & solutions
@@ -156,7 +169,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: orchProxy.chat(chatModel),
     messages: await convertToModelMessages(messages),
-    ...(hasTools ? { tools: aiTools } : {}),
+    ...(hasTools ? { tools: aiTools, maxSteps: 5 } : {}),
     experimental_transform: smoothStream(),
     onFinish: async (event) => {
       // Close all MCP connections
@@ -165,19 +178,24 @@ export async function POST(req: Request) {
       // Save user message (the last message in the input)
       const lastMessage = messages[messages.length - 1];
       if (lastMessage?.role === 'user') {
-        fetch(`${BACKEND_URL}/v1/chat/sessions/${id}/messages`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: 'user', content: lastMessage.content })
-        }).catch(err => console.error('[DB] Failed to save user message:', err));
+        const userText = extractText(lastMessage);
+        if (userText) {
+          fetch(`${BACKEND_URL}/v1/chat/sessions/${id}/messages`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'user', content: userText })
+          }).catch(err => console.error('[DB] Failed to save user message:', err));
+        }
       }
 
       // Save Assistant Message
-      fetch(`${BACKEND_URL}/v1/chat/sessions/${id}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'assistant', content: event.text })
-      }).catch(err => console.error('[DB] Failed to save assistant message:', err));
+      if (event.text) {
+        fetch(`${BACKEND_URL}/v1/chat/sessions/${id}/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'assistant', content: event.text })
+        }).catch(err => console.error('[DB] Failed to save assistant message:', err));
+      }
     }
   });
 
