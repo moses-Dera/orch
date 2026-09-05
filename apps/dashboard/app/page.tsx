@@ -440,7 +440,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15 }}
-                className="group p-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]/50 transition-all shadow-sm hover:shadow-xl relative overflow-hidden flex flex-col h-full"
+                className="p-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]/50 transition-all shadow-sm hover:shadow-xl relative overflow-hidden flex flex-col h-full"
               >
                 {/* Header: Publisher & Badge */}
                 <div className="flex justify-between items-start mb-4">
@@ -469,16 +469,19 @@ export default function LandingPage() {
                 {/* Footer: Downloads & CTA */}
                 <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between">
                   <span className="text-[10px] font-mono text-[var(--text-secondary)]">{skill.downloads} installs</span>
-                  <button className="text-[10px] font-bold font-mono px-3 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] group-hover:bg-[var(--accent)] group-hover:text-[var(--primary-foreground)] group-hover:border-[var(--accent)] transition-colors">
+                  <Link
+                    href="/marketplace"
+                    className="text-[10px] font-bold font-mono px-3 py-1.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+                  >
                     Subscribe
-                  </button>
+                  </Link>
                 </div>
               </motion.div>
             ))}
           </div>
           
           <div className="flex justify-center mt-8">
-             <Link href={ctaHref} className="text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 border-b border-dashed border-[var(--text-secondary)] pb-1 hover:border-[var(--text-primary)] transition-colors cursor-pointer">
+             <Link href="/marketplace" className="text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 border-b border-dashed border-[var(--text-secondary)] pb-1 hover:border-[var(--text-primary)] transition-colors cursor-pointer">
                Explore all 500+ Verified Skills <ArrowRight className="w-3.5 h-3.5" />
              </Link>
           </div>
