@@ -9,6 +9,19 @@ import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useHasAccess } from "@/hooks/useRole"
 import { Lightbulb, Globe, Zap, Sparkles, Server, ExternalLink } from "lucide-react"
+import { CustomSelect } from "@/components/ui/custom-select"
+
+const PROVIDER_OPTIONS = [
+  { value: "openai", label: "OpenAI" },
+  { value: "anthropic", label: "Anthropic" },
+  { value: "google", label: "Google Gemini" },
+  { value: "moonshot", label: "Kimi (Moonshot)" },
+  { value: "minimax", label: "Minimax" },
+  { value: "ollama", label: "Ollama (Local)" },
+  { value: "nvidia", label: "NVIDIA NIM" },
+  { value: "openrouter", label: "OpenRouter" },
+  { value: "custom", label: "Custom Provider" },
+]
 
 const POLICY_DESC: Record<string, string> = {
   enforced: "All developers use one model. Developer choice is overridden.",
@@ -173,21 +186,11 @@ export default function ModelsPage() {
               
               <div className="space-y-3 max-w-2xl">
                 <label className="text-sm font-medium">Provider</label>
-                <select 
-                  value={providerType} 
-                  onChange={e => handleProviderTypeChange(e.target.value)}
-                  className="w-full rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                >
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="google">Google Gemini</option>
-                  <option value="moonshot">Kimi (Moonshot)</option>
-                  <option value="minimax">Minimax</option>
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="nvidia">NVIDIA NIM</option>
-                  <option value="openrouter">OpenRouter</option>
-                  <option value="custom">Custom Provider</option>
-                </select>
+                <CustomSelect
+                  value={providerType}
+                  onChange={handleProviderTypeChange}
+                  options={PROVIDER_OPTIONS}
+                />
               </div>
 
               <div className="space-y-3 max-w-2xl">
@@ -281,41 +284,39 @@ export default function ModelsPage() {
               <div className="space-y-3 max-w-2xl">
                 <label className="text-sm font-medium">Select Model</label>
                 {(providerType !== "custom" && providerType !== "openrouter") ? (
-                  <select 
-                    className="w-full rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const preset = (PRESETS as any)[providerType].find((p: any) => p.model_id === e.target.value);
+                  <CustomSelect
+                    value={(PRESETS as any)[providerType]?.some((p: any) => p.model_id === form.model_id) ? form.model_id : ""}
+                    onChange={(val) => {
+                      if (!val) return;
+                      const preset = (PRESETS as any)[providerType]?.find((p: any) => p.model_id === val);
                       if (preset) {
                         setForm(f => ({ ...f, model_id: preset.model_id, display_name: preset.display_name, context_window: preset.context_window }));
                       }
                     }}
-                    value={(PRESETS as any)[providerType].some((p: any) => p.model_id === form.model_id) ? form.model_id : ""}
-                  >
-                    <option value="" disabled>Select a preset model...</option>
-                    {(PRESETS as any)[providerType].map((p: any) => (
-                      <option key={p.model_id} value={p.model_id}>{p.display_name}</option>
-                    ))}
-                  </select>
+                    placeholder="Select a preset model..."
+                    options={((PRESETS as any)[providerType] || []).map((p: any) => ({
+                      value: p.model_id,
+                      label: p.display_name,
+                    }))}
+                  />
                 ) : (
-                  <select 
-                    className="w-full rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const m = fetchedModels.find(x => x.id === e.target.value);
+                  <CustomSelect
+                    value={form.model_id}
+                    onChange={(val) => {
+                      if (!val) return;
+                      const m = fetchedModels.find(x => x.id === val);
                       if (m) {
                         setForm(f => ({ ...f, model_id: m.id, display_name: m.name || m.id, context_window: m.context_length || 128000 }));
                       } else {
-                         setForm(f => ({ ...f, model_id: e.target.value }));
+                        setForm(f => ({ ...f, model_id: val }));
                       }
                     }}
-                    value={form.model_id}
-                  >
-                    <option value="" disabled>{fetchedModels.length > 0 ? "Select a fetched model..." : "Fetch models first or manually enter below"}</option>
-                    {fetchedModels.map(m => (
-                      <option key={m.id} value={m.id}>{m.name || m.id}</option>
-                    ))}
-                  </select>
+                    placeholder={fetchedModels.length > 0 ? "Select a fetched model..." : "Fetch models first or manually enter below"}
+                    options={fetchedModels.map(m => ({
+                      value: m.id,
+                      label: m.name || m.id,
+                    }))}
+                  />
                 )}
               </div>
 

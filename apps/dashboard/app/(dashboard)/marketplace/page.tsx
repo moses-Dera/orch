@@ -6,6 +6,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { PageSkeleton } from "@/components/shared/LoadingSkeleton"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { CustomSelect } from "@/components/ui/custom-select"
 import { useProjectStore } from "@/stores/projectStore"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
@@ -211,10 +212,10 @@ export default function MarketplacePage() {
       }
     >
       {/* ─── Navigation Tabs ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2 mb-6 text-sm font-medium">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2 mb-6 text-sm font-medium overflow-x-auto scrollbar-none flex-nowrap shrink-0">
         <button
           onClick={() => setActiveTab("discover")}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 ${
             activeTab === "discover"
               ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -225,7 +226,7 @@ export default function MarketplacePage() {
         </button>
         <button
           onClick={() => setActiveTab("subscribed")}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 ${
             activeTab === "subscribed"
               ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -241,7 +242,7 @@ export default function MarketplacePage() {
         </button>
         <button
           onClick={() => setActiveTab("publish")}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 ${
             activeTab === "publish"
               ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -386,24 +387,26 @@ export default function MarketplacePage() {
       {/* ─── TAB 2: SUBSCRIBED TO PROJECT ───────────────────────────────────── */}
       {activeTab === "subscribed" && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <div>
               <p className="text-xs font-semibold text-[var(--text-primary)]">Active Project Context</p>
               <p className="text-xs text-[var(--text-secondary)]">
                 Showing public skill subscriptions inherited by this project.
               </p>
             </div>
-            <select
+            <CustomSelect
               value={effectiveProjectId}
-              onChange={(e) => setSubTargetProjectId(e.target.value)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)] font-mono"
-            >
-              {projectsList.map((p: any) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSubTargetProjectId(val)}
+              options={projectsList.map((p: any) => ({
+                value: p.id,
+                label: p.name || p.githubRepoFullName || p.id,
+                description: p.githubRepoFullName ? `Repo: ${p.githubRepoFullName}` : undefined,
+              }))}
+              placeholder="Select project..."
+              className="w-full sm:w-auto"
+              triggerClassName="w-full sm:min-w-[200px]"
+              align="right"
+            />
           </div>
 
           {subscribedLoading ? (
@@ -497,7 +500,7 @@ export default function MarketplacePage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-[var(--text-secondary)]">Slug (Registry ID)</label>
                 <input
@@ -578,7 +581,7 @@ export default function MarketplacePage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <input
                       type="text"
                       placeholder="Rule ID (e.g. no_raw_sql)"
@@ -586,16 +589,18 @@ export default function MarketplacePage() {
                       onChange={(e) => handleRuleChange(idx, "id", e.target.value)}
                       className="px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text-primary)] font-mono"
                     />
-                    <select
+                    <CustomSelect
                       value={rule.type}
-                      onChange={(e) => handleRuleChange(idx, "type", e.target.value)}
-                      className="px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text-primary)]"
-                    >
-                      <option value="security">Security</option>
-                      <option value="tech_stack">Tech Stack</option>
-                      <option value="performance">Performance</option>
-                      <option value="style">Style</option>
-                    </select>
+                      onChange={(val) => handleRuleChange(idx, "type", val)}
+                      options={[
+                        { value: "security", label: "Security" },
+                        { value: "tech_stack", label: "Tech Stack" },
+                        { value: "performance", label: "Performance" },
+                        { value: "style", label: "Style" },
+                      ]}
+                      size="sm"
+                      fullWidth
+                    />
                   </div>
 
                   <textarea
@@ -606,7 +611,7 @@ export default function MarketplacePage() {
                     className="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text-primary)]"
                   />
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <textarea
                       rows={2}
                       placeholder="Good Example (Clean Code snippet)..."
@@ -639,7 +644,7 @@ export default function MarketplacePage() {
 
       {/* ─── MODAL 1: SKILL DETAIL INSPECTION ────────────────────────────────── */}
       <Dialog open={!!detailSkillId} onOpenChange={(open) => !open && setDetailSkillId(null)}>
-        <DialogContent className="max-w-2xl bg-[var(--surface)] border-[var(--border)] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-2xl bg-[var(--surface)] border-[var(--border)] max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <div className="flex items-center justify-between pr-6">
               <DialogTitle className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
@@ -721,7 +726,7 @@ export default function MarketplacePage() {
 
       {/* ─── MODAL 2: SUBSCRIBE CONFIGURATION MODAL ─────────────────────────── */}
       <Dialog open={!!subscribeSkill} onOpenChange={(open) => !open && setSubscribeSkill(null)}>
-        <DialogContent className="max-w-lg bg-[var(--surface)] border-[var(--border)]">
+        <DialogContent className="w-[95vw] sm:max-w-lg bg-[var(--surface)] border-[var(--border)] max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
               Subscribe to {subscribeSkill?.name}
@@ -734,18 +739,19 @@ export default function MarketplacePage() {
           <div className="space-y-4 my-3 text-xs">
             {/* Target Project */}
             <div>
-              <label className="font-semibold text-[var(--text-primary)] block mb-1">Target Project</label>
-              <select
-                value={subTargetProjectId}
-                onChange={(e) => setSubTargetProjectId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)]"
-              >
-                {projectsList.map((p: any) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} {p.githubRepoFullName ? `(${p.githubRepoFullName})` : ""}
-                  </option>
-                ))}
-              </select>
+              <label className="font-semibold text-[var(--text-primary)] block mb-1.5">Target Project</label>
+              <CustomSelect
+                value={subTargetProjectId || effectiveProjectId}
+                onChange={(val) => setSubTargetProjectId(val)}
+                options={projectsList.map((p: any) => ({
+                  value: p.id,
+                  label: `${p.name} ${p.githubRepoFullName ? `(${p.githubRepoFullName})` : ""}`,
+                  description: p.githubRepoFullName ? `Repo: ${p.githubRepoFullName}` : undefined,
+                }))}
+                placeholder="Choose target project..."
+                fullWidth
+                size="md"
+              />
             </div>
 
             {/* Precedence Mode */}

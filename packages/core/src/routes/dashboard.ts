@@ -85,6 +85,9 @@ dashboardRouter.get('/status', async (c) => {
 // GET /v1/models
 dashboardRouter.get('/models', async (c) => {
   const teamId = c.get('teamId');
+  if (!teamId) {
+    return c.json({ policy: 'allowlist', models: [] });
+  }
   const teamModels = await db.select().from(models).where(eq(models.teamId, teamId));
   return c.json({
     policy: 'allowlist',
@@ -189,6 +192,7 @@ dashboardRouter.delete('/models/:id', async (c) => {
 // GET /v1/projects
 dashboardRouter.get('/projects', async (c) => {
   const teamId = c.get('teamId');
+  if (!teamId) return c.json({ projects: [] });
   const teamProjects = await db.select().from(projects).where(eq(projects.teamId, teamId));
   return c.json({ projects: teamProjects });
 });
@@ -196,6 +200,7 @@ dashboardRouter.get('/projects', async (c) => {
 // POST /v1/projects
 dashboardRouter.post('/projects', async (c) => {
   const teamId = c.get('teamId');
+  if (!teamId) return c.json({ error: 'Team context required' }, 400);
   const body = await c.req.json();
   await db.insert(projects).values({
     teamId,
@@ -208,6 +213,7 @@ dashboardRouter.post('/projects', async (c) => {
 // DELETE /v1/projects/:id
 dashboardRouter.delete('/projects/:id', async (c) => {
   const teamId = c.get('teamId');
+  if (!teamId) return c.json({ error: 'Team context required' }, 400);
   const id = c.req.param('id');
   
   // Clean up children (githubEvaluations and constraints)
@@ -222,6 +228,7 @@ dashboardRouter.delete('/projects/:id', async (c) => {
 // GET /v1/constraints
 dashboardRouter.get('/constraints', async (c) => {
   const teamId = c.get('teamId');
+  if (!teamId) return c.json({ constraints: [] });
   
   // Need to get constraints for all projects in this team
   // For simplicity, let's fetch all projects first
@@ -253,6 +260,9 @@ dashboardRouter.get('/constraints', async (c) => {
 // GET /v1/analytics
 dashboardRouter.get('/analytics', async (c) => {
   const teamId = c.get('teamId');
+  if (!teamId) {
+    return c.json({ stats: { total: 0, violations: 0, clean: 0 }, recent: [] });
+  }
   
   const teamProjects = await db.select().from(projects).where(eq(projects.teamId, teamId));
   const projectIds = teamProjects.map(p => p.id);
@@ -363,10 +373,20 @@ dashboardRouter.delete('/constraints/:id', async (c) => {
 // GET /v1/audit
 dashboardRouter.get('/audit', async (c) => {
   const teamId = c.get('teamId');
+  if (!teamId) {
+    return c.json({
+      org: 'Trial Workspace',
+      total_sessions: 0,
+      total_input_tokens: 0,
+      total_output_tokens: 0,
+      developer_breakdown: [],
+      sessions: []
+    });
+  }
   const limit = parseInt(c.req.query('limit') || '50');
   
   const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
-  const [org] = await db.select().from(organizations).where(eq(organizations.id, team.orgId));
+  const [org] = await db.select().from(organizations).where(eq(organizations.id, team?.orgId || ''));
   
   const teamSessions = await db.select().from(sessions).where(eq(sessions.teamId, teamId)).orderBy(desc(sessions.createdAt)).limit(limit);
   
@@ -404,8 +424,7 @@ dashboardRouter.get('/audit/me', async (c) => {
   const limit = parseInt(c.req.query('limit') || '50');
 
   // Filter by userId in the DB query — never pull all sessions and filter in memory
-  // (Bug #12 fix: !userId fallback previously returned ALL team sessions to any caller)
-  if (!userId) {
+  if (!userId || !teamId) {
     return c.json({ sessions: [] });
   }
 
@@ -431,6 +450,13 @@ dashboardRouter.get('/audit/me', async (c) => {
 // GET /v1/health/scores
 dashboardRouter.get('/health/scores', async (c) => {
   const teamId = c.get('teamId');
+  if (!teamId) {
+    return c.json({
+      org: 'Trial Workspace',
+      scores: [],
+      summary: { total_constraints: 0, healthy: 0, warning: 0, critical: 0 }
+    });
+  }
   // Join through projects — constraints link to projects, not teams directly
   const teamProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.teamId, teamId));
   const projectIds = teamProjects.map((p) => p.id);

@@ -29,9 +29,11 @@ export default clerkMiddleware(async (auth, req) => {
     }
     
     if (isAdminRoute(req)) {
-      const metadata = sessionClaims?.metadata as any
-      const role = metadata?.role || 'viewer'
-      if (role !== 'admin' && role !== 'owner') {
+      const metadata = (sessionClaims?.metadata || sessionClaims?.publicMetadata) as any
+      const role = metadata?.role
+      // Only enforce redirection if an explicit non-admin role is declared in Clerk session claims.
+      // If role is undefined (standard Clerk JWT), RouteGuard and backend DB resolve the user's role.
+      if (role && role !== 'admin' && role !== 'owner') {
         const url = new URL('/chat', req.url)
         return Response.redirect(url)
       }

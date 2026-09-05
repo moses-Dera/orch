@@ -10,6 +10,13 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { formatDate } from "@/lib/utils"
 import { useHasAccess } from "@/hooks/useRole"
+import { CustomSelect } from "@/components/ui/custom-select"
+
+const ROLE_OPTIONS = [
+  { value: "member", label: "Member" },
+  { value: "admin", label: "Admin" },
+  { value: "viewer", label: "Viewer" },
+]
 
 const ROLE_COLORS: Record<string, string> = {
   owner:  "bg-[var(--accent)]/10 text-[var(--accent)]",
@@ -90,15 +97,14 @@ export default function TeamPage() {
                 placeholder="colleague@company.com"
                 className="flex-1 rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
               />
-              <select
-                value={role}
-                onChange={e => setRole(e.target.value)}
-                className="rounded-md border bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              >
-                <option value="member">Member</option>
-                <option value="admin">Admin</option>
-                <option value="viewer">Viewer</option>
-              </select>
+              <div className="w-full sm:w-36">
+                <CustomSelect
+                  value={role}
+                  onChange={setRole}
+                  options={ROLE_OPTIONS}
+                  size="sm"
+                />
+              </div>
               <Button
                 size="sm"
                 disabled={!email || invite.isPending}

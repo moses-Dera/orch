@@ -19,6 +19,7 @@ import { useProjectStore } from "@/stores/projectStore";
 import { v4 as uuidv4 } from "uuid";
 import { History, MessageSquare, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { formatDistanceToNow } from "date-fns";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -293,117 +294,122 @@ export default function AssistantPage() {
     <div className="fixed top-14 bottom-0 left-0 md:left-[220px] right-0 h-[calc(100dvh-3.5rem)] flex flex-col items-center overflow-hidden bg-[var(--background)] p-0 sm:p-3 md:p-4 z-20">
       <div className="flex flex-col h-full w-full max-w-4xl border-0 sm:border border-[var(--border)] sm:rounded-2xl bg-[var(--surface)]/30 backdrop-blur-xs overflow-hidden shadow-xs relative">
         {/* Chat Toolbar Header */}
-        <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-2.5 bg-[var(--surface)]/80 backdrop-blur-md border-b border-[var(--border)] shrink-0 z-10">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Dialog open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-            <DialogTrigger className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all text-xs font-medium cursor-pointer">
-              <History size={14} />
-              History
-            </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[85vh] flex flex-col bg-[var(--background)] border-[var(--border)] p-0 gap-0">
-              <DialogHeader className="p-4 border-b border-[var(--border)]">
-                <div className="flex items-center justify-between">
-                  <DialogTitle className="text-base text-[var(--text-primary)]">Chat History</DialogTitle>
-                  <button
-                    onClick={() => { handleClear(); setIsSidebarOpen(false); }}
-                    className="flex items-center gap-1.5 bg-[var(--surface)] hover:bg-[var(--border)] text-[var(--text-primary)] px-3 py-1.5 rounded-lg transition-colors font-medium text-xs border border-[var(--border)] cursor-pointer"
-                  >
-                    <Plus size={14} />
-                    New Chat
-                  </button>
-                </div>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto p-2 min-h-[300px]">
-                {(!sessionsData?.sessions || sessionsData.sessions.length === 0) ? (
-                  <div className="text-xs text-[var(--text-secondary)] text-center mt-8">
-                    No chat history yet.
-                  </div>
-                ) : (
-                  sessionsData.sessions.map((session: any) => (
+        <div className="flex items-center justify-between px-2.5 sm:px-4 md:px-6 py-2 bg-[var(--surface)]/90 backdrop-blur-md border-b border-[var(--border)] shrink-0 z-10 gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <Dialog open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+              <DialogTrigger className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all text-xs font-medium cursor-pointer">
+                <History size={14} />
+                <span className="hidden xs:inline sm:inline">History</span>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] sm:max-w-md max-h-[85vh] flex flex-col bg-[var(--background)] border-[var(--border)] p-0 gap-0">
+                <DialogHeader className="p-4 border-b border-[var(--border)]">
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="text-base text-[var(--text-primary)]">Chat History</DialogTitle>
                     <button
-                      key={session.id}
-                      onClick={() => {
-                        setActiveSessionId(session.id);
-                        setIsSidebarOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left text-sm transition-colors group ${
-                        activeSessionId === session.id
-                          ? "bg-[var(--accent)]/10 text-[var(--accent)]"
-                          : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
-                      }`}
+                      onClick={() => { handleClear(); setIsSidebarOpen(false); }}
+                      className="flex items-center gap-1.5 bg-[var(--surface)] hover:bg-[var(--border)] text-[var(--text-primary)] px-3 py-1.5 rounded-lg transition-colors font-medium text-xs border border-[var(--border)] cursor-pointer"
                     >
-                      <MessageSquare size={16} className="shrink-0" />
-                      <div className="flex-1 truncate">
-                        <div className="truncate font-medium text-[var(--text-primary)]">
-                          {session.id.slice(0, 8)}...
-                        </div>
-                        <div className="text-[10px] opacity-70">
-                          {formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}
-                        </div>
-                      </div>
+                      <Plus size={14} />
+                      New Chat
                     </button>
-                  ))
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+                  </div>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto p-2 min-h-[300px]">
+                  {(!sessionsData?.sessions || sessionsData.sessions.length === 0) ? (
+                    <div className="text-xs text-[var(--text-secondary)] text-center mt-8">
+                      No chat history yet.
+                    </div>
+                  ) : (
+                    sessionsData.sessions.map((session: any) => (
+                      <button
+                        key={session.id}
+                        onClick={() => {
+                          setActiveSessionId(session.id);
+                          setIsSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left text-sm transition-colors group cursor-pointer ${
+                          activeSessionId === session.id
+                            ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                            : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
+                        }`}
+                      >
+                        <MessageSquare size={16} className="shrink-0" />
+                        <div className="flex-1 truncate">
+                          <div className="truncate font-medium text-[var(--text-primary)]">
+                            {session.id.slice(0, 8)}...
+                          </div>
+                          <div className="text-[10px] opacity-70">
+                            {formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
 
-          <button
-            onClick={handleClear}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all text-xs font-medium cursor-pointer"
-            title="Start new conversation"
-          >
-            <Plus size={14} />
-            <span className="hidden sm:inline">New Chat</span>
-          </button>
-        </div>
-
-        {/* Right side of header */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            {(modelsData?.models?.length ?? 0) > 0 ? (
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] px-2.5 py-1.5 rounded-md text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer transition-colors max-w-[180px] truncate"
-              >
-                {modelsData?.models?.map((m: any) => (
-                  <option key={m.id} value={m.id}>{m.name || m.id}</option>
-                ))}
-              </select>
-            ) : (
-              <a
-                href="/models"
-                className="bg-amber-500/10 text-amber-600 px-2.5 py-1.5 rounded-md text-xs font-medium hover:bg-amber-500/20 transition-colors"
-              >
-                Add API Key
-              </a>
-            )}
-            {tokenCount !== null && (
-              <div className="text-[10px] text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 rounded-md font-mono">
-                ~{tokenCount.toLocaleString()} tokens
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1 border-l border-[var(--border)] pl-3">
-            <button
-              onClick={handleExport}
-              title="Export chat as Markdown"
-              className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all cursor-pointer"
-            >
-              <Download size={14} />
-            </button>
             <button
               onClick={handleClear}
-              title="Clear conversation"
-              className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all text-xs font-medium cursor-pointer"
+              title="Start new conversation"
             >
-              <Trash2 size={14} />
+              <Plus size={14} />
+              <span className="hidden sm:inline">New Chat</span>
             </button>
           </div>
+
+          {/* Right side of header */}
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              {(modelsData?.models?.length ?? 0) > 0 ? (
+                <CustomSelect
+                  value={selectedModel}
+                  onChange={(val) => setSelectedModel(val)}
+                  options={(modelsData?.models || []).map((m: any) => ({
+                    value: m.id,
+                    label: m.name || m.id,
+                    badge: m.provider,
+                  }))}
+                  size="xs"
+                  placeholder="Select Model"
+                  className="max-w-[130px] xs:max-w-[160px] sm:max-w-[200px]"
+                  triggerClassName="h-7 px-2 text-[11px] sm:text-xs"
+                  align="right"
+                />
+              ) : (
+                <a
+                  href="/models"
+                  className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-1 rounded-md text-[11px] font-medium hover:bg-amber-500/20 transition-colors whitespace-nowrap"
+                >
+                  Add API Key
+                </a>
+              )}
+              {tokenCount !== null && (
+                <div className="hidden sm:flex text-[10px] text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 rounded-md font-mono shrink-0">
+                  ~{tokenCount.toLocaleString()} tokens
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-0.5 border-l border-[var(--border)] pl-1.5 sm:pl-2 shrink-0">
+              <button
+                onClick={handleExport}
+                title="Export chat as Markdown"
+                className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all cursor-pointer"
+              >
+                <Download size={14} />
+              </button>
+              <button
+                onClick={handleClear}
+                title="Clear conversation"
+                className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-6 p-3 sm:p-4 md:p-6 scroll-smooth overscroll-contain">
@@ -433,12 +439,12 @@ export default function AssistantPage() {
           return (
             <div key={m.id} className={`flex w-full group ${isUser ? "justify-end" : "justify-start"}`}>
               {!isUser && (
-                <div className="w-8 h-8 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center flex-shrink-0 mt-1 mr-3 font-bold text-xs">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center flex-shrink-0 mt-1 mr-2 sm:mr-3 font-bold text-xs">
                   O
                 </div>
               )}
 
-              <div className={`flex flex-col gap-1.5 max-w-[85%] sm:max-w-[75%] ${isUser ? "items-end" : "items-start"}`}>
+              <div className={`flex flex-col gap-1.5 max-w-[92%] sm:max-w-[78%] ${isUser ? "items-end" : "items-start"}`}>
                 {/* Tool calls & Agentic Progress */}
                 {(m as any).toolInvocations?.map((toolInvocation: any, i: number) => {
                   const toolName = toolInvocation.toolName;
@@ -710,14 +716,14 @@ export default function AssistantPage() {
           )}
         </form>
 
-        <div className="text-center mt-1.5 text-[11px] text-[var(--text-secondary)]">
+        <div className="text-center mt-1 text-[10px] sm:text-[11px] text-[var(--text-secondary)] opacity-80 line-clamp-1 sm:line-clamp-none">
           Orch Assistant researches the live web & enforces team policies. Always review constraints before production.
         </div>
       </div>
 
       {/* Used Resources & Citations Modal */}
       <Dialog open={!!resourceModalMessage} onOpenChange={(open) => { if (!open) setResourceModalMessage(null); }}>
-        <DialogContent className="max-w-xl bg-[var(--surface)] border-[var(--border)] max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogContent className="w-[95vw] sm:max-w-xl bg-[var(--surface)] border-[var(--border)] max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="p-4 border-b border-[var(--border)]">
             <DialogTitle className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-amber-400" />

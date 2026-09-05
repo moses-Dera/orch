@@ -11,6 +11,7 @@ import { useHasAccess } from "@/hooks/useRole"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { scoreColor } from "@/lib/utils"
+import { CustomSelect } from "@/components/ui/custom-select"
 
 const BLANK = {
   id: "", projectId: "", description: "", constraints: "",
@@ -175,7 +176,7 @@ export default function ConstraintsPage() {
             
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
               {/* Metadata Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-[var(--text-secondary)]">Identifier ID</label>
                   <input
@@ -187,18 +188,17 @@ export default function ConstraintsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-[var(--text-secondary)]">Target Project</label>
-                  <select
+                  <CustomSelect
                     value={editing.projectId}
-                    onChange={e => setEditing(f => ({ ...f!, projectId: e.target.value }))}
-                    className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                  >
-                    <option value="">Select Project</option>
-                    {projects.map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                    onChange={val => setEditing(f => ({ ...f!, projectId: val }))}
+                    placeholder="Select Project"
+                    options={[
+                      { value: "", label: "Select Project" },
+                      ...projects.map((p: any) => ({ value: p.id, label: p.name })),
+                    ]}
+                  />
                 </div>
-                <div className="space-y-1.5 col-span-2">
+                <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-[var(--text-secondary)]">Description</label>
                   <input
                     placeholder="What does this constraint enforce?"
