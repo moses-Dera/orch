@@ -175,10 +175,10 @@ export default function PlatformOpsPage() {
         <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2 text-xs font-medium overflow-x-auto scrollbar-none flex-nowrap shrink-0">
           <button
             onClick={() => setActiveTab("infrastructure")}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === "infrastructure"
-                ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+                : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
             }`}
           >
             <Server className="w-3.5 h-3.5" />
@@ -186,10 +186,10 @@ export default function PlatformOpsPage() {
           </button>
           <button
             onClick={() => setActiveTab("tenants")}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === "tenants"
-                ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+                : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
@@ -197,10 +197,10 @@ export default function PlatformOpsPage() {
           </button>
           <button
             onClick={() => setActiveTab("gateway")}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === "gateway"
-                ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+                : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
             }`}
           >
             <Radio className="w-3.5 h-3.5" />

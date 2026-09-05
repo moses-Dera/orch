@@ -112,36 +112,36 @@ export default function AnalyticsPage() {
         <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2 text-xs font-medium overflow-x-auto scrollbar-none flex-nowrap shrink-0">
           <button
             onClick={() => setActiveTab("evaluations")}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === "evaluations"
-                ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+                : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
             }`}
           >
             <ShieldCheck size={14} />
-            PR Evaluations ({stats.total})
+            <span>PR Evaluations ({stats.total})</span>
           </button>
           <button
             onClick={() => setActiveTab("tokens")}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === "tokens"
-                ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+                : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
             }`}
           >
             <Flame size={14} />
-            Token Telemetry ({audit.sessions.length} logs)
+            <span>Token Telemetry ({audit.sessions.length} logs)</span>
           </button>
           <button
             onClick={() => setActiveTab("health")}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === "health"
-                ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+                : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
             }`}
           >
             <Layers size={14} />
-            Constraint Health ({healthSummary.total_constraints})
+            <span>Constraint Health ({healthSummary.total_constraints})</span>
           </button>
         </div>
 

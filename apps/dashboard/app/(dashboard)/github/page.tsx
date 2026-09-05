@@ -107,7 +107,7 @@ export default function GithubAppPage() {
     <div className="mt-8 pt-6 border-t border-[var(--background)]">
       <button 
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-white transition-colors mb-4"
+        className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors mb-4"
       >
         Advanced / Manual Fallback
         {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -161,7 +161,7 @@ export default function GithubAppPage() {
               
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-semibold text-white">{githubData.accountName || "GitHub Account"}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">{githubData.accountName || "GitHub Account"}</h2>
                 </div>
                 <p className="text-sm text-[var(--text-secondary)] mt-1">
                   Orch is actively monitoring your authorized repositories for Pull Requests.
@@ -170,18 +170,18 @@ export default function GithubAppPage() {
             </div>
 
             <div className="rounded-lg border bg-[var(--surface)] overflow-hidden">
-              <div className="p-4 border-b border-[var(--background)] bg-[var(--background)]/50">
-                <h3 className="text-sm font-semibold text-white">Authorized Repositories ({githubData.repos.length})</h3>
+              <div className="p-4 border-b border-[var(--border)] bg-[var(--surface)]">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Authorized Repositories ({githubData.repos.length})</h3>
               </div>
               {githubData.repos.length > 0 ? (
-                <ul className="divide-y divide-[var(--background)]">
+                <ul className="divide-y divide-[var(--border)]">
                   {githubData.repos.map((repo) => (
                     <li key={repo.id} className="p-4 text-sm flex items-center justify-between">
                       <div className="flex items-center gap-3 text-[var(--text-secondary)]">
                         <GithubIcon className="w-4 h-4" />
-                        <span className="text-white">{repo.full_name}</span>
+                        <span className="text-[var(--text-primary)] font-medium">{repo.full_name}</span>
                       </div>
-                      <span className="text-xs text-[var(--accent)]">Active</span>
+                      <span className="text-xs text-[var(--accent)] font-medium">Active</span>
                     </li>
                   ))}
                 </ul>
@@ -201,7 +201,7 @@ export default function GithubAppPage() {
               <div className="flex items-center gap-3">
                 <GithubIcon className="w-8 h-8" />
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Orch GitHub App</h2>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Orch GitHub App</h2>
                   <p className="text-sm text-[var(--text-secondary)]">Automated PR Reviews & Constraint Enforcement</p>
                 </div>
               </div>
@@ -210,7 +210,7 @@ export default function GithubAppPage() {
                 Install the Orch GitHub App to automatically review Pull Requests against your organization's active constraints. Orch will leave review comments and block merges if architectural rules are violated.
               </p>
 
-              <div className="pt-4 border-t border-[var(--background)]">
+              <div className="pt-4 border-t border-[var(--border)]">
                 <Button onClick={handleInstall} className="w-full flex items-center justify-center gap-2">
                   <GithubIcon className="w-4 h-4" />
                   Install on GitHub

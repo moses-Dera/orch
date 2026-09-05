@@ -6,7 +6,12 @@ import { usePathname } from "next/navigation"
 import { useHasAccess, useIsRoleLoading } from "@/hooks/useRole"
 import { cn } from "@/lib/utils"
 import { UserButton, useUser } from "@clerk/nextjs"
-import { Menu, X, Sun, Moon } from "lucide-react"
+import {
+  Menu, X, Sun, Moon,
+  MessageSquareCode, ShieldCheck, Store, Users,
+  FolderKanban, Cpu, GitPullRequest, BarChart3,
+  BookOpen, Settings, Server
+} from "lucide-react"
 import { useTheme } from "@/components/layout/ThemeProvider"
 import { OrgSwitcher } from "./OrgSwitcher"
 import { ProjectSwitcher } from "./ProjectSwitcher"
@@ -16,25 +21,26 @@ const PLATFORM_ADMIN_EMAIL = "okonkwomoses158@gmail.com"
 type NavItem = {
   href: string
   label: string
+  icon: React.ComponentType<{ className?: string }>
   adminOnly?: boolean
   platformOwnerOnly?: boolean
   badge?: string
 } | null
 
 const NAV: NavItem[] = [
-  { href: "/chat", label: "Chat" },
-  { href: "/constraints", label: "Constraints" },
-  { href: "/marketplace", label: "Marketplace" },
-  { href: "/team", label: "Team", adminOnly: true },
-  { href: "/projects", label: "Projects", adminOnly: true },
-  { href: "/models", label: "Models", adminOnly: true },
-  { href: "/github", label: "GitHub", adminOnly: true },
-  { href: "/analytics", label: "Analytics", adminOnly: true },
+  { href: "/chat", label: "Chat", icon: MessageSquareCode },
+  { href: "/constraints", label: "Constraints", icon: ShieldCheck },
+  { href: "/marketplace", label: "Marketplace", icon: Store },
+  { href: "/team", label: "Team", adminOnly: true, icon: Users },
+  { href: "/projects", label: "Projects", adminOnly: true, icon: FolderKanban },
+  { href: "/models", label: "Models", adminOnly: true, icon: Cpu },
+  { href: "/github", label: "GitHub", adminOnly: true, icon: GitPullRequest },
+  { href: "/analytics", label: "Analytics", adminOnly: true, icon: BarChart3 },
   null,
-  { href: "/docs", label: "Docs & MCP" },
-  { href: "/settings", label: "Settings" },
+  { href: "/docs", label: "Docs & MCP", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
   null,
-  { href: "/platform-ops", label: "Platform Ops", platformOwnerOnly: true, badge: "Root" },
+  { href: "/platform-ops", label: "Platform Ops", platformOwnerOnly: true, icon: Server, badge: "Root" },
 ]
 
 export function Sidebar() {
@@ -106,21 +112,30 @@ export function Sidebar() {
                   if (!shouldShowItem(item)) return null
 
                   const active = pathname === item.href
+                  const Icon = item.icon
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "group flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
                         active
                           ? "bg-[var(--accent)]/15 text-[var(--accent)]"
-                          : "text-[var(--text-secondary)] hover:bg-[var(--border)] hover:text-[var(--text-primary)]"
+                          : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
                       )}
                     >
-                      <span>{item.label}</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {Icon && (
+                          <Icon className={cn(
+                            "w-4 h-4 shrink-0 transition-colors",
+                            active ? "text-[var(--accent)]" : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
+                          )} />
+                        )}
+                        <span className="truncate">{item.label}</span>
+                      </div>
                       {item.badge && (
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/20 shrink-0">
                           {item.badge}
                         </span>
                       )}
@@ -152,20 +167,29 @@ export function Sidebar() {
               if (!shouldShowItem(item)) return null
 
               const active = pathname === item.href
+              const Icon = item.icon
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                    "group flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
                     active
                       ? "bg-[var(--accent)]/10 text-[var(--accent)] font-medium"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--border)] hover:text-[var(--text-primary)]"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
                   )}
                 >
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {Icon && (
+                      <Icon className={cn(
+                        "w-4 h-4 shrink-0 transition-colors",
+                        active ? "text-[var(--accent)]" : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
+                      )} />
+                    )}
+                    <span className="truncate">{item.label}</span>
+                  </div>
                   {item.badge && (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/20 shrink-0">
                       {item.badge}
                     </span>
                   )}

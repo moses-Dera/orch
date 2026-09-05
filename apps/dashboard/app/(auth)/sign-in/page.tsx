@@ -185,7 +185,7 @@ export default function SignInPage() {
           <Button
             type="submit"
             disabled={!isLoaded || submitting}
-            className="w-full mt-4 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
+            className="w-full mt-4 bg-[var(--accent)] text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
           >
             {submitting ? 'Signing in...' : isLoaded ? 'Sign In' : 'Loading...'}
           </Button>

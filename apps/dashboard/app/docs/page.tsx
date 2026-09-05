@@ -75,7 +75,7 @@ export default function DocsPage() {
           <Link href="/" className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1 transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> Home
           </Link>
-          <Link href="/sign-in" className="text-xs font-semibold bg-[var(--accent)] text-white px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">
+          <Link href="/sign-in" className="text-xs font-semibold bg-[var(--accent)] text-[var(--accent-foreground)] px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">
             Dashboard
           </Link>
         </div>
@@ -130,7 +130,7 @@ export default function DocsPage() {
               <Link href="/" onClick={() => setMobileNavOpen(false)} className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 ← Back to Home
               </Link>
-              <Link href="/sign-in" onClick={() => setMobileNavOpen(false)} className="block px-3 py-2.5 rounded-md bg-[var(--accent)] text-white text-sm font-semibold text-center">
+              <Link href="/sign-in" onClick={() => setMobileNavOpen(false)} className="block px-3 py-2.5 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] text-sm font-semibold text-center">
                 Go to Dashboard
               </Link>
             </div>

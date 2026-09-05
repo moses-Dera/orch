@@ -7,7 +7,7 @@ export const clerkAppearance: Appearance = {
     showOptionalFields: false,
   },
   variables: {
-    colorPrimary: "#6366f1",
+    colorPrimary: "#8c6d58",
     colorDanger: "#ef4444",
     borderRadius: "8px",
     fontFamily: "inherit",
@@ -41,7 +41,7 @@ export const clerkAppearance: Appearance = {
     formFieldInput: [
       "w-full rounded-md border border-[var(--border)] bg-[var(--background)]",
       "px-3 py-2 text-sm text-[var(--text-primary)] outline-none",
-      "focus:ring-1 focus:ring-[#6366f1] focus:border-[#6366f1]",
+      "focus:ring-1 focus:ring-[var(--accent)] focus:border-[var(--accent)]",
       "placeholder:text-[var(--text-secondary)]",
       "transition-colors",
     ].join(" "),
@@ -49,9 +49,9 @@ export const clerkAppearance: Appearance = {
 
     // Primary button
     formButtonPrimary: [
-      "w-full rounded-md bg-[#6366f1] hover:bg-[#4f46e5]",
-      "px-4 py-2 text-sm font-medium text-white",
-      "transition-colors normal-case shadow-none",
+      "w-full rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)]",
+      "px-4 py-2 text-sm font-medium text-[var(--accent-foreground)]",
+      "transition-colors normal-case shadow-none cursor-pointer",
     ].join(" "),
 
     // Social buttons

@@ -206,7 +206,7 @@ export default function SignUpPage() {
               <Button
                 type="submit"
                 disabled={!isLoaded || submitting}
-                className="w-full mt-4 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
+                className="w-full mt-4 bg-[var(--accent)] text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
               >
                 {submitting ? 'Creating account...' : isLoaded ? 'Continue' : 'Loading...'}
               </Button>
@@ -239,7 +239,7 @@ export default function SignUpPage() {
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full mt-4 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
+              className="w-full mt-4 bg-[var(--accent)] text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] font-semibold py-2.5 transition-colors cursor-pointer"
             >
               {submitting ? 'Verifying...' : 'Verify & Continue'}
             </Button>

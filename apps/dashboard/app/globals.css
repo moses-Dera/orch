@@ -16,6 +16,7 @@
   color-scheme: light;
   --background: #f9f7f3f8;
   --surface: #efece6;
+  --surface-hover: #e4e0d8;
   --border: #e5e2dc;
   --input: #e5e2dc;
   --ring: #8c6d58;
@@ -54,6 +55,7 @@
   color-scheme: dark;
   --background: #161311;
   --surface: #26201d;
+  --surface-hover: #322b27;
   --border: #3a312d;
   --input: #3a312d;
   --ring: #c4a48c;

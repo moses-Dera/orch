@@ -70,7 +70,7 @@ function CodeBlock({ language, children }: { language: string; children: string 
     <div className="relative group my-3 rounded-xl overflow-hidden border border-[var(--border)]">
       <div className="flex items-center justify-between px-4 py-1.5 bg-[var(--surface)] text-[10px] text-[var(--text-secondary)] font-mono border-b border-[var(--border)]">
         <span>{language || "code"}</span>
-        <button onClick={copy} className="flex items-center gap-1 hover:text-white transition-colors">
+        <button onClick={copy} className="flex items-center gap-1 hover:text-[var(--text-primary)] transition-colors">
           {copied ? <Check size={12} /> : <Copy size={12} />}
           {copied ? "Copied" : "Copy"}
         </button>

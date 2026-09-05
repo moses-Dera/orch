@@ -13,7 +13,8 @@ import { toast } from "sonner"
 import {
   Search, Download, Layers, Check, ExternalLink,
   Plus, ArrowRight, BookOpen, AlertTriangle, Filter, Sparkles,
-  Settings2, Trash2, Code2, Globe, CheckCircle2
+  Settings2, Trash2, Code2, Globe, CheckCircle2,
+  BookmarkCheck, UploadCloud
 } from "lucide-react"
 
 const POPULAR_TAGS = ["All", "Next.js", "Security", "Postgres", "Web3 / Solidity", "TypeScript", "Performance"]
@@ -204,7 +205,7 @@ export default function MarketplacePage() {
       action={
         <Button
           onClick={() => setActiveTab("publish")}
-          className="gap-2 bg-[var(--accent)] hover:opacity-90 text-black font-semibold text-xs h-8"
+          className="gap-2 bg-[var(--accent)] hover:opacity-90 text-[var(--accent-foreground)] font-semibold text-xs h-8"
         >
           <Plus size={14} />
           Publish Skill Pack
@@ -215,41 +216,45 @@ export default function MarketplacePage() {
       <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2 mb-6 text-sm font-medium overflow-x-auto scrollbar-none flex-nowrap shrink-0">
         <button
           onClick={() => setActiveTab("discover")}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
             activeTab === "discover"
-              ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+              : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
           }`}
         >
           <Globe size={15} />
-          Discover
+          <span>Discover</span>
         </button>
         <button
           onClick={() => setActiveTab("subscribed")}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
             activeTab === "subscribed"
-              ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+              : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
           }`}
         >
-          <Layers size={15} />
-          Subscribed to Project
+          <BookmarkCheck size={15} />
+          <span>Subscribed to Project</span>
           {subscribedData?.subscriptions && (
-            <span className="ml-1 text-[11px] px-1.5 py-0.2 rounded-full bg-[var(--border)] text-[var(--text-secondary)]">
+            <span className={`ml-1 text-[11px] px-1.5 py-0.5 rounded-full font-mono ${
+              activeTab === "subscribed"
+                ? "bg-[var(--accent)]/20 text-[var(--accent)]"
+                : "bg-[var(--border)] text-[var(--text-secondary)]"
+            }`}>
               {subscribedData.subscriptions.length}
             </span>
           )}
         </button>
         <button
           onClick={() => setActiveTab("publish")}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0 ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 cursor-pointer ${
             activeTab === "publish"
-              ? "bg-[var(--surface)] text-[var(--text-primary)] font-semibold border border-[var(--border)]"
-              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/20 shadow-xs"
+              : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
           }`}
         >
-          <Plus size={15} />
-          Publish Skill
+          <UploadCloud size={15} />
+          <span>Publish Skill</span>
         </button>
       </div>
 
@@ -371,7 +376,7 @@ export default function MarketplacePage() {
                       <Button
                         size="sm"
                         onClick={() => handleOpenSubscribe(skill)}
-                        className="text-xs h-7 px-3 bg-[var(--accent)] hover:opacity-90 text-black font-semibold"
+                        className="text-xs h-7 px-3 bg-[var(--accent)] hover:opacity-90 text-[var(--accent-foreground)] font-semibold"
                       >
                         Subscribe
                       </Button>
@@ -419,7 +424,7 @@ export default function MarketplacePage() {
               <Button
                 size="sm"
                 onClick={() => setActiveTab("discover")}
-                className="mt-4 text-xs bg-[var(--accent)] text-black font-semibold"
+                className="mt-4 text-xs bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold"
               >
                 Browse Marketplace
               </Button>
@@ -635,7 +640,7 @@ export default function MarketplacePage() {
           <Button
             type="submit"
             disabled={publishMutation.isPending}
-            className="w-full bg-[var(--accent)] text-black font-semibold h-9 text-xs"
+            className="w-full bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold h-9 text-xs"
           >
             {publishMutation.isPending ? "Publishing to Registry..." : "Publish Skill Pack to Registry"}
           </Button>
@@ -716,7 +721,7 @@ export default function MarketplacePage() {
                 setDetailSkillId(null)
                 if (skill) handleOpenSubscribe(skill)
               }}
-              className="text-xs bg-[var(--accent)] text-black font-semibold"
+              className="text-xs bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold"
             >
               Subscribe Project
             </Button>
@@ -828,7 +833,7 @@ export default function MarketplacePage() {
                   }
                 })
               }}
-              className="text-xs bg-[var(--accent)] text-black font-semibold"
+              className="text-xs bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold"
             >
               {subscribeMutation.isPending ? "Subscribing..." : "Confirm Subscription"}
             </Button>

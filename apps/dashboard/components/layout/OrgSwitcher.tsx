@@ -137,7 +137,7 @@ export function OrgSwitcher() {
                   <button
                     onClick={handleCreate}
                     disabled={!newOrgName.trim() || loading}
-                    className="flex-1 rounded-md bg-[var(--accent)] text-white text-xs py-1.5 font-medium disabled:opacity-50"
+                    className="flex-1 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] text-xs py-1.5 font-medium disabled:opacity-50"
                   >
                     {loading ? "Creating..." : "Create"}
                   </button>

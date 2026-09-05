@@ -254,7 +254,7 @@ export default function OnboardingContent() {
         {steps.map((s, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
-              i < step ? "bg-[var(--accent)] text-white"
+              i < step ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
               : i === step ? "border-2 border-[var(--accent)] text-[var(--accent)]"
               : "border text-[var(--text-secondary)]"
             }`}>

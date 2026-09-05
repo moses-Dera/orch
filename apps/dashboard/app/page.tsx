@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Shield, Terminal, ArrowRight, ShieldAlert, CheckCircle2, GitPullRequest, Layers, Sun, Moon, Menu, X } from "lucide-react"
+import { Shield, Terminal, ArrowRight, ShieldAlert, CheckCircle2, GitPullRequest, Layers, Sun, Moon, Menu, X, Database, KeyRound, Code2 } from "lucide-react"
 import Link from "next/link"
 import { useMe } from "@/hooks/useRole"
 import { useTheme } from "@/components/layout/ThemeProvider"
@@ -11,6 +11,7 @@ const INTERACTIVE_EXAMPLES = [
   {
     id: "sql",
     label: "SQL Security Guard",
+    icon: Database,
     description: "Intercepts raw SQL strings & parameterizes queries before database execution.",
     unsafe: `// UNCHECKED DRAFT
 const query = "SELECT * FROM users WHERE email = '" + req.body.email + "'";
@@ -24,6 +25,7 @@ const user = await db.select()
   {
     id: "secrets",
     label: "Secret & Key Protection",
+    icon: KeyRound,
     description: "Prevents hardcoded API keys, JWT secrets, and tokens from entering code commits.",
     unsafe: `// UNCHECKED DRAFT
 const stripeClient = new Stripe("sk_live_994827189381726");
@@ -36,6 +38,7 @@ const jwtSecret = process.env.JWT_SECRET!;`,
   {
     id: "types",
     label: "Strict Type Safety",
+    icon: Code2,
     description: "Enforces strict TypeScript boundaries and prevents un-typed 'any' bypasses.",
     unsafe: `// UNCHECKED DRAFT
 function processOrder(data: any): any {
@@ -143,7 +146,7 @@ export default function LandingPage() {
   const currentExample = INTERACTIVE_EXAMPLES[activeTab]
   const currentLayer = PIPELINE_LAYERS[activeLayer]
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)] font-sans selection:bg-[var(--accent)] selection:text-white relative overflow-hidden transition-colors">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)] font-sans selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)] relative overflow-hidden transition-colors">
       
       {/* Background Overlay (Removed matrix-bg.png to fix color bleed) */}
       <div className="absolute top-0 left-0 right-0 h-[500px] pointer-events-none">
@@ -169,7 +172,7 @@ export default function LandingPage() {
           <Link href="/docs" className="text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             DOCS
           </Link>
-          <Link href={ctaHref} className="text-xs font-semibold bg-[var(--accent)] text-white px-4 py-2 rounded-md hover:bg-[var(--accent-hover)] transition-colors shadow-sm font-mono cursor-pointer">
+          <Link href={ctaHref} className="text-xs font-semibold bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-md hover:bg-[var(--accent-hover)] transition-colors shadow-sm font-mono cursor-pointer">
             {ctaLabel}
           </Link>
         </div>
@@ -213,7 +216,7 @@ export default function LandingPage() {
               <Link
                 href={ctaHref}
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-3 rounded-md bg-[var(--accent)] text-white text-center font-semibold transition-colors"
+                className="p-3 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] text-center font-semibold transition-colors"
               >
                 {ctaLabel}
               </Link>
@@ -280,19 +283,23 @@ export default function LandingPage() {
           <div className="space-y-4 w-full">
             {/* Rule Selector Tabs */}
             <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[var(--border)] no-scrollbar">
-              {INTERACTIVE_EXAMPLES.map((ex, i) => (
-                <button
-                  key={ex.id}
-                  onClick={() => setActiveTab(i)}
-                  className={`px-3.5 py-2 rounded-t-md text-xs font-mono transition-colors cursor-pointer border-t border-x whitespace-nowrap ${
-                    activeTab === i
-                      ? "bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] font-semibold border-b-transparent"
-                      : "bg-transparent border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  {ex.label}
-                </button>
-              ))}
+              {INTERACTIVE_EXAMPLES.map((ex, i) => {
+                const Icon = ex.icon
+                return (
+                  <button
+                    key={ex.id}
+                    onClick={() => setActiveTab(i)}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-t-md text-xs font-mono transition-colors cursor-pointer border-t border-x whitespace-nowrap ${
+                      activeTab === i
+                        ? "bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] font-semibold border-b-transparent"
+                        : "bg-transparent border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]/40"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{ex.label}</span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Interceptor Code Box */}
