@@ -11,6 +11,96 @@
 
 ---
 
+## Deck Design System & Visual Specification
+
+### 1. Aesthetic Philosophy: "Obsidian Precision"
+* **Tone:** High-contrast developer infrastructure, industrial elegance, precision tooling (akin to Linear, Stripe Press, and Vercel).
+* **Atmosphere:** Dark obsidian canvas with warm bronze/amber accents that feel like an elite developer workbench rather than a generic corporate slide deck.
+* **Aspect Ratio:** **16:9 Widescreen** (Standard: `1920 × 1080 px` or 4K: `3840 × 2160 px`).
+
+---
+
+### 2. Exact Color Palette & Hex Tokens
+
+| Role | Token Name | Hex Code | Usage |
+| :--- | :--- | :--- | :--- |
+| **Canvas Background** | `--bg-obsidian` | `#0D0B0A` | Deep dark slate canvas background for all slides |
+| **Surface / Cards** | `--surface-espresso` | `#191513` | Slide containers, code terminal backgrounds, feature cards |
+| **Borders & Dividers**| `--border-warm` | `#2E2622` | Crisp 1px card borders, grid lines, terminal borders |
+| **Primary Accent** | `--accent-bronze` | `#C49D82` | Highlights, active icons, primary metric numbers, logos |
+| **Accent Glow** | `--accent-glow` | `#E0BCA0` | Subtle gradient badges, glowing focal points, hover states |
+| **Primary Text** | `--text-primary` | `#FDFBF7` | Slide titles, key headlines, big stats, prominent copy |
+| **Secondary Text** | `--text-secondary` | `#9E9087` | Subtitles, descriptions, speaker note summaries, labels |
+| **Terminal / Code Bg** | `--code-bg` | `#120F0D` | Dark inset code editor frames |
+
+#### Telemetry & Status Accents (Functional Highlights)
+* **Success / Pass / Online:** `#10B981` (Emerald Green) — *Used for passes, zero-latency badges, online nodes*
+* **Active / Telemetry / MCP:** `#38BDF8` (Sky Blue) — *Used for MCP server connections, API flows*
+* **Violation / Block / Flaw:** `#EF4444` (Ruby Red) — *Used for security vulnerabilities, forbidden patterns*
+* **Warning / Queued:** `#F59E0B` (Warm Amber) — *Used for queue latency, review warnings*
+
+---
+
+### 3. Typography Hierarchy & Font Specs
+
+* **Primary Font Family:** **Inter Tight** or **Geist Sans** (Clean, geometric, modern sans-serif)
+* **Monospace Font Family:** **JetBrains Mono** or **Fira Code** (For terminal blocks, code diffs, latency badges)
+
+| Element | Font Family | Weight | Size (1080p) | Tracking | Line Height |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Slide Category / Eyebrow** | JetBrains Mono | Medium (500) | `13px` | `+0.08em` (Caps) | `1.0` |
+| **Slide Main Title (H1)** | Inter Tight | Bold (700) | `46px - 52px` | `-0.03em` | `1.1` |
+| **Slide Subtitle / Lead** | Inter | Medium (500) | `20px - 24px` | `-0.01em` | `1.3` |
+| **Section Header (H2)** | Inter Tight | SemiBold (600) | `26px - 30px` | `-0.02em` | `1.2` |
+| **Card Body Copy** | Inter | Regular (400) | `15px - 17px` | `0` | `1.5` |
+| **Giant Stat Callout** | Inter Tight | Bold (700) | `64px - 76px` | `-0.04em` | `1.0` |
+| **Stat Label** | Inter | Medium (500) | `13px` | `+0.04em` (Caps) | `1.2` |
+| **Code / Terminal Text** | JetBrains Mono | Regular (400) | `13px - 14px` | `0` | `1.6` |
+
+---
+
+### 4. Layout Grid & Spacing Rules
+
+* **Columns:** 12-Column Grid with `80px` left/right margin and `60px` top/bottom margin.
+* **Gutter:** `24px` between columns.
+* **Baseline Grid:** 8px increments (`8px`, `16px`, `24px`, `32px`, `48px`, `64px`, `80px`).
+* **Slide Card Style:**
+  * Background: `#191513`
+  * Border: `1px solid #2E2622`
+  * Corner Radius: `12px` or `14px`
+  * Padding: `24px` to `32px`
+  * Drop Shadow: `0 20px 40px -15px rgba(0, 0, 0, 0.6)`
+
+---
+
+### 5. Component & Graphic Visual Specs
+
+1. **Terminal Mockups (Slide 1 & Slide 4):**
+   * Window chrome: 3 macOS dots (`#EF4444`, `#F59E0B`, `#10B981`) at top-left.
+   * Background: `#120F0D` with 1px border `#2E2622`.
+   * Include realistic prompt interception output:
+     ```bash
+     $ orch mcp --status
+     [✓] Connected to Cursor IDE (port 4040)
+     [!] Intercepted prompt: "create user checkout handler"
+     [+] Injected Rule: "rule_postgres_safe_transaction_v2" (14ms)
+     [✓] Constraint applied. 0 security leaks detected.
+     ```
+2. **Stat Cards (Slide 2 & Slide 5):**
+   * Use giant numbers in `#FDFBF7` with `--accent-bronze` gradient highlights.
+   * Underneath, place a 1-line bold uppercase caption in `--text-secondary`.
+3. **Architecture Diagrams (Slide 3 & Slide 4):**
+   * 3-Stage horizontal flow:
+     `[Developer in Cursor/Copilot]` ──(MCP Request)──> `[Orch Central Plane]` ──(Enforced Prompt)──> `[Underlying LLM]`
+   * Highlight the Orch node with a 1px glowing bronze border (`#C49D82`).
+4. **Competitive Matrix (Slide 9):**
+   * Clean table with dark rows (`#191513` and `#14100E`).
+   * Checkmarks: Solid Emerald circle with white check (`#10B981`).
+   * Crosses: Subtle muted red cross (`#EF4444`).
+   * Highlight the "Orch" column with a glowing top border and subtle 5% bronze background tint.
+
+---
+
 ## Slide-by-Slide Master Blueprint
 
 ### Slide 1: Company Purpose (The Hook)
