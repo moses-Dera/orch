@@ -182,7 +182,11 @@ export async function POST(req: Request) {
         if (userText) {
           fetch(`${BACKEND_URL}/v1/chat/sessions/${id}/messages`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'X-Clerk-User-Id': userId || '',
+            },
             body: JSON.stringify({ role: 'user', content: userText })
           }).catch(err => console.error('[DB] Failed to save user message:', err));
         }
@@ -192,7 +196,11 @@ export async function POST(req: Request) {
       if (event.text) {
         fetch(`${BACKEND_URL}/v1/chat/sessions/${id}/messages`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'X-Clerk-User-Id': userId || '',
+          },
           body: JSON.stringify({ role: 'assistant', content: event.text })
         }).catch(err => console.error('[DB] Failed to save assistant message:', err));
       }

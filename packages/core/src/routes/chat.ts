@@ -30,11 +30,17 @@ chatRouter.get('/sessions', async (c) => {
 // GET /v1/chat/sessions/:id
 chatRouter.get('/sessions/:id', async (c) => {
   const teamId = c.get('teamId');
+  const userId = c.get('userId');
   const sessionId = c.req.param('id');
+
+  const conditions = [eq(sessions.id, sessionId), eq(sessions.teamId, teamId)];
+  if (userId) {
+    conditions.push(eq(sessions.userId, userId));
+  }
 
   const [session] = await db.select()
     .from(sessions)
-    .where(and(eq(sessions.id, sessionId), eq(sessions.teamId, teamId)));
+    .where(and(...conditions));
 
   if (!session) {
     return c.json({ error: 'Session not found' }, 404);
@@ -46,14 +52,20 @@ chatRouter.get('/sessions/:id', async (c) => {
 // GET /v1/chat/sessions/:id/messages
 chatRouter.get('/sessions/:id/messages', async (c) => {
   const teamId = c.get('teamId');
+  const userId = c.get('userId');
   const sessionId = c.req.param('id');
 
   if (!teamId) {
     return c.json({ messages: [] });
   }
 
-  // Verify ownership
-  const [session] = await db.select().from(sessions).where(and(eq(sessions.id, sessionId), eq(sessions.teamId, teamId)));
+  // Verify ownership scoped to this specific user & team
+  const conditions = [eq(sessions.id, sessionId), eq(sessions.teamId, teamId)];
+  if (userId) {
+    conditions.push(eq(sessions.userId, userId));
+  }
+
+  const [session] = await db.select().from(sessions).where(and(...conditions));
   if (!session) {
     // New/unpersisted session: return empty array cleanly instead of 404
     return c.json({ messages: [] });
