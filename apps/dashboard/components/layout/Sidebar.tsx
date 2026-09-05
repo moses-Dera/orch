@@ -5,13 +5,21 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useHasAccess, useIsRoleLoading } from "@/hooks/useRole"
 import { cn } from "@/lib/utils"
-import { UserButton } from "@clerk/nextjs"
+import { UserButton, useUser } from "@clerk/nextjs"
 import { Menu, X, Sun, Moon } from "lucide-react"
 import { useTheme } from "@/components/layout/ThemeProvider"
 import { OrgSwitcher } from "./OrgSwitcher"
 import { ProjectSwitcher } from "./ProjectSwitcher"
 
-type NavItem = { href: string; label: string; adminOnly?: boolean } | null
+const PLATFORM_ADMIN_EMAIL = "okonkwomoses158@gmail.com"
+
+type NavItem = {
+  href: string
+  label: string
+  adminOnly?: boolean
+  platformOwnerOnly?: boolean
+  badge?: string
+} | null
 
 const NAV: NavItem[] = [
   { href: "/chat", label: "Chat" },
@@ -25,18 +33,26 @@ const NAV: NavItem[] = [
   null,
   { href: "/docs", label: "Docs & MCP" },
   { href: "/settings", label: "Settings" },
+  null,
+  { href: "/platform-ops", label: "Platform Ops", platformOwnerOnly: true, badge: "Root" },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const isAdmin = useHasAccess("admin")
   const isRoleLoading = useIsRoleLoading()
+  const { user } = useUser()
   const { theme, toggle } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const isPlatformOwner = user?.primaryEmailAddress?.emailAddress?.toLowerCase() === PLATFORM_ADMIN_EMAIL
 
   // While the role is loading, show ALL links to avoid a flash of missing items.
   // Once the role resolves, hide admin-only links for non-admins.
   const shouldShowItem = (item: NonNullable<NavItem>) => {
+    if (item.platformOwnerOnly) {
+      return isPlatformOwner
+    }
     if (!item.adminOnly) return true
     if (isRoleLoading) return true // show while loading to prevent flicker
     return isAdmin
@@ -96,13 +112,18 @@ export function Sidebar() {
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
                         active
                           ? "bg-[var(--accent)]/15 text-[var(--accent)]"
                           : "text-[var(--text-secondary)] hover:bg-[var(--border)] hover:text-[var(--text-primary)]"
                       )}
                     >
-                      {item.label}
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   )
                 })}
@@ -136,13 +157,18 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center rounded-md px-3 py-2 text-sm transition-colors",
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
                     active
                       ? "bg-[var(--accent)]/10 text-[var(--accent)] font-medium"
                       : "text-[var(--text-secondary)] hover:bg-[var(--border)] hover:text-[var(--text-primary)]"
                   )}
                 >
-                  {item.label}
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               )
             })}

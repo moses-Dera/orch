@@ -78,6 +78,8 @@ export const api = {
 
   health: () => req<HealthResponse>("/v1/dashboard/health/scores"),
 
+  getPlatformOps: () => req<any>("/v1/platform/ops"),
+
   logOverride: (body: {
     constraint_id: string
     session_id: string
