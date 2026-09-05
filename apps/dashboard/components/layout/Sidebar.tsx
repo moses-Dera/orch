@@ -16,7 +16,10 @@ import { useTheme } from "@/components/layout/ThemeProvider"
 import { OrgSwitcher } from "./OrgSwitcher"
 import { ProjectSwitcher } from "./ProjectSwitcher"
 
-const PLATFORM_ADMIN_EMAIL = "okonkwomoses158@gmail.com"
+const PLATFORM_ADMIN_EMAILS = [
+  "okonkwomoses158@gmail.com",
+  "mosesjohnson706@gmail.com",
+]
 
 type NavItem = {
   href: string
@@ -51,7 +54,8 @@ export function Sidebar() {
   const { theme, toggle } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const isPlatformOwner = user?.primaryEmailAddress?.emailAddress?.toLowerCase() === PLATFORM_ADMIN_EMAIL
+  const userEmail = (user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "").toLowerCase()
+  const isPlatformOwner = PLATFORM_ADMIN_EMAILS.includes(userEmail)
 
   // While the role is loading, show ALL links to avoid a flash of missing items.
   // Once the role resolves, hide admin-only links for non-admins.

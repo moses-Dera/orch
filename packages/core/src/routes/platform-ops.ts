@@ -12,24 +12,43 @@ export const platformOpsRouter = new Hono();
 // GET /v1/platform/ops
 // Super Admin only endpoint for system health, infrastructure vitals, and cross-tenant telemetry
 platformOpsRouter.get('/ops', async (c) => {
-  const adminEmail = (process.env.ADMIN_EMAIL || 'okonkwomoses158@gmail.com').trim().toLowerCase();
+  const adminEmails = [
+    (process.env.ADMIN_EMAIL || 'okonkwomoses158@gmail.com').trim().toLowerCase(),
+    'mosesjohnson706@gmail.com',
+  ];
   const authHeader = c.req.header('Authorization');
   const clerkUserId = c.req.header('X-Clerk-User-Id');
+  const clerkUserEmail = c.req.header('X-Clerk-User-Email')?.trim().toLowerCase();
   const serverSecret = process.env.ORCH_API_KEY;
 
   let isAuthorized = false;
 
-  // Direct server key authorization
+  // 1. Direct server secret key authorization (from internal proxy or scripts)
   if (serverSecret && authHeader === `Bearer ${serverSecret}`) {
     isAuthorized = true;
   }
 
-  // Clerk User ID check against ADMIN_EMAIL
+  // 2. Verified Clerk user email from proxy header
+  if (!isAuthorized && clerkUserEmail && adminEmails.includes(clerkUserEmail)) {
+    isAuthorized = true;
+  }
+
+  // 3. Clerk User ID check against database users table
   if (!isAuthorized && clerkUserId) {
     const [user] = await db.select().from(users).where(eq(users.id, clerkUserId));
-    if (user && user.email.trim().toLowerCase() === adminEmail) {
+    if (user && adminEmails.includes(user.email.trim().toLowerCase())) {
       isAuthorized = true;
     }
+  }
+
+  // Auto-sync owner to users table if authenticated via proxy
+  if (isAuthorized && clerkUserId && clerkUserEmail) {
+    await db.insert(users).values({
+      id: clerkUserId,
+      email: clerkUserEmail,
+      firstName: 'Moses',
+      lastName: 'Okonkwo',
+    }).onConflictDoNothing().catch(() => {});
   }
 
   if (!isAuthorized) {
@@ -111,7 +130,7 @@ platformOpsRouter.get('/ops', async (c) => {
   return c.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    admin_email: adminEmail,
+    admin_email: clerkUserEmail || adminEmails[0],
     vitals: {
       uptime_seconds: uptimeSeconds,
       memory_rss_mb: Math.round(memory.rss / (1024 * 1024)),

@@ -1,9 +1,14 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@clerk/nextjs/server"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 
 const ORCH_API_URL = process.env.ORCH_API_URL ?? "http://127.0.0.1:8000"
 const ORCH_API_KEY = process.env.ORCH_API_KEY ?? ""
+
+const PLATFORM_ADMIN_EMAILS = [
+  "okonkwomoses158@gmail.com",
+  "mosesjohnson706@gmail.com",
+]
 
 const pendingMeRequests = new Map<string, Promise<string>>();
 
@@ -45,11 +50,28 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
     url.searchParams.set("org_id", activeOrgId)
   }
 
-  // Read API key from cookie — set once at onboarding, never fetched again
-  // Fallback: if cookie missing (existing users), fetch /me once and set it
+  const isPlatformOps = path.startsWith("v1/platform")
+  let userEmail = ""
   let apiKey = isOnboarding ? ORCH_API_KEY : (jar.get("orch_key")?.value ?? "")
 
-  if (!isOnboarding && !apiKey) {
+  if (isPlatformOps) {
+    const user = await currentUser()
+    userEmail = (user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "").trim().toLowerCase()
+    const allowedAdmins = [
+      ...PLATFORM_ADMIN_EMAILS,
+      (process.env.ADMIN_EMAIL || "").trim().toLowerCase()
+    ].filter(Boolean)
+
+    if (!allowedAdmins.includes(userEmail)) {
+      return NextResponse.json({ error: "Forbidden: Restricted to platform owner" }, { status: 403 })
+    }
+    // Authenticated Platform Owner — use server secret to query core engine
+    apiKey = ORCH_API_KEY
+  }
+
+  // Read API key from cookie — set once at onboarding, never fetched again
+  // Fallback: if cookie missing (existing users), fetch /me once and set it
+  if (!isPlatformOps && !isOnboarding && !apiKey) {
     const activeOrgId = jar.get("orch_active_org")?.value ?? ""
     const cacheKey = `${userId}:${activeOrgId}`;
 
@@ -92,6 +114,7 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${apiKey}`,
     "X-Clerk-User-Id": userId,
+    ...(userEmail ? { "X-Clerk-User-Email": userEmail } : {}),
   }
 
   const modelKey = req.headers.get("X-Model-API-Key")

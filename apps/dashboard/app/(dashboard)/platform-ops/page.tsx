@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs"
 import { PageShell } from "@/components/layout/PageShell"
 import { PageSkeleton } from "@/components/shared/LoadingSkeleton"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import {
   Server, Cpu, Database, Activity, ShieldCheck,
@@ -13,20 +14,25 @@ import {
   AlertTriangle, Clock, RefreshCw, Lock
 } from "lucide-react"
 
-const PLATFORM_ADMIN_EMAIL = "okonkwomoses158@gmail.com"
+const PLATFORM_ADMIN_EMAILS = [
+  "okonkwomoses158@gmail.com",
+  "mosesjohnson706@gmail.com",
+]
 
 export default function PlatformOpsPage() {
   const { user, isLoaded } = useUser()
   const [activeTab, setActiveTab] = useState<"infrastructure" | "tenants" | "gateway">("infrastructure")
 
-  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() || ""
-  const isPlatformOwner = userEmail === PLATFORM_ADMIN_EMAIL
+  const userEmail = (user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "").toLowerCase()
+  const isPlatformOwner = PLATFORM_ADMIN_EMAILS.includes(userEmail)
 
-  const { data: ops, isLoading, refetch, isRefetching } = useQuery({
+  const { data: ops, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ["platform-ops"],
     queryFn: api.getPlatformOps,
     enabled: isLoaded && isPlatformOwner,
-    refetchInterval: 15000, // Live poll every 15s
+    refetchInterval: (query) => (query.state.error ? false : 15000),
+    retry: 1,
+    staleTime: 10000,
   })
 
   if (!isLoaded || (isPlatformOwner && isLoading)) {
@@ -46,11 +52,32 @@ export default function PlatformOpsPage() {
           </div>
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Restricted to Platform Owner</h2>
           <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">
-            This root control room is strictly reserved for the Orch platform operator (<code className="text-xs font-mono">{PLATFORM_ADMIN_EMAIL}</code>).
+            This root control room is strictly reserved for the Orch platform operator (<code className="text-xs font-mono">{PLATFORM_ADMIN_EMAILS[0]}</code>).
           </p>
           <p className="text-xs text-[var(--text-secondary)] mt-4">
             If you are looking for your workspace monitoring, visit the <a href="/analytics" className="text-[var(--accent)] hover:underline">Ops & Analytics</a> tab.
           </p>
+        </div>
+      </PageShell>
+    )
+  }
+
+  if (isError) {
+    return (
+      <PageShell
+        title="Platform Control Center"
+        description="Global system observability and fleet infrastructure."
+      >
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-8 text-center max-w-lg mx-auto my-12">
+          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">Unable to fetch Platform Vitals</h2>
+          <p className="text-xs text-[var(--text-secondary)] mt-2 font-mono">
+            {(error as any)?.message || "Connection refused or unauthorized"}
+          </p>
+          <Button onClick={() => refetch()} size="sm" className="mt-4 gap-2 bg-[var(--accent)] text-[var(--accent-foreground)]">
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry Connection
+          </Button>
         </div>
       </PageShell>
     )
