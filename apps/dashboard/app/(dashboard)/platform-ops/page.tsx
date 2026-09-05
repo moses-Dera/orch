@@ -107,31 +107,33 @@ export default function PlatformOpsPage() {
       <div className="space-y-6">
 
         {/* ─── LIVE REFRESH TOOLBAR ─────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--border)] p-3 sm:px-4 sm:py-3 rounded-xl">
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--border)] p-3 sm:px-4 sm:py-2.5 rounded-xl">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--background)] border border-[var(--border)] shadow-xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
+              <span className="text-xs font-semibold text-[var(--text-primary)]">
+                Core Fleet Operational
+              </span>
+            </div>
+
+            <span className="text-[11px] font-mono text-[var(--text-secondary)] bg-[var(--background)] px-2.5 py-1 rounded-lg border border-[var(--border)]">
+              {vitals.bun_version || "Bun 1.4"}
             </span>
-            <span className="text-xs font-semibold text-[var(--text-primary)]">
-              Core Fleet Online
-            </span>
-            <span className="text-[11px] font-mono text-[var(--text-secondary)] bg-[var(--background)] px-2 py-0.5 rounded border border-[var(--border)]">
-              {vitals.bun_version || "Bun 1.3"}
-            </span>
-            <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-              {vitals.db_latency_ms}ms DB ping
-            </span>
+
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+              <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>{vitals.db_latency_ms ?? 0}ms latency</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <span className="text-[11px] text-[var(--text-secondary)]">
               Polled every 15s
             </span>
             <button
               onClick={() => refetch()}
               disabled={isRefetching}
-              className="p-1.5 rounded-md border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
               title="Refresh Fleet Status"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin" : ""}`} />
@@ -251,7 +253,7 @@ export default function PlatformOpsPage() {
                 </div>
                 <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]/50">
                   <span className="text-[var(--text-secondary)]">Environment</span>
-                  <span className="font-mono text-xs uppercase text-emerald-400">{vitals.environment}</span>
+                  <span className="font-mono text-xs uppercase text-emerald-600 dark:text-emerald-400">{vitals.environment}</span>
                 </div>
                 <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]/50">
                   <span className="text-[var(--text-secondary)]">Process Resident Memory (RSS)</span>
@@ -263,7 +265,7 @@ export default function PlatformOpsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[var(--text-secondary)]">Database Pool Ping (Supabase AWS)</span>
-                  <span className="font-mono text-xs text-emerald-400 font-semibold">{vitals.db_latency_ms} ms</span>
+                  <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-semibold">{vitals.db_latency_ms} ms</span>
                 </div>
               </div>
             </div>
@@ -282,22 +284,22 @@ export default function PlatformOpsPage() {
               <div className="p-5 grid grid-cols-2 gap-3">
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3.5">
                   <p className="text-xs text-[var(--text-secondary)]">Queued Backlog</p>
-                  <p className="text-xl font-bold text-amber-400 mt-1">{queue.queued}</p>
+                  <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">{queue.queued}</p>
                   <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Waiting for worker lock</p>
                 </div>
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3.5">
                   <p className="text-xs text-[var(--text-secondary)]">In-Flight Processing</p>
-                  <p className="text-xl font-bold text-sky-400 mt-1">{queue.processing}</p>
+                  <p className="text-xl font-bold text-sky-600 dark:text-sky-400 mt-1">{queue.processing}</p>
                   <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">SKIP LOCKED active</p>
                 </div>
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3.5">
                   <p className="text-xs text-[var(--text-secondary)]">Completed Successfully</p>
-                  <p className="text-xl font-bold text-emerald-400 mt-1">{queue.completed}</p>
+                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{queue.completed}</p>
                   <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Executed tasks</p>
                 </div>
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3.5">
                   <p className="text-xs text-[var(--text-secondary)]">Failed After Retries</p>
-                  <p className="text-xl font-bold text-rose-400 mt-1">{queue.failed}</p>
+                  <p className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">{queue.failed}</p>
                   <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Max attempts reached</p>
                 </div>
               </div>
